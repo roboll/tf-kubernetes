@@ -33,24 +33,20 @@ resource aws_ecr_repository_policy podmaster {
     policy = "${template_file.ecr_pull_policy.rendered}"
 }
 
-resource dockerx_push hyperkube {
+resource ecr_push hyperkube {
     image = "${var.hyperkube}"
     tag = "${var.hyperkube_tag}"
     name = "${aws_ecr_repository.hyperkube.name}"
     repo = "${replace(aws_ecr_repository.hyperkube.repository_url, "/^https://(.*)/.*$/", "$1")}"
 
-    ecr_region = "${var.region}"
-
     depends_on = [ "docker_image.hyperkube", "aws_ecr_repository_policy.hyperkube" ]
 }
 
-resource dockerx_push podmaster {
+resource ecr_push podmaster {
     image = "${module.podmaster.image}"
     tag = "${module.podmaster.tag}"
     name = "${aws_ecr_repository.podmaster.name}"
     repo = "${replace(aws_ecr_repository.podmaster.repository_url, "/^https://(.*)/.*$/", "$1")}"
-
-    ecr_region = "${var.region}"
 
     depends_on = [ "aws_ecr_repository_policy.podmaster" ]
 }
