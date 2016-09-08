@@ -169,8 +169,8 @@ resource aws_instance controller {
     depends_on = [
         "vaultx_policy.controller",
         "vaultx_secret.service_account",
-        "vaultx_secret_write_only.controller_role",
-        "vaultx_secret_write_only.pki_init"
+        "vaultx_secret.controller_role",
+        "vaultx_secret.pki_init"
     ]
 }
 
