@@ -167,7 +167,7 @@ resource aws_instance controller {
         Role = "controller"
         Environment = "${var.env}"
         KubernetesCluster = "${var.env}"
-        VaultRole = "${vaultx_secret.role_tag.data.tag_value}"
+        VaultRole = "${vaultx_secret.role_tag.data["tag_value"]}"
     }
 
     lifecycle { ignore_changes = [ "ami" ] }
