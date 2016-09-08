@@ -93,7 +93,7 @@ resource vaultx_secret role {
     data {
         policies = "${vaultx_policy.controller.name}"
         bound_ami_id = "${var.image_id}"
-        role_tag_key = "VaultRole"
+        role_tag = "VaultRole"
         max_ttl = "48h"
     }
 }
