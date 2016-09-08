@@ -121,7 +121,7 @@ resource coreos_cloudconfig cloud_config {
 
     count = "${var.replicas}"
 
-    depends_on = [ "vaultx_policy.controller", "vaultx_secret_write_only.controller_role" ]
+    depends_on = [ "vaultx_policy.controller", "vaultx_secret.controller_role" ]
 }
 
 resource aws_instance controller {
