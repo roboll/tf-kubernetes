@@ -26,7 +26,7 @@ resource vaultx_ec2_role role {
     role = "${vaultx_policy.worker.name}"
 
     policies = [ "${vaultx_policy.worker.name}" ]
-    bound_ami_id = "${module.coreos.id}"
+    bound_ami_id = "${var.image_id}"
     role_tag_key = "VaultRole"
     max_ttl = "48h"
 }
