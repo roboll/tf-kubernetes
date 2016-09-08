@@ -2,7 +2,7 @@ variable env {}
 variable region {}
 
 variable vpc {}
-variable subnets {}
+variable subnets { type = "list" }
 variable subnet_cidrs { type = "list" }
 
 variable ssh_keypair {}
