@@ -107,6 +107,8 @@ resource vaultx_secret role_tag {
         policies = "${vaultx_policy.controller.name}"
         tag_data = ""
     }
+
+    depends_on = [ "vaultx_secret.role" ]
 }
 
 data vaultx_secret oidc {
