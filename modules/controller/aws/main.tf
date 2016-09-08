@@ -35,6 +35,10 @@ variable addon_manager_tag { default = "v5.1" }
 
 variable cidr_offset { default = "16" }
 
+provider aws {
+    region = "${var.region}"
+}
+
 resource aws_iam_role kube_controller {
     name = "${var.env}-kube_controller"
     path = "/${var.env}/"
