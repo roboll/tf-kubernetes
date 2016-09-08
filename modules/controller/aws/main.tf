@@ -115,7 +115,7 @@ resource coreos_cloudconfig cloud_config {
         vault_address = "${var.vault_address}"
         vault_pki_mount = "${template_file.pki_mount.rendered}"
         vault_pki_role = "controller"
-        vault_instance_role = "${vaultx_ec2_role.role.role}"
+        vault_instance_role = "${vaultx_policy.controller.name}"
         service_account_path = "${vaultx_secret.service_account.path}"
     }
 
@@ -159,7 +159,7 @@ resource aws_instance controller {
         Role = "controller"
         Environment = "${var.env}"
         KubernetesCluster = "${var.env}"
-        VaultRole = "${vaultx_ec2_role_tag.role_tag.tag_value}"
+        VaultRole = "${vaultx_secret.role_tag.data.tag_value}"
     }
 
     lifecycle { ignore_changes = [ "ami" ] }
