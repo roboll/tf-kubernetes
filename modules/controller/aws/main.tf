@@ -106,8 +106,8 @@ resource coreos_cloudconfig cloud_config {
         etcd_peers = "${template_file.etcd_members.rendered}"
         instance_name = "${element(split(",", template_file.etcd_members.vars.name_list), count.index)}"
 
-        hyperkube = "${dockerx_push.hyperkube.latest_url}"
-        podmaster = "${dockerx_push.podmaster.latest_url}"
+        hyperkube = "${ecr_push.hyperkube.latest_url}"
+        podmaster = "${ecr_push.podmaster.latest_url}"
         ssh_helper = "${var.ssh_helper_image}"
 
         fqdn = "${var.fqdn}"
