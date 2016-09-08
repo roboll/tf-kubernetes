@@ -9,7 +9,7 @@ variable vault_address {}
 variable ssh_helper_image {}
 variable vault_pki_backend {}
 
-variable security_groups {}
+variable security_groups { type = "list" }
 
 variable image_id {}
 variable replicas { default = 3 }
@@ -97,7 +97,7 @@ resource aws_launch_configuration worker {
     key_name = "${var.ssh_keypair}"
     user_data = "${coreos_cloudconfig.cloud_config.rendered}"
 
-    security_groups = [ "${compact(split(",", var.security_groups))}" ]
+    security_groups = [ "${var.security_groups}" ]
     iam_instance_profile = "${aws_iam_instance_profile.kube_worker.name}"
 
     ebs_optimized = "${var.ebs_optimized}"
@@ -114,7 +114,7 @@ resource aws_autoscaling_group worker {
     name = "${var.env}-kube-worker-${var.worker_class}-autoscale"
 
     launch_configuration = "${aws_launch_configuration.worker.name}"
-    vpc_zone_identifier = [ "${split(",", var.subnets)}" ]
+    vpc_zone_identifier = [ "${var.subnets}" ]
 
     min_size = "${var.min_replicas}"
     max_size = "${var.max_replicas}"

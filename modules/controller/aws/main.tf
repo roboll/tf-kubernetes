@@ -3,7 +3,7 @@ variable region {}
 
 variable vpc {}
 variable subnets {}
-variable subnet_cidrs {}
+variable subnet_cidrs { type = "list" }
 
 variable ssh_keypair {}
 variable vault_address {}
@@ -78,7 +78,7 @@ resource aws_iam_instance_profile kube_controller {
 resource template_file instances {
     vars {
         name = "controller${count.index}"
-        ip = "${cidrhost(element(split(",", var.subnet_cidrs), count.index), (count.index / length(split(",", var.subnet_cidrs)) + var.cidr_offset))}"
+        ip = "${cidrhost(element(var.subnet_cidrs, count.index), (count.index / length(var.subnet_cidrs) + var.cidr_offset))}"
     }
 
     template = ""
@@ -134,10 +134,10 @@ resource aws_instance controller {
     iam_instance_profile = "${aws_iam_instance_profile.kube_controller.name}"
 
 
-    subnet_id = "${element(split(",", var.subnets), count.index)}"
+    subnet_id = "${element(var.subnets, count.index)}"
     private_ip = "${element(template_file.instances.*.vars.ip, count.index)}"
     vpc_security_group_ids = [
-        "${compact(split(",", var.security_groups))}",
+        "${compact(var.security_groups)}",
         "${aws_security_group.kube_controller.id}"
     ]
 
@@ -178,7 +178,7 @@ resource aws_elb kube_controller {
     name = "${replace(var.env, ".", "-")}-kube-controller"
 
     internal = "${var.internal_elb}"
-    subnets = [ "${split(",", var.subnets)}" ]
+    subnets = [ "${var.subnets}" ]
     security_groups = [ "${aws_security_group.kube_controller_elb.id}" ]
 
     instances = [ "${aws_instance.controller.*.id}" ]
