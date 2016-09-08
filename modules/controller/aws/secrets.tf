@@ -32,13 +32,13 @@ resource vaultx_secret pki_init {
         csr = ""
     }
 
-    depends_on = [ "vaultx_secret_write_only.pki_config" ]
+    depends_on = [ "vaultx_secret.pki_config" ]
     lifecycle { ignore_changes = [ "data" ] }
 }
 
 resource template_file pki_mount {
     template = "${vaultx_secret_backend.pki.path}"
-    depends_on = [ "vaultx_secret_write_only.pki_init" ]
+    depends_on = [ "vaultx_secret.pki_init" ]
 }
 
 resource tls_private_key service_account_key {
@@ -68,7 +68,7 @@ resource vaultx_secret controller_role {
         max_ttl = "48h"
     }
 
-    depends_on = [ "vaultx_secret_write_only.pki_init" ]
+    depends_on = [ "vaultx_secret.pki_init" ]
 }
 
 resource vaultx_policy controller {
@@ -83,7 +83,7 @@ path "${vaultx_secret.service_account.path}" {
 }
 EOF
 
-    depends_on = [ "vaultx_secret_write_only.pki_init" ]
+    depends_on = [ "vaultx_secret.pki_init" ]
 }
 
 resource vaultx_ec2_role role {
