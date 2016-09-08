@@ -39,6 +39,10 @@ provider aws {
     region = "${var.region}"
 }
 
+provider ecr {
+    region = "${var.region}"
+}
+
 resource aws_iam_role kube_controller {
     name = "${var.env}-kube_controller"
     path = "/${var.env}/"
