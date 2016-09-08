@@ -103,7 +103,7 @@ resource vaultx_secret role_tag {
     ignore_delete = true
 
     data {
-        role = "${vaultx_ec2_role.role.role}"
+        role = "${vaultx_policy.controller.name}"
         policies = "${vaultx_policy.controller.name}"
     }
 }
