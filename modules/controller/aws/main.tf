@@ -11,7 +11,7 @@ variable ssh_helper_image {}
 
 variable fqdn {}
 variable dns_zone_id {}
-variable security_groups {}
+variable security_groups { type = "list" }
 variable internal_elb { default = true }
 
 variable image_id {}
@@ -145,7 +145,7 @@ resource aws_instance controller {
     subnet_id = "${element(var.subnets, count.index)}"
     private_ip = "${element(template_file.instances.*.vars.ip, count.index)}"
     vpc_security_group_ids = [
-        "${compact(var.security_groups)}",
+        "${var.security_groups}",
         "${aws_security_group.kube_controller.id}"
     ]
 
