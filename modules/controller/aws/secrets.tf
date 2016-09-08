@@ -105,6 +105,7 @@ resource vaultx_secret role_tag {
     data {
         role = "${vaultx_policy.controller.name}"
         policies = "${vaultx_policy.controller.name}"
+        tag_data = ""
     }
 }
 
