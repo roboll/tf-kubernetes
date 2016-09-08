@@ -1,0 +1,354 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: metrics-node-exporter
+  namespace: kube-system
+  annotations:
+    prometheus.io/scrape: 'true'
+  labels:
+    app: metrics
+    component: prom-node-exporter
+spec:
+  ports:
+  - name: scrape
+    port: 9100
+    protocol: TCP
+  selector:
+    app: metrics
+    component: prom-node-exporter
+
+---
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: metrics-node-exporter
+spec:
+  template:
+    metadata:
+      name: metrics-node-exporter
+      namespace: kube-system
+      labels:
+        app: metrics
+        component: prom-node-exporter
+    spec:
+      containers:
+      - image: prom/node-exporter:0.12.0
+        name: node-exporter
+        ports:
+        - containerPort: 9100
+          hostPort: 9100
+          name: scrape
+      hostNetwork: true
+      hostPID: true
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: metrics-blackbox
+  namespace: kube-system
+  labels:
+    app: metrics
+    component: blackbox
+spec:
+  selector:
+    app: metrics
+    component: blackbox
+  ports:
+  - protocol: TCP
+    targetPort: 9115
+    port: 80
+
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: metrics-blackbox
+  namespace: kube-system
+  labels:
+    app: metrics
+    component: blackbox
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: metrics
+        component: blackbox
+    spec:
+      containers:
+      - name: blackbox
+        image: prom/blackbox-exporter:v0.2.0
+        ports:
+        - containerPort: 9115
+          protocol: TCP
+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: metrics-alertmanager
+  annotations:
+    #    kubernetes.io/tls-acme: "true"
+spec:
+  #  tls:
+  #    - hosts:
+  #      - tools.dev.kitkit.cloud
+  rules:
+  - host: tools.${fqdn}
+    http:
+      paths:
+        - path: /alerts/
+          backend:
+            serviceName: metrics-alertmanager
+            servicePort: 80
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: metrics-alertmanager
+  labels:
+    name: metrics-alertmanager
+  annotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/path: '/alerts/metrics'
+spec:
+  selector:
+    app: metrics
+    component: alertmanager
+  ports:
+  - protocol: TCP
+    targetPort: 9093
+    port: 80
+
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: metrics-alertmanager
+  labels:
+    app: metrics
+    component: alertmanager
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: metrics-alertmanager
+      annotations:
+        pod.alpha.kubernetes.io/initialized: 'true'
+      labels:
+        app: metrics
+        component: alertmanager
+    spec:
+      containers:
+        - name: alertmanager
+          image: prom/alertmanager:v0.3.0
+          args:
+            - -config.file=/etc/alertmanager/alertmanager.yaml
+            - -web.external-url=https://tools.${fqdn}/alerts/
+            - -storage.path=/data
+          ports:
+            - containerPort: 9093
+              protocol: TCP
+          volumeMounts:
+            - name: storage
+              mountPath: /data
+            - name: config-volume
+              mountPath: /etc/alertmanager
+      volumes:
+        - name: storage
+          emptyDir: {}
+        - name: config-volume
+          configMap:
+            name: metrics-alertmanager
+#      volumeClaimTemplates:
+#        - metadata:
+#            name: storage
+#            annotations:
+#              volume.alpha.kubernetes.io/storage-class: anything
+#            spec:
+#              accessModes: [ ReadWriteOnce ]
+#              resources:
+#                requests:
+#                  storage: 10Gi
+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: metrics-prometheus
+  annotations:
+    #    kubernetes.io/tls-acme: "true"
+spec:
+  #  tls:
+  #    - hosts:
+  #      - tools.dev.kitkit.cloud
+  rules:
+  - host: tools.${fqdn}
+    http:
+      paths:
+        - path: /prometheus/
+          backend:
+            serviceName: metrics-prometheus
+            servicePort: 80
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: metrics-prometheus
+  annotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/path: '/prometheus/metrics'
+  labels:
+    name: metrics-prometheus
+spec:
+  selector:
+    app: metrics
+    component: prometheus
+  ports:
+  - protocol: TCP
+    targetPort: 9090
+    port: 80
+
+---
+apiVersion: apps/v1alpha1
+kind: PetSet
+metadata:
+  name: metrics-prometheus
+  labels:
+    app: metrics
+    component: prometheus
+spec:
+  serviceName: metrics-prometheus
+  replicas: 1
+  template:
+    metadata:
+      name: metrics-prometheus
+      annotations:
+        pod.alpha.kubernetes.io/initialized: 'true'
+      labels:
+        app: metrics
+        component: prometheus
+    spec:
+      containers:
+      - name: prometheus
+        image: prom/prometheus:v1.0.0
+        args:
+          - -storage.local.path=/data
+          - -storage.local.retention=43200h
+          - -alertmanager.url=http://prometheus-alertmanager
+          - -web.external-url=https://tools.${fqdn}/prometheus
+          - -config.file=/etc/prometheus/prometheus.yml
+        ports:
+        - name: web
+          containerPort: 9090
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/prometheus
+        - name: storage
+          mountPath: /data
+      volumes:
+      - name: config-volume
+        configMap:
+          name: metrics-prometheus
+      - name: storage
+        emptyDir: {}
+#  volumeClaimTemplates:
+#  - metadata:
+#      name: storage
+#      annotations:
+#        volume.alpha.kubernetes.io/storage-class: anything
+#    spec:
+#      accessModes: [ ReadWriteOnce ]
+#      resources:
+#        requests:
+#          storage: 100Gi
+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: metrics-grafana
+  annotations:
+    ingress.kubernetes.io/rewrite-target: /
+#    kubernetes.io/tls-acme: "true"
+spec:
+  #  tls:
+  #    - hosts:
+  #      - tools.dev.kitkit.cloud
+  rules:
+  - host: tools.${fqdn}
+    http:
+      paths:
+        - path: /grafana/
+          backend:
+            serviceName: metrics-grafana
+            servicePort: 80
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: metrics-grafana
+  namespace: kube-system
+  labels:
+    app: metrics
+    component: grafana
+spec:
+  selector:
+    app: metrics
+    component: grafana
+  ports:
+  - protocol: TCP
+    targetPort: 3000
+    port: 80
+
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: metrics-grafana
+  namespace: kube-system
+  labels:
+    app: metrics
+    component: grafana
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: metrics
+        component: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana:3.1.0
+          env:
+            - name: GF_PATHS_DATA
+              value: "/data"
+            - name: GF_AUTH_BASIC_ENABLED
+              value: "false"
+            - name: GF_AUTH_PROXY_ENABLED
+              value: "true"
+            - name: GF_USERS_AUTO_ASSIGN_ORG_ROLE
+              value: Admin
+            - name: GF_AUTH_PROXY_HEADER_NAME
+              value: X-Forwarded-User
+            - name: GF_SERVER_ROOT_URL
+              value: /grafana/
+            - name: GF_AUTH_ANONYMOUS_ENABLED
+              value: "true"
+            - name: GF_AUTH_ANONYMOUS_ORG_ROLE
+              value: Admin
+          ports:
+            - containerPort: 3000
+              protocol: TCP
+          volumeMounts:
+            - name: storage
+              mountPath: /data
+      volumes:
+        - name: storage
+          emptyDir: {}

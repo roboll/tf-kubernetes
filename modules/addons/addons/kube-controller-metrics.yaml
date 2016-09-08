@@ -1,0 +1,120 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kube-apiserver
+  namespace: kube-system
+  annotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/scheme: 'https'
+  labels:
+    name: kube-apiserver
+spec:
+  selector:
+    app: kubernetes
+    component: apiserver
+  ports:
+  - name: metrics
+    port: 443
+    protocol: TCP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kube-scheduler
+  namespace: kube-system
+  annotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/port: '10251'
+  labels:
+    name: kube-scheduler
+spec:
+  selector:
+    app: kubernetes
+    component: scheduler
+  ports:
+  - name: metrics
+    port: 10251
+    protocol: TCP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kube-controller-manager
+  namespace: kube-system
+  annotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/port: '10252'
+  labels:
+    name: kube-controller-manager
+spec:
+  selector:
+    app: kubernetes
+    component: controller-manager
+  ports:
+  - name: metrics
+    port: 10252
+    protocol: TCP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kube-etcd
+  namespace: kube-system
+  annotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/scheme: 'https'
+    prometheus.io/port: '2381'
+  labels:
+    app: kubernetes
+    component: etcd
+spec:
+  selector:
+    app: kubernetes
+    component: etcd
+  ports:
+  - name: metrics
+    port: 2381
+    protocol: TCP
+
+---
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: kube-etcd
+  labels:
+    app: kubernetes
+    component: etcd
+spec:
+  template:
+    metadata:
+      labels:
+        app: kubernetes
+        component: etcd
+    spec:
+      nodeSelector:
+        role: controller
+      hostNetwork: true
+      containers:
+        - name: kube-etcd
+          image: ${etcd_metrics_image}
+          args:
+            - --upstream-server-name=controller
+            - --etcd-ca=/etc/ssl/cluster/ca.pem
+            - --etcd-cert=/etc/ssl/cluster/instance/cert.pem
+            - --etcd-key=/etc/ssl/cluster/instance/privkey.pem
+          resources:
+            requests:
+              cpu: 5m
+              memory: 50Mi
+          volumeMounts:
+            - mountPath: /etc/ssl/cluster
+              name: cluster-certs
+              readOnly: true
+      volumes:
+        - name: cluster-certs
+          hostPath:
+            path: /etc/ssl/cluster

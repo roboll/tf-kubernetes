@@ -1,0 +1,215 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: metrics-prometheus
+data:
+  prometheus.yml: |-
+    global:
+      scrape_interval: 15s
+
+    scrape_configs:
+    # apiserver service
+    - job_name: 'kubernetes-cluster'
+      scheme: https
+
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+      kubernetes_sd_configs:
+      - api_servers:
+        - 'https://kubernetes.default.svc'
+        in_cluster: true
+        role: 'endpoint'
+
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_role]
+        action: keep
+        regex: (?:apiserver|node)
+      - action: labelmap
+        regex: __meta_kubernetes_node_label_(.+)
+      - source_labels: [__meta_kubernetes_role]
+        action: replace
+        target_label: kubernetes_role
+      - source_labels: [__meta_kubernetes_role]
+        regex: apiserver
+        action: replace
+        target_label: job
+        replacement: kubernetes-apiserver
+      - source_labels: [__meta_kubernetes_node_label_role]
+        regex: (.+)
+        action: replace
+        target_label: job
+        replacement: kubernetes-$1-node
+
+    # service scraping
+    #
+    # * `prometheus.io/probe`: Only probe services that have a value of `true`
+    - job_name: 'kubernetes-services'
+
+      metrics_path: /probe
+      params:
+        module: [http_2xx]
+
+      kubernetes_sd_configs:
+      - api_servers:
+        - 'https://kubernetes.default.svc'
+        in_cluster: true
+        role: 'service'
+
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_role, __meta_kubernetes_service_annotation_prometheus_io_probe]
+        action: keep
+        regex: service;true
+      - source_labels: [__address__]
+        target_label: __param_target
+      - target_label: __address__
+        replacement: blackbox
+      - source_labels: [__param_target]
+        target_label: instance
+      - action: labelmap
+        regex: __meta_kubernetes_service_label_(.+)
+      - source_labels: [__meta_kubernetes_role]
+        target_label: kubernetes_role
+      - source_labels: [__meta_kubernetes_service_namespace]
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_service_name]
+        target_label: kubernetes_name
+      - source_labels: [__meta_kubernetes_service_namespace, __meta_kubernetes_service_name]
+        regex: (.+);(.+)
+        target_label: job
+        replacement: $1-$2-svc
+
+    # service endpoint scraping
+    #
+    # * `prometheus.io/scrape`: Only scrape services that have a value of `true`
+    # * `prometheus.io/scheme`: If the metrics endpoint is secured then you will need
+    # to set this to `https` & most likely set the `tls_config` of the scrape config.
+    # * `prometheus.io/path`: If the metrics path is not `/metrics` override this.
+    # * `prometheus.io/port`: If the metrics are exposed on a different port to the
+    # service then set this appropriately.
+    - job_name: 'kubernetes-service-endpoints'
+
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+
+      kubernetes_sd_configs:
+      - api_servers:
+        - 'https://kubernetes.default.svc'
+        in_cluster: true
+        role: 'endpoint'
+
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_role, __meta_kubernetes_service_annotation_prometheus_io_scrape]
+        action: keep
+        regex: endpoint;true
+      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
+        action: replace
+        target_label: __scheme__
+        regex: (https?)
+      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+        action: replace
+        target_label: __address__
+        regex: (.+)(?::\d+);(\d+)
+        replacement: $1:$2
+      - action: labelmap
+        regex: __meta_kubernetes_service_label_(.+)
+      - source_labels: [__meta_kubernetes_role]
+        action: replace
+        target_label: kubernetes_role
+      - source_labels: [__meta_kubernetes_service_namespace]
+        action: replace
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_service_name]
+        action: replace
+        target_label: kubernetes_name
+      - source_labels: [__meta_kubernetes_service_namespace, __meta_kubernetes_service_name]
+        regex: (.+);(.+)
+        target_label: job
+        replacement: $1-$2-svc
+
+
+
+    # pod scraping
+    #
+    # * `prometheus.io/scrape`: Only scrape pods that have a value of `true`
+    # * `prometheus.io/port`: Scrape the pod on the indicated port instead of default `9102`
+    - job_name: 'kubernetes-pods'
+
+      kubernetes_sd_configs:
+      - api_servers:
+        - 'https://kubernetes.default.svc'
+        in_cluster: true
+        role: 'pod'
+
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_role, __meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: pod;true
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        regex: (.+):(?:\d+);(\d+)
+        replacement: ${1}:${2}
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - source_labels: [__meta_kubernetes_pod_namespace]
+        action: replace
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_pod_name]
+        action: replace
+        target_label: kubernetes_pod_name
+      - source_labels: [__meta_kubernetes_pod_namespace, __meta_kubernetes_pod_name]
+        regex: (.+);(.+)
+        target_label: job
+        replacement: $1-$2-pod
+
+    # vault metrics
+    - job_name: 'vault'
+
+      dns_sd_configs:
+        - names:
+          - 'metrics.vault.ops.kitkit.cloud'
+          type: 'A'
+          port: 9102
+
+    # vpn mongo metrics
+    - job_name: 'vpn-mongo'
+
+      dns_sd_configs:
+        - names:
+          - 'metrics.mongo.vpn.ops.kitkit.cloud'
+          type: 'A'
+          port: 9001
+
+    - job_name: 'blackbox'
+
+      metrics_path: /probe
+
+      params:
+        module: [http_2xx]
+
+      static_configs:
+        - targets:
+          - vault.ops.kitkit.cloud/v1/sys/health
+          - vpn.ops.kitkit.cloud
+
+      relabel_configs:
+        - source_labels: [__address__]
+          regex: (.*)(:80)?
+          target_label: __param_target
+          replacement: ${1}
+        - source_labels: [__param_target]
+          regex: (.*)
+          target_label: instance
+          replacement: ${1}
+        - source_labels: [__address__]
+          target_label: job
+          replacement: $1
+        - target_label: __address__
+          replacement: metrics-blackbox

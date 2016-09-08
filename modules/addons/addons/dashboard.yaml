@@ -1,0 +1,20 @@
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: kube-dashboard
+  annotations:
+    ingress.kubernetes.io/rewrite-target: /
+#    kubernetes.io/tls-acme: "true"
+spec:
+  #  tls:
+  #    - hosts:
+  #      - tools.dev.kitkit.cloud
+  rules:
+  - host: tools.${fqdn}
+    http:
+      paths:
+        - path: /dashboard/
+          backend:
+            serviceName: kubernetes-dashboard
+            servicePort: 80

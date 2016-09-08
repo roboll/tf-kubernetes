@@ -1,0 +1,344 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: logging-es-discovery
+  namespace: kube-system
+  labels:
+    app: logging
+    component: elasticsearch
+    role: master
+  annotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/port: '9108'
+spec:
+  selector:
+    app: logging
+    component: elasticsearch
+    role: master
+  ports:
+  - name: transport
+    port: 9300
+    protocol: TCP
+
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: logging-es-master
+  namespace: kube-system
+  labels:
+    app: logging
+    component: elasticsearch
+    role: master
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: logging
+        component: elasticsearch
+        role: master
+    spec:
+      containers:
+      - name: es-master
+        securityContext:
+          privileged: true
+          capabilities:
+            add:
+              - IPC_LOCK
+        image: quay.io/pires/docker-elasticsearch-kubernetes:2.3.4
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: CLUSTER_NAME
+          value: logging
+        - name: DISCOVERY_SERVICE
+          value: logging-es-discovery
+        - name: NODE_MASTER
+          value: "true"
+        - name: NODE_DATA
+          value: "false"
+        - name: HTTP_ENABLE
+          value: "false"
+        ports:
+        - containerPort: 9300
+          name: transport
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /data
+          name: storage
+      - name: es-metrics
+        image: roboll/elasticsearch-metrics:latest
+        ports:
+          - containerPort: 9108
+            name: metrics
+            protocol: TCP
+      volumes:
+      - name: storage
+        emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: logging-elasticsearch
+  namespace: kube-system
+  labels:
+    app: logging
+    component: elasticsearch
+    role: client
+  annotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/port: '9108'
+spec:
+  selector:
+    app: logging
+    component: elasticsearch
+    role: client
+  ports:
+  - name: http
+    port: 9200
+    protocol: TCP
+
+---
+apiVersion: apps/v1alpha1
+kind: PetSet
+metadata:
+  name: logging-es-data
+  namespace: kube-system
+  labels:
+    app: logging
+    component: elasticsearch
+    role: data
+spec:
+  serviceName: logging-es
+  replicas: 2
+  template:
+    metadata:
+      annotations:
+        pod.alpha.kubernetes.io/initialized: 'true'
+      labels:
+        app: logging
+        component: elasticsearch
+        role: data
+    spec:
+      containers:
+      - name: es-data
+        securityContext:
+          capabilities:
+            add:
+              - IPC_LOCK
+        image: quay.io/pires/docker-elasticsearch-kubernetes:2.3.4
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: CLUSTER_NAME
+          value: logging
+        - name: DISCOVERY_SERVICE
+          value: logging-es-discovery
+        - name: NODE_MASTER
+          value: "false"
+        - name: HTTP_ENABLE
+          value: "false"
+        ports:
+        - containerPort: 9300
+          name: transport
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /data
+          name: storage
+      - name: es-metrics
+        image: roboll/elasticsearch-metrics:latest
+        ports:
+          - containerPort: 9108
+            name: metrics
+            protocol: TCP
+  volumeClaimTemplates:
+    - metadata:
+        name: storage
+        annotations:
+          volume.alpha.kubernetes.io/storage-class: anything
+      spec:
+        accessModes: [ ReadWriteOnce ]
+        resources:
+          requests:
+            storage: 100Gi
+
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: logging-es-client
+  namespace: kube-system
+  labels:
+    app: logging
+    component: elasticsearch
+    role: client
+spec:
+  replicas: 1
+  template:
+    metadata:
+      namespace: kube-system
+      labels:
+        app: logging
+        component: elasticsearch
+        role: client
+    spec:
+      containers:
+      - name: es-client
+        securityContext:
+          privileged: true
+          capabilities:
+            add:
+              - IPC_LOCK
+        image: quay.io/pires/docker-elasticsearch-kubernetes:2.3.4
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: CLUSTER_NAME
+          value: logging
+        - name: DISCOVERY_SERVICE
+          value: logging-es-discovery
+        - name: NODE_MASTER
+          value: "false"
+        - name: NODE_DATA
+          value: "false"
+        - name: HTTP_ENABLE
+          value: "true"
+        ports:
+        - containerPort: 9200
+          name: http
+          protocol: TCP
+        - containerPort: 9300
+          name: transport
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /data
+          name: storage
+      - name: es-metrics
+        image: roboll/elasticsearch-metrics:latest
+        ports:
+          - containerPort: 9108
+            name: metrics
+            protocol: TCP
+      volumes:
+      - name: storage
+        emptyDir: {}
+
+---
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: logging-fluentd
+  namespace: kube-system
+  labels:
+    app: logging
+    component: fluentd
+spec:
+  template:
+    metadata:
+      name: logging-fluentd
+      labels:
+        app: logging
+        component: fluentd
+    spec:
+      containers:
+        - name: fluentd-elasticsearch
+          image: roboll/fluentd-es:latest
+          env:
+            - name: ELASTICSEARCH_HOST
+              value: 'logging-elasticsearch'
+            - name: ELASTICSEARCH_PORT
+              value: '9200'
+          resources:
+            limits:
+              memory: 200Mi
+            requests:
+              cpu: 100m
+              memory: 200Mi
+          volumeMounts:
+            - name: varlog
+              mountPath: /var/log
+            - name: docker
+              mountPath: /var/lib/docker/containers
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - name: varlog
+          hostPath:
+            path: /var/log
+        - name: docker
+          hostPath:
+            path: /var/lib/docker/containers
+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: logging-kibana
+  annotations:
+    ingress.kubernetes.io/rewrite-target: /
+#    kubernetes.io/tls-acme: "true"
+spec:
+  #  tls:
+  #    - hosts:
+  #      - tools.dev.kitkit.cloud
+  rules:
+    - host: tools.${fqdn}
+      http:
+        paths:
+          - path: /kibana/
+            backend:
+              serviceName: logging-kibana
+              servicePort: 80
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: logging-kibana
+  namespace: kube-system
+  labels:
+    app: logging
+    component: kibana
+spec:
+  ports:
+    - name: ui
+      port: 80
+      targetPort: ui
+  selector:
+    app: logging
+    component: kibana
+
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: logging-kibana-v1
+  namespace: kube-system
+  labels:
+    app: logging
+    component: kibana
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: logging
+        component: kibana
+    spec:
+      containers:
+        - name: kibana
+          image: kibana:4
+          args:
+            - --elasticsearch=http://logging-elasticsearch:9200
+            - --server.basePath=/kibana
+          ports:
+            - containerPort: 5601
+              name: ui
