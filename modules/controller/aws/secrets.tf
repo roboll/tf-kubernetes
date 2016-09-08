@@ -86,18 +86,26 @@ EOF
     depends_on = [ "vaultx_secret.pki_init" ]
 }
 
-resource vaultx_ec2_role role {
-    role = "${vaultx_policy.controller.name}"
+resource vaultx_secret role {
+    path = "auth/aws-ec2/role/${vaultx_policy.controller.name}"
 
-    policies = [ "${vaultx_policy.controller.name}" ]
-    bound_ami_id = "${var.image_id}"
-    role_tag_key = "VaultRole"
-    max_ttl = "48h"
+    data {
+        policies = "${vaultx_policy.controller.name}"
+        bound_ami_id = "${var.image_id}"
+        role_tag_key = "VaultRole"
+        max_ttl = "48h"
+    }
 }
 
-resource vaultx_ec2_role_tag role_tag {
-    role = "${vaultx_ec2_role.role.role}"
-    policies = [ "${vaultx_policy.controller.name}" ]
+resource vaultx_secret role_tag {
+    path = "auth/aws-ec2/role/${vaultx_policy.controller.name}/tag"
+    ignore_read = true
+    ignore_delete = true
+
+    data {
+        role = "${vaultx_ec2_role.role.role}"
+        policies = "${vaultx_policy.controller.name}"
+    }
 }
 
 data vaultx_secret oidc {
