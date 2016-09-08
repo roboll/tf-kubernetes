@@ -5,8 +5,10 @@ resource vaultx_secret_backend pki {
     max_lease_ttl = "43800h"
 }
 
-resource vaultx_secret_write_only pki_config {
+resource vaultx_secret pki_config {
     path = "kube-${var.env}/config/urls"
+    ignore_read = true
+    ignore_delete = true
 
     data {
         issuing_certificates = "${replace(var.vault_address, "/^https://(.*)$/", "$1")}/v1/kube-${var.env}/ca"
@@ -17,9 +19,10 @@ resource vaultx_secret_write_only pki_config {
     depends_on = [ "vaultx_secret_backend.pki" ]
 }
 
-resource vaultx_secret_write_only pki_init {
-    //path = "${var.env}-kube/intermediate/generate/internal"
+resource vaultx_secret pki_init {
     path = "kube-${var.env}/root/generate/internal"
+    ignore_read = true
+    ignore_delete = true
 
     data {
         common_name = "${var.fqdn} CA"
@@ -32,33 +35,6 @@ resource vaultx_secret_write_only pki_init {
     depends_on = [ "vaultx_secret_write_only.pki_config" ]
     lifecycle { ignore_changes = [ "data" ] }
 }
-
-// UNUSED UNTIL USING SIGNED ROOT
-/*
-resource vaultx_secret_write_only pki_sign {
-    path = "${var.vault_pki_root_mount}/root/sign-intermediate"
-
-    data {
-        ttl = "43800h"
-        csr = "${vaultx_secret_write_only.pki_init.data.csr}"
-        common_name = "${var.fqdn} CA"
-        certificate = ""
-    }
-
-    depends_on = [ "vaultx_secret_write_only.pki_init" ]
-}
-
-resource vaultx_secret_write_only pki_signed {
-    path = "kube-${var.env}/intermediate/set-signed"
-
-    data {
-        certificate = "${vaultx_secret_write_only.pki_sign.data.certificate}"
-    }
-
-    depends_on = [ "vaultx_secret_write_only.pki_sign" ]
-}
-*/
-// UNUSED UNTIL USING SIGNED ROOT
 
 resource template_file pki_mount {
     template = "${vaultx_secret_backend.pki.path}"
@@ -78,8 +54,9 @@ resource vaultx_secret service_account {
     }
 }
 
-resource vaultx_secret_write_only controller_role {
+resource vaultx_secret controller_role {
     path = "kube-${var.env}/roles/controller"
+    ignore_read = true
 
     data {
         allowed_domains = "${var.fqdn},controller,kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster.local,ec2.internal"
