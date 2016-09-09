@@ -13,7 +13,7 @@ resource aws_ecr_repository hyperkube {
 }
 
 resource aws_ecr_repository podmaster {
-    name = "${module.podmaster.name}"
+    name = "${dockerx_build.podmaster.name}"
 }
 
 resource aws_ecr_repository_policy hyperkube {
