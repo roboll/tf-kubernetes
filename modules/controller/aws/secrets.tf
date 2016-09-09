@@ -179,6 +179,7 @@ resource vaultx_secret role_tag {
         tag_data = ""
     }
 
+    lifecylce { ignore_changes = [ "data" ] }
     depends_on = [ "vaultx_secret.role" ]
 }
 
