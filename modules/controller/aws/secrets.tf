@@ -163,11 +163,11 @@ resource vaultx_secret role {
         policies = "${vaultx_policy.controller.name}"
         bound_ami_id = "${var.image_id}"
         bound_iam_role_arn = "${aws_iam_role.kube_controller.arn}"
-        role_tag = "VaultRole"
+//        role_tag = "VaultRole"
         max_ttl = "48h"
     }
 }
-
+/*
 resource vaultx_secret role_tag {
     path = "auth/aws-ec2/role/${vaultx_policy.controller.name}/tag"
     ignore_read = true
@@ -182,7 +182,7 @@ resource vaultx_secret role_tag {
     lifecycle { ignore_changes = [ "data" ] }
     depends_on = [ "vaultx_secret.role" ]
 }
-
+*/
 data vaultx_secret oidc {
     path = "${var.oidc_vault_path}"
 }
