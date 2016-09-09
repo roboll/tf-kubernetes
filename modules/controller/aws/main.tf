@@ -61,7 +61,7 @@ resource aws_iam_role kube_controller {
 }
 EOF
 
-    provisioner local-exec { command = "sleep 30" }
+    provisioner local-exec { command = "sleep 60" }
 }
 
 resource aws_iam_role_policy kube_controller_ecr {
@@ -102,23 +102,6 @@ resource aws_iam_role_policy kube_controller_instances {
 EOF
 }
 
-resource aws_iam_role_policy kube_controller_route53 {
-    name = "${var.env}-kube_controller-route53"
-    role = "${aws_iam_role.kube_controller.id}"
-    policy = <<EOF
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": "route53:*",
-            "Resource": "*"
-        }
-    ]
-}
-EOF
-}
-
 resource aws_iam_instance_profile kube_controller {
     name = "${var.env}-kube_controller-instance"
     roles = [ "${aws_iam_role.kube_controller.name}" ]
@@ -126,14 +109,13 @@ resource aws_iam_instance_profile kube_controller {
     depends_on = [
         "aws_iam_role_policy.kube_controller_ecr",
         "aws_iam_role_policy.kube_controller_instances",
-        "aws_iam_role_policy.kube_controller_route53",
         "null_resource.network"
     ]
 
     provisioner local-exec { command = "sleep 30" }
 }
 
-resource null_resource instances {
+resource null_resource etcd {
     triggers {
         name = "controller${count.index}"
         ip = "${cidrhost(element(var.subnet_cidrs, count.index), (count.index / length(var.subnet_cidrs) + var.cidr_offset))}"
@@ -152,8 +134,8 @@ resource coreos_cloudconfig cloud_config {
         oidc_groups_claim = "${data.vaultx_secret.oidc.data.groups_claim}"
         oidc_username_claim = "${data.vaultx_secret.oidc.data.username_claim}"
 
-        etcd_peers = "${join(",",formatlist("%s=https://%s:2380", null_resource.instances.*.triggers.name, null_resource.instances.*.triggers.ip))}"
-        instance_name = "${element(null_resource.instances.*.triggers.name, count.index)}"
+        etcd_peers = "${join(",",formatlist("%s=https://%s:2380", null_resource.etcd.*.triggers.name, null_resource.etcd.*.triggers.ip))}"
+        instance_name = "${element(null_resource.etcd.*.triggers.name, count.index)}"
 
         hyperkube = "${ecr_push.hyperkube.latest_url}"
         podmaster = "${ecr_push.podmaster.latest_url}"
@@ -162,15 +144,16 @@ resource coreos_cloudconfig cloud_config {
         fqdn = "${var.fqdn}"
         region = "${var.region}"
         vault_address = "${var.vault_address}"
-        vault_pki_mount = "${null_resource.pki_mount.triggers.path}"
         vault_pki_role = "controller"
+        vault_kube_pki_mount = "${null_resource.pki_mount.triggers.kube_path}"
+        vault_etcd_pki_mount = "${null_resource.pki_mount.triggers.etcd_path}"
         vault_instance_role = "${vaultx_policy.controller.name}"
         service_account_path = "${vaultx_secret.service_account.path}"
     }
 
     count = "${var.replicas}"
 
-    depends_on = [ "vaultx_policy.controller", "vaultx_secret.controller_role" ]
+    depends_on = [ "vaultx_secret.role" ]
 }
 
 resource aws_instance controller {
@@ -183,7 +166,7 @@ resource aws_instance controller {
     iam_instance_profile = "${aws_iam_instance_profile.kube_controller.name}"
 
     subnet_id = "${element(var.subnets, count.index)}"
-    private_ip = "${element(null_resource.instances.*.triggers.ip, count.index)}"
+    private_ip = "${element(null_resource.etcd.*.triggers.ip, count.index)}"
     vpc_security_group_ids = [
         "${var.security_groups}",
         "${aws_security_group.kube_controller.id}"
@@ -215,10 +198,11 @@ resource aws_instance controller {
     count = "${var.replicas}"
 
     depends_on = [
+        "vaultx_secret.role",
         "vaultx_policy.controller",
         "vaultx_secret.service_account",
-        "vaultx_secret.controller_role",
-        "vaultx_secret.pki_init"
+        "vaultx_secret.kube_pki_init",
+        "vaultx_secret.etcd_pki_init"
     ]
 }
 
@@ -277,5 +261,6 @@ resource aws_route53_record kube {
 }
 
 output address { value = "https://${aws_route53_record.kube.fqdn}"}
-output vault_pki_backend { value = "${null_resource.pki_mount.triggers.path}" }
+output kube_pki_backend { value = "${null_resource.pki_mount.triggers.kube_path}" }
+output etcd_pki_backend { value = "${null_resource.pki_mount.triggers.etcd_path}" }
 output worker_security_group { value = "${aws_security_group.kube_worker.id}" }
