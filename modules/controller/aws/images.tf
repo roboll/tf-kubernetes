@@ -23,7 +23,6 @@ resource aws_ecr_repository_policy hyperkube {
     "Version": "2008-10-17",
     "Statement": [
         {
-            "Sid": "",
             "Effect": "Allow",
             "Principal": {
                 "AWS": [ "${aws_iam_role.kube_controller.arn}" ]
@@ -46,7 +45,6 @@ resource aws_ecr_repository_policy podmaster {
     "Version": "2008-10-17",
     "Statement": [
         {
-            "Sid": "",
             "Effect": "Allow",
             "Principal": {
                 "AWS": [ "${aws_iam_role.kube_controller.arn}" ]

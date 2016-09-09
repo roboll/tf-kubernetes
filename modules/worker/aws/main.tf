@@ -30,7 +30,20 @@ variable hyperkube_tag { default = "v1.3.4" }
 resource aws_iam_role kube_worker {
     name = "${var.env}-kube_worker_${var.worker_class}"
     path = "/${var.env}/"
-    assume_role_policy = "${file("${path.module}/iam/kube_worker-role.json")}"
+    assume_role_policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": "sts:AssumeRole",
+            "Principal": {
+                "Service": "ec2.amazonaws.com"
+            }
+        }
+    ]
+}
+EOF
 
     provisioner local-exec { command = "sleep 30" }
 }
@@ -38,19 +51,55 @@ resource aws_iam_role kube_worker {
 resource aws_iam_role_policy kube_worker_ecr {
     name = "${var.env}-kube_worker_${var.worker_class}-ecr"
     role = "${aws_iam_role.kube_worker.id}"
-    policy = "${file("${path.module}/iam/kube_worker-policy-ecr.json")}"
+    policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Resource": "*",
+            "Action": [ "ecr:GetAuthorizationToken" ]
+        }
+    ]
+}
+EOF
 }
 
 resource aws_iam_role_policy kube_worker_instances {
     name = "${var.env}-kube_worker_${var.worker_class}-instances"
     role = "${aws_iam_role.kube_worker.id}"
-    policy = "${file("${path.module}/iam/kube_worker-policy-instances.json")}"
+    policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": "ec2:Describe*",
+            "Resource": "*"
+        }
+    ]
+}
+EOF
 }
 
 resource aws_iam_role_policy kube_worker_volumes {
     name = "${var.env}-kube_worker_${var.worker_class}-volumes"
     role = "${aws_iam_role.kube_worker.id}"
-    policy = "${file("${path.module}/iam/kube_worker-policy-volumes.json")}"
+    policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ec2:AttachVolume",
+                "ec2:DetachVolume"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+EOF
 }
 
 resource aws_iam_instance_profile kube_worker {

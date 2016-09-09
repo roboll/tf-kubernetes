@@ -7,15 +7,27 @@ resource aws_ecr_repository hyperkube {
     name = "${var.env}-kube-worker-${var.worker_class}-hyperkube"
 }
 
-resource template_file ecr_pull_policy {
-    template = "${file("${path.module}/ecr/pull-policy.json")}"
-
-    vars { role = "${aws_iam_role.kube_worker.arn}" }
-}
-
 resource aws_ecr_repository_policy hyperkube {
     repository = "${aws_ecr_repository.hyperkube.name}"
-    policy = "${template_file.ecr_pull_policy.rendered}"
+    policy = <<EOF
+{
+    "Version": "2008-10-17",
+    "Statement": [
+        {
+            "Sid": "",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": [ "${aws_iam_role.kube_worker.arn}" ]
+            },
+            "Action": [
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:BatchGetImage",
+                "ecr:BatchCheckLayerAvailability"
+            ]
+        }
+    ]
+}
+EOF
 }
 
 resource dockerx_push hyperkube {

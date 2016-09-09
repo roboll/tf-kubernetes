@@ -1,6 +1,12 @@
 variable fqdn {}
 variable kubernetes_version {}
 
+variable aws_region {}
+
+provider ecr {
+    region = "${var.aws_region}"
+}
+
 data template_file addon_manager {
     template = "${file("${path.module}/addons/kube-addon-manager.yaml")}"
     vars {
@@ -11,7 +17,7 @@ data template_file addon_manager {
 data template_file controller_metrics {
     template = "${file("${path.module}/addons/kube-controller-metrics.yaml")}"
     vars {
-        etcd_metrics_image = "${}"
+        etcd_metrics_image = "${ecr_push.etcd_metrics.image_url}"
     }
 }
 
