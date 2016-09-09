@@ -134,20 +134,21 @@ resource coreos_cloudconfig cloud_config {
         oidc_groups_claim = "${data.vaultx_secret.oidc.data.groups_claim}"
         oidc_username_claim = "${data.vaultx_secret.oidc.data.username_claim}"
 
-        etcd_peers = "${join(",",formatlist("%s=https://%s:2380", null_resource.etcd.*.triggers.name, null_resource.etcd.*.triggers.ip))}"
         instance_name = "${element(null_resource.etcd.*.triggers.name, count.index)}"
+        etcd_peers = "${join(",",formatlist("%s=https://%s:2380", null_resource.etcd.*.triggers.name, null_resource.etcd.*.triggers.ip))}"
 
         hyperkube = "${ecr_push.hyperkube.latest_url}"
         podmaster = "${ecr_push.podmaster.latest_url}"
         ssh_helper = "${var.ssh_helper_image}"
 
-        fqdn = "${var.fqdn}"
+        kube_fqdn = "${var.fqdn}"
         region = "${var.region}"
         vault_address = "${var.vault_address}"
-        vault_pki_role = "controller"
-        vault_kube_pki_mount = "${null_resource.pki_mount.triggers.kube_path}"
-        vault_etcd_pki_mount = "${null_resource.pki_mount.triggers.etcd_path}"
         vault_instance_role = "${vaultx_policy.controller.name}"
+
+        vault_pki_role = "controller"
+        kube_pki_mount = "${null_resource.pki_mount.triggers.kube_path}"
+        etcd_pki_mount = "${null_resource.pki_mount.triggers.etcd_path}"
         service_account_path = "${vaultx_secret.service_account.path}"
     }
 

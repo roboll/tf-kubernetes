@@ -15,36 +15,36 @@ coreos:
     advertise_client_urls: https://$private_ipv4:2379
     listen_client_urls: https://0.0.0.0:2379
 
-    peer_cert_file: /etc/ssl/cluster/instance/cert.pem
-    peer_key_file: /etc/ssl/cluster/instance/privkey.pem
-    peer_trusted_ca_file: /etc/ssl/cluster/ca.pem
+    peer_cert_file: /etc/ssl/etcd/cert.pem
+    peer_key_file: /etc/ssl/etcd/privkey.pem
+    peer_trusted_ca_file: /etc/ssl/etcd/ca.pem
     peer_client_cert_auth: true
 
-    cert_file: /etc/ssl/cluster/instance/cert.pem
-    key_file: /etc/ssl/cluster/instance/privkey.pem
-    trusted_ca_file: /etc/ssl/cluster/ca.pem
+    cert_file: /etc/ssl/etcd/cert.pem
+    key_file: /etc/ssl/etcd/privkey.pem
+    trusted_ca_file: /etc/ssl/etcd/ca.pem
     client_cert_auth: true
 
   flannel:
-    etcd_cafile: /etc/ssl/cluster/ca.pem
-    etcd_keyfile: /etc/ssl/cluster/instance/privkey.pem
-    etcd_certfile: /etc/ssl/cluster/instance/cert.pem
+    etcd_cafile: /etc/ssl/etcd/ca.pem
+    etcd_keyfile: /etc/ssl/etcd/privkey.pem
+    etcd_certfile: /etc/ssl/etcd/cert.pem
     etcd_endpoints: https://$private_ipv4:2379
 
   units:
-    - name: ssh-helper.service
+    - name: install-ssh-helper.service
       command: start
       content: |
         [Service]
         Type=oneshot
         ExecStart=/opt/bin/install-ssh-helper.sh
 
-    - name: cluster-ca.service
+    - name: install-ca-certs.service
       command: start
       content: |
         [Service]
         Type=oneshot
-        ExecStart=/opt/bin/install-cluster-ca.sh
+        ExecStart=/opt/bin/install-ca-certs.sh
 
     - name: vault-login.service
       command: start
@@ -58,7 +58,7 @@ coreos:
       content: |
         [Service]
         Type=simple
-        ExecStart=/opt/bin/vault-renew.sh
+        ExecStart=/opt/bin/vault-renew-token.sh
 
     - name: vault-renew-token.timer
       command: start
@@ -67,13 +67,45 @@ coreos:
         OnActiveSec=12h
         OnUnitActiveSec=12h
 
-    - name: vault-certs.timer
+    - name: kube-service-account.service
+      command: start
+      content: |
+        [Unit]
+        Before=kubelet.service
+
+        Requires=vault-login.service
+        After=vault-login.service
+
+        [Service]
+        Type=oneshot
+        ExecStart=/opt/bin/kube-service-account.sh
+        ExecStartPost=/bin/bash -c "docker restart $(docker ps --format {{.Names}} | grep kube-apiserver) || true"
+        ExecStartPost=/bin/bash -c "docker restart $(docker ps --format {{.Names}} | grep kube-controller-manager) || true"
+
+    - name: kube-certs.service
+      command: start
+      content: |
+        [Unit]
+        Before=kubelet.service
+
+        Requires=vault-login.service
+        After=vault-login.service
+
+        [Service]
+        Type=simple
+
+        ExecStart=/opt/bin/kube-certs.sh
+        ExecStartPost=/bin/bash -c "systemctl kill -s HUP kubelet.service || true"
+        ExecStartPost=/bin/bash -c "docker restart $(docker ps --format {{.Names}} | grep kube-apiserver) || true"
+        ExecStartPost=/bin/bash -c "docker restart $(docker ps --format {{.Names}} | grep kube-flannel-server) || true"
+
+    - name: kube-certs.timer
       command: start
       content: |
         [Timer]
         OnUnitActiveSec=12h
 
-    - name: vault-certs.service
+    - name: etcd-certs.service
       command: start
       content: |
         [Unit]
@@ -87,26 +119,14 @@ coreos:
         [Service]
         Type=simple
 
-        ExecStart=/opt/bin/vault-certs.sh
-        ExecStartPost=/bin/bash -c "systemctl kill -s HUP etcd2.service flanneld.service kubelet.service || true"
-        ExecStartPost=/bin/bash -c "docker restart $(docker ps --format {{.Names}} | grep kube-apiserver) || true"
-        ExecStartPost=/bin/bash -c "docker restart $(docker ps --format {{.Names}} | grep kube-flannel-server) || true"
-        ExecStartPost=/bin/bash -c "docker restart $(docker ps --format {{.Names}} | grep kube-addon-manager-podmaster) || true"
+        ExecStart=/opt/bin/etcd-certs.sh
+        ExecStartPost=/bin/bash -c "systemctl kill -s HUP etcd2.service flanneld.service || true"
 
-    - name: kube-service-account.service
+    - name: etcd-certs.timer
       command: start
       content: |
-        [Unit]
-        Before=kubelet.service
-
-        Requires=vault-login.service
-        After=vault-login.service
-
-        [Service]
-        Type=oneshot
-        ExecStart=/opt/bin/service-account-certs.sh
-        ExecStartPost=/bin/bash -c "docker restart $(docker ps --format {{.Names}} | grep kube-apiserver) || true"
-        ExecStartPost=/bin/bash -c "docker restart $(docker ps --format {{.Names}} | grep kube-controller-manager) || true"
+        [Timer]
+        OnUnitActiveSec=12h
 
     - name: docker.service
       command: start
@@ -115,6 +135,7 @@ coreos:
           content: |
             [Unit]
             After=flanneld.service
+
             [Service]
             MountFlags=shared
 
@@ -139,8 +160,7 @@ coreos:
 
         [Service]
         Type=simple
-        ExecStart=/bin/bash -c "\
-          eval $(docker run --rm -e AWS_DEFAULT_REGION=${region} localhost/awscli ecr get-login)"
+        ExecStart=/opt/bin/ecr-login.sh
 
     - name: ecr-login.timer
       command: start
@@ -192,20 +212,20 @@ coreos:
             Restart=always
             RestartSec=10
 
-            ExecStartPre=/usr/bin/test -s /etc/ssl/cluster/ca.pem
-            ExecStartPre=/usr/bin/test -s /etc/ssl/cluster/instance/cert.pem
-            ExecStartPre=/usr/bin/test -s /etc/ssl/cluster/instance/privkey.pem
+            ExecStartPre=/usr/bin/test -s /etc/ssl/etcd/ca.pem
+            ExecStartPre=/usr/bin/test -s /etc/ssl/etcd/cert.pem
+            ExecStartPre=/usr/bin/test -s /etc/ssl/etcd/privkey.pem
 
     - name: flanneld.service
       command: start
       drop-ins:
         - name: 40-ssl-config.conf
           content: |
-            Environment=ETCD_SSL_DIR=/etc/ssl/cluster/
+            Environment=ETCD_SSL_DIR=/etc/ssl/etcd/
 
-            ExecStartPre=/usr/bin/test -s /etc/ssl/cluster/ca.pem
-            ExecStartPre=/usr/bin/test -s /etc/ssl/cluster/instance/cert.pem
-            ExecStartPre=/usr/bin/test -s /etc/ssl/cluster/instance/privkey.pem
+            ExecStartPre=/usr/bin/test -s /etc/ssl/etcd/ca.pem
+            ExecStartPre=/usr/bin/test -s /etc/ssl/etcd/cert.pem
+            ExecStartPre=/usr/bin/test -s /etc/ssl/etcd/privkey.pem
 
         - name: 50-network-config.conf
           content: |
@@ -217,9 +237,9 @@ coreos:
             [Service]
             ExecStartPre=/usr/bin/etcdctl \
               --endpoints https://$private_ipv4:2379 \
-              --ca-file /etc/ssl/cluster/ca.pem \
-              --cert-file /etc/ssl/cluster/instance/cert.pem \
-              --key-file /etc/ssl/cluster/instance/privkey.pem \
+              --ca-file /etc/ssl/etcd/ca.pem \
+              --cert-file /etc/ssl/etcd/cert.pem \
+              --key-file /etc/ssl/etcd/privkey.pem \
               set /coreos.com/network/config \
                 '{ "Network": "10.10.0.0/16", "Backend": { "Type": "vxlan" } }'
 
@@ -236,9 +256,9 @@ coreos:
         TimeoutStartSec=300
 
         ExecStartPre=/usr/bin/docker pull ${hyperkube}
-        ExecStartPre=/usr/bin/test -s /etc/ssl/cluster/ca.pem
-        ExecStartPre=/usr/bin/test -s /etc/ssl/cluster/instance/cert.pem
-        ExecStartPre=/usr/bin/test -s /etc/ssl/cluster/instance/privkey.pem
+        ExecStartPre=/usr/bin/test -s /etc/ssl/kube/ca.pem
+        ExecStartPre=/usr/bin/test -s /etc/ssl/kube/cert.pem
+        ExecStartPre=/usr/bin/test -s /etc/ssl/kube/privkey.pem
         ExecStartPre=/usr/bin/test -s /etc/kubernetes/service-account/pubkey.pem
         ExecStartPre=/usr/bin/test -s /etc/kubernetes/service-account/privkey.pem
 
@@ -255,11 +275,11 @@ coreos:
           ${hyperkube} \
             /hyperkube kubelet \
               --containerized \
-              --api-servers=https://${fqdn} \
+              --api-servers=https://${kube_fqdn} \
               --node-labels=role=controller \
               --cloud-provider=aws \
-              --tls-cert-file=/etc/ssl/cluster/instance/cert.pem \
-              --tls-private-key-file=/etc/ssl/cluster/instance/privkey.pem \
+              --tls-cert-file=/etc/ssl/kube/cert.pem \
+              --tls-private-key-file=/etc/ssl/kube/privkey.pem \
               --register-schedulable=false \
               --config=/etc/kubernetes/manifests \
               --kubeconfig=/etc/kubernetes/kubeconfig.yaml \
@@ -268,6 +288,116 @@ coreos:
               --allow-privileged --v=2 --logtostderr=true
 
 write_files:
+  - path: /opt/bin/install-ssh-helper.sh
+    permissions: 0700
+    content: |
+      #!/bin/bash
+      set -eo pipefail
+
+      log="/var/log/vault-ssh.log"
+      replace="auth\t\tsufficient\tpam_exec.so quiet expose_authtok log=$log /opt/bin/ssh-helper"
+      cp /usr/lib64/pam.d/{sshd,system-remote-login,system-login,system-auth} /etc/pam.d/
+      sed -r -i /etc/pam.d/system-auth -e "s,^(auth.*required.*pam_deny.so)$,$replace\\n\1,g"
+
+  - path: /opt/bin/ssh-helper
+    permissions: 0700
+    content: |
+      #! /bin/bash
+      CMD="docker run -i --rm --net=host -e PAM_USER=$PAM_USER ${ssh_helper}"
+      eval $CMD $*
+
+  - path: /opt/bin/install-ca-certs.sh
+    permissions: 0700
+    content: |
+      #! /bin/bash
+      set -eo pipefail
+
+      mkdir -p /etc/ssl/cluster
+      curl -sSf -o /etc/ssl/kube/ca.pem ${vault_address}/v1/${kube_pki_mount}/ca/pem
+      curl -sSf -o /etc/ssl/etcd/ca.pem ${vault_address}/v1/${etcd_pki_mount}/ca/pem
+
+  - path: /opt/bin/vault-login.sh
+    permissions: 0700
+    content: |
+      #!/bin/bash
+      set -eo pipefail
+
+      role="${vault_instance_role}"
+      pkcs="$(curl -sSf http://169.254.169.254/latest/dynamic/instance-identity/pkcs7 | tr -d '\n')"
+      nonce="$(cat /etc/machine-id | base64)"
+
+      curl -sSf -X POST \
+        -H "Content-Type: application/json" \
+        -d "{\"pkcs7\": \"$pkcs\", \"role\": \"$role\", \"nonce\":\"$nonce\"}" \
+        ${vault_address}/v1/auth/aws-ec2/login | \
+        sed -re 's/.*"client_token":"([^"]*)".*/\1/g' > /root/.vault-token
+
+  - path: /opt/bin/vault-renew-token.sh
+    permissions: 0700
+    content: |
+      #!/bin/bash
+      set -eo pipefail
+
+      curl -sSf -X POST -H "X-Vault-Token: $(cat /root/.vault-token)" \
+        ${vault_address}/v1/auth/token/renew-self > /dev/null
+
+  - path: /opt/bin/kube-service-account.sh
+    permissions: 0700
+    content: |
+      #!/bin/bash
+      set -eo pipefail
+
+      json=$(curl -sSf -X GET -H "X-Vault-Token: $(cat /root/.vault-token)" \
+        ${vault_address}/v1/${service_account_path})
+
+      mkdir -p /etc/kubernetes/service-account
+      echo "$json" | \
+        sed -re 's/.*"public_key":"([^"]*)".*/\1/g' -e 's/\\n/\n/g' \
+        > /etc/kubernetes/service-account/pubkey.pem
+      echo "$json" | \
+        sed -re 's/.*"private_key":"([^"]*)".*/\1/g' -e 's/\\n/\n/g' \
+        > /etc/kubernetes/service-account/privkey.pem
+
+  - path: /opt/bin/kube-certs.sh
+    permissions: 0700
+    content: |
+      #!/bin/bash
+      set -eo pipefail
+
+      cn="${kube_fqdn}"
+      san="kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster.local"
+      ipsan="10.0.0.1,$private_ipv4"
+
+      json=$(curl -sSf -X POST -H "X-Vault-Token: $(cat /root/.vault-token)" \
+        -d "{\"common_name\":\"$cn\", \"alt_names\":\"$san\", \"ip_sans\": \"$ipsan\"}" \
+        ${vault_address}/v1/${kube_pki_mount}/issue/${vault_pki_role})
+
+      mkdir -p /etc/ssl/kube/
+      echo "$json" | \
+        sed -re 's/.*"certificate":"([^"]*)".*/\1/g' -e 's/\\n/\n/g' > /etc/ssl/kube/cert.pem
+      echo "$json" | \
+        sed -re 's/.*"private_key":"([^"]*)".*/\1/g' -e 's/\\n/\n/g' > /etc/ssl/kube/privkey.pem
+
+  - path: /opt/bin/etcd-certs.sh
+    permissions: 0700
+    content: |
+      #!/bin/bash
+      set -eo pipefail
+
+      cn="${instance_name}"
+      san="controller"
+      ipsan="10.0.0.1,$private_ipv4"
+
+      json=$(curl -sSf -X POST -H "X-Vault-Token: $(cat /root/.vault-token)" \
+        -d "{\"common_name\":\"$cn\", \"alt_names\":\"$san\", \"ip_sans\": \"$ipsan\"}" \
+        ${vault_address}/v1/${etcd_pki_mount}/issue/${vault_pki_role})
+
+      mkdir -p /etc/ssl/etcd/
+      echo "$json" | \
+        sed -re 's/.*"certificate":"([^"]*)".*/\1/g' -e 's/\\n/\n/g' > /etc/ssl/etcd/cert.pem
+      echo "$json" | \
+        sed -re 's/.*"private_key":"([^"]*)".*/\1/g' -e 's/\\n/\n/g' > /etc/ssl/etcd/privkey.pem
+
   - path: /opt/awscli/Dockerfile
     content: |
       FROM alpine:3.4
@@ -281,94 +411,13 @@ write_files:
       WORKDIR /aws
       ENTRYPOINT ["aws"]
 
-  - path: /opt/bin/ssh-helper
+  - path: /opt/bin/ecr-login.sh
     permissions: 0700
     content: |
       #! /bin/bash
-      CMD="docker run -i --rm --net=host -e PAM_USER=$PAM_USER ${ssh_helper}"
-      eval $CMD $*
+      set -eo pipefail
 
-  - path: /opt/bin/install-ssh-helper.sh
-    permissions: 0700
-    content: |
-      #!/bin/bash
-      set -e
-      log="/var/log/vault-ssh.log"
-      replace="auth\t\tsufficient\tpam_exec.so quiet expose_authtok log=$log /opt/bin/ssh-helper"
-      cp /usr/lib64/pam.d/{sshd,system-remote-login,system-login,system-auth} /etc/pam.d/
-      sed -r -i /etc/pam.d/system-auth -e "s,^(auth.*required.*pam_deny.so)$,$replace\\n\1,g"
-
-  - path: /opt/bin/install-cluster-ca.sh
-    permissions: 0700
-    content: |
-      #!/bin/bash
-      set -e
-
-      mkdir -p /etc/ssl/cluster
-      curl -sSf -o /etc/ssl/cluster/ca.pem ${vault_address}/v1/${vault_pki_mount}/ca/pem
-
-  - path: /opt/bin/vault-login.sh
-    permissions: 0700
-    content: |
-      #!/bin/bash
-      set -e
-
-      role="${vault_instance_role}"
-      pkcs="$(curl -sSf http://169.254.169.254/latest/dynamic/instance-identity/pkcs7 | tr -d '\n')"
-      nonce="$(cat /etc/machine-id | base64)"
-
-      curl -sSf -X POST \
-        -H "Content-Type: application/json" \
-        -d "{\"pkcs7\": \"$pkcs\", \"role\": \"$role\", \"nonce\":\"$nonce\"}" \
-        ${vault_address}/v1/auth/aws-ec2/login | \
-        sed -re 's/.*"client_token":"([^"]*)".*/\1/g' > /root/.vault-token
-
-  - path: /opt/bin/vault-renew.sh
-    permissions: 0700
-    content: |
-      #!/bin/bash
-
-      curl -sSf -X POST -H "X-Vault-Token: $(cat /root/.vault-token)" \
-        ${vault_address}/v1/auth/token/renew-self > /dev/null
-
-  - path: /opt/bin/vault-certs.sh
-    permissions: 0700
-    content: |
-      #!/bin/bash
-      set -e
-
-      cn="${fqdn}"
-      san="$(hostname),controller,kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster.local"
-      ipsan="10.0.0.1,$private_ipv4"
-
-      json=$(curl -sSf -X POST -H "X-Vault-Token: $(cat /root/.vault-token)" \
-        -d "{\"common_name\":\"$cn\", \"alt_names\":\"$san\", \"ip_sans\": \"$ipsan\"}" \
-        ${vault_address}/v1/${vault_pki_mount}/issue/${vault_pki_role})
-
-      mkdir -p /etc/ssl/cluster/instance
-      echo "$json" | \
-        sed -re 's/.*"certificate":"([^"]*)".*/\1/g' -e 's/\\n/\n/g' \
-        > /etc/ssl/cluster/instance/cert.pem
-      echo "$json" | \
-        sed -re 's/.*"private_key":"([^"]*)".*/\1/g' -e 's/\\n/\n/g' \
-        > /etc/ssl/cluster/instance/privkey.pem
-
-  - path: /opt/bin/service-account-certs.sh
-    permissions: 0700
-    content: |
-      #!/bin/bash
-      set -e
-
-      json=$(curl -sSf -X GET -H "X-Vault-Token: $(cat /root/.vault-token)" \
-        ${vault_address}/v1/${service_account_path})
-
-      mkdir -p /etc/kubernetes/service-account
-      echo "$json" | \
-        sed -re 's/.*"public_key":"([^"]*)".*/\1/g' -e 's/\\n/\n/g' \
-        > /etc/kubernetes/service-account/pubkey.pem
-      echo "$json" | \
-        sed -re 's/.*"private_key":"([^"]*)".*/\1/g' -e 's/\\n/\n/g' \
-        > /etc/kubernetes/service-account/privkey.pem
+      eval $(docker run --rm -e AWS_DEFAULT_REGION=${region} localhost/awscli ecr get-login)
 
   - path: /etc/kubernetes/kubeconfig.yaml
     content: |
@@ -378,8 +427,8 @@ write_files:
       clusters:
         - name: kubernetes
           cluster:
-            certificate-authority: /etc/ssl/cluster/ca.pem
-            server: https://${fqdn}
+            certificate-authority: /etc/ssl/kube/ca.pem
+            server: https://${kube_fqdn}
       contexts:
         - name: controller
           context:
@@ -388,8 +437,8 @@ write_files:
       users:
         - name: controller
           user:
-            client-certificate: /etc/ssl/cluster/instance/cert.pem
-            client-key: /etc/ssl/cluster/instance/privkey.pem
+            client-certificate: /etc/ssl/kube/cert.pem
+            client-key: /etc/ssl/kube/privkey.pem
 
   - path: /etc/kubernetes/manifests/kube-apiserver.yaml
     content: |
@@ -412,20 +461,20 @@ write_files:
               - apiserver
               - --secure-port=443
               - --etcd-servers=https://$private_ipv4:2379
-              - --etcd-cafile=/etc/ssl/cluster/ca.pem
-              - --etcd-certfile=/etc/ssl/cluster/instance/cert.pem
-              - --etcd-keyfile=/etc/ssl/cluster/instance/privkey.pem
-              - --tls-cert-file=/etc/ssl/cluster/instance/cert.pem
-              - --tls-private-key-file=/etc/ssl/cluster/instance/privkey.pem
+              - --etcd-cafile=/etc/ssl/kube/ca.pem
+              - --etcd-certfile=/etc/ssl/etcd/cert.pem
+              - --etcd-keyfile=/etc/ssl/etcd/privkey.pem
+              - --tls-cert-file=/etc/ssl/kube/cert.pem
+              - --tls-private-key-file=/etc/ssl/kube/privkey.pem
               - --service-account-key-file=/etc/kubernetes/service-account/pubkey.pem
-              - --kubelet-certificate-authority=/etc/ssl/cluster/ca.pem
-              - --kubelet-client-certificate=/etc/ssl/cluster/instance/cert.pem
-              - --kubelet-client-key=/etc/ssl/cluster/instance/privkey.pem
+              - --kubelet-certificate-authority=/etc/ssl/kube/ca.pem
+              - --kubelet-client-certificate=/etc/ssl/kube/cert.pem
+              - --kubelet-client-key=/etc/ssl/kube/privkey.pem
               - --allow-privileged=true
-              - --client-ca-file=/etc/ssl/cluster/ca.pem
+              - --client-ca-file=/etc/ssl/kube/ca.pem
               - --service-cluster-ip-range=10.0.0.0/16
               - --advertise-address=$private_ipv4
-              - --external-hostname=${fqdn}
+              - --external-hostname=${kube_fqdn}
               - --oidc-issuer-url=${oidc_issuer_url}
               - --oidc-client-id=${oidc_client_id}
               - --oidc-username-claim=${oidc_username_claim}
@@ -445,8 +494,11 @@ write_files:
               - mountPath: /etc/kubernetes/service-account/pubkey.pem
                 name: service-account
                 readOnly: true
-              - mountPath: /etc/ssl/cluster/
+              - mountPath: /etc/ssl/kube/
                 name: cluster-certs
+                readOnly: true
+              - mountPath: /etc/ssl/etcd/
+                name: etcd-certs
                 readOnly: true
               - mountPath: /etc/ssl/certs
                 name: ssl-certs-host
@@ -459,8 +511,11 @@ write_files:
               path: /etc/kubernetes/service-account/pubkey.pem
             name: service-account
           - hostPath:
-              path: /etc/ssl/cluster/
+              path: /etc/ssl/kube/
             name: cluster-certs
+          - hostPath:
+              path: /etc/ssl/etcd/
+            name: etcd-certs
           - hostPath:
               path: /usr/share/ca-certificates
             name: ssl-certs-host
@@ -487,7 +542,7 @@ write_files:
               - --master=http://127.0.0.1:8080
               - --leader-elect=true
               - --cloud-provider=aws
-              - --root-ca-file=/etc/ssl/cluster/ca.pem
+              - --root-ca-file=/etc/ssl/kube/ca.pem
               - --service-account-private-key-file=/etc/kubernetes/service-account/privkey.pem
             livenessProbe:
               httpGet:
@@ -497,7 +552,7 @@ write_files:
               initialDelaySeconds: 15
               timeoutSeconds: 1
             volumeMounts:
-              - mountPath: /etc/ssl/cluster/ca.pem
+              - mountPath: /etc/ssl/kube/ca.pem
                 name: cluster-ca
                 readOnly: true
               - mountPath: /etc/ssl/certs
@@ -511,7 +566,7 @@ write_files:
               path: /usr/share/ca-certificates
             name: ssl-certs-host
           - hostPath:
-              path: /etc/ssl/cluster/ca.pem
+              path: /etc/ssl/kube/ca.pem
             name: cluster-ca
           - hostPath:
               path: /etc/kubernetes/service-account/privkey.pem
@@ -566,12 +621,12 @@ write_files:
               - /opt/bin/flanneld
               - --listen=0.0.0.0:8888
               - --etcd-endpoints=https://$private_ipv4:2379
-              - --etcd-cafile=/etc/ssl/cluster/ca.pem
-              - --etcd-certfile=/etc/ssl/cluster/instance/cert.pem
-              - --etcd-keyfile=/etc/ssl/cluster/instance/privkey.pem
-              - --remote-cafile=/etc/ssl/cluster/ca.pem
-              - --remote-certfile=/etc/ssl/cluster/instance/cert.pem
-              - --remote-keyfile=/etc/ssl/cluster/instance/privkey.pem
+              - --etcd-cafile=/etc/ssl/etcd/ca.pem
+              - --etcd-certfile=/etc/ssl/etcd/cert.pem
+              - --etcd-keyfile=/etc/ssl/etcd/privkey.pem
+              - --remote-cafile=/etc/ssl/kube/ca.pem
+              - --remote-certfile=/etc/ssl/kube/cert.pem
+              - --remote-keyfile=/etc/ssl/kube/privkey.pem
             securityContext:
               privileged: true
             livenessProbe:
@@ -581,6 +636,9 @@ write_files:
               - mountPath: /etc/ssl/cluster
                 name: cluster-certs
                 readOnly: true
+              - mountPath: /etc/ssl/etcd
+                name: etcd-certs
+                readOnly: true
               - mountPath: /etc/ssl/certs
                 name: ssl-certs-host
                 readOnly: true
@@ -589,8 +647,11 @@ write_files:
               path: /etc/kubernetes/service-account/pubkey.pem
             name: service-account
           - hostPath:
-              path: /etc/ssl/cluster
+              path: /etc/ssl/kube
             name: cluster-certs
+          - hostPath:
+              path: /etc/ssl/etcd
+            name: etcd-certs
           - hostPath:
               path: /usr/share/ca-certificates
             name: ssl-certs-host
