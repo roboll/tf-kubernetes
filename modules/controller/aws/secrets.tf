@@ -162,7 +162,7 @@ resource vaultx_secret role {
     data {
         policies = "${vaultx_policy.controller.name}"
         bound_ami_id = "${var.image_id}"
-        bound_iam_role_arn = "${aws_iam_role.controller.arn}"
+        bound_iam_role_arn = "${aws_iam_role.kube_controller.arn}"
         role_tag = "VaultRole"
         max_ttl = "48h"
     }
