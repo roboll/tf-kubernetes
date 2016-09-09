@@ -169,7 +169,7 @@ resource vaultx_secret role {
 }
 
 resource vaultx_secret role_tag {
-    path = "auth/aws-ec2/role/${vaultx_policy.kube_controller.name}/tag"
+    path = "auth/aws-ec2/role/${vaultx_policy.controller.name}/tag"
     ignore_read = true
     ignore_delete = true
 

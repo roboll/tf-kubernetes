@@ -4,7 +4,7 @@ resource docker_image hyperkube {
 }
 
 resource dockerx_build podmaster {
-    name = "${var.prefix}-podmaster"
+    name = "${var.env}-podmaster"
     context_dir = "${replace("${path.module}/../podmaster/docker/", "${path.root}", ".")}"
 }
 
