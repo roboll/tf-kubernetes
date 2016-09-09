@@ -46,7 +46,20 @@ provider ecr {
 resource aws_iam_role kube_controller {
     name = "${var.env}-kube_controller"
     path = "/${var.env}/"
-    assume_role_policy = "${file("${path.module}/iam/kube_controller-role.json")}"
+    assume_role_policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": "sts:AssumeRole",
+            "Principal": {
+                "Service": "ec2.amazonaws.com"
+            }
+        }
+    ]
+}
+EOF
 
     provisioner local-exec { command = "sleep 30" }
 }
@@ -54,19 +67,56 @@ resource aws_iam_role kube_controller {
 resource aws_iam_role_policy kube_controller_ecr {
     name = "${var.env}-kube_controller-ecr"
     role = "${aws_iam_role.kube_controller.id}"
-    policy = "${file("${path.module}/iam/kube_controller-policy-ecr.json")}"
+    policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Resource": "*",
+            "Action": "ecr:GetAuthorizationToken"
+        }
+    ]
+}
+EOF
 }
 
 resource aws_iam_role_policy kube_controller_instances {
     name = "${var.env}-kube_controller-instances"
     role = "${aws_iam_role.kube_controller.id}"
-    policy = "${file("${path.module}/iam/kube_controller-policy-instances.json")}"
+    policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ec2:*",
+                "autoscaling:Describe*",
+                "elasticloadbalancing:*"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+EOF
 }
 
 resource aws_iam_role_policy kube_controller_route53 {
     name = "${var.env}-kube_controller-route53"
     role = "${aws_iam_role.kube_controller.id}"
-    policy = "${file("${path.module}/iam/kube_controller-policy-route53.json")}"
+    policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": "route53:*",
+            "Resource": "*"
+        }
+    ]
+}
+EOF
 }
 
 resource aws_iam_instance_profile kube_controller {
@@ -83,22 +133,13 @@ resource aws_iam_instance_profile kube_controller {
     provisioner local-exec { command = "sleep 30" }
 }
 
-resource template_file instances {
-    vars {
+resource null_resource instances {
+    triggers {
         name = "controller${count.index}"
         ip = "${cidrhost(element(var.subnet_cidrs, count.index), (count.index / length(var.subnet_cidrs) + var.cidr_offset))}"
     }
 
-    template = ""
     count = "${var.replicas}"
-}
-
-resource template_file etcd_members {
-    template = "${join(",",formatlist("%s=https://%s:2380", template_file.instances.*.vars.name, template_file.instances.*.vars.ip))}"
-
-    vars {
-        name_list = "${join(",", template_file.instances.*.vars.name)}"
-    }
 }
 
 resource coreos_cloudconfig cloud_config {
@@ -111,8 +152,8 @@ resource coreos_cloudconfig cloud_config {
         oidc_groups_claim = "${data.vaultx_secret.oidc.data.groups_claim}"
         oidc_username_claim = "${data.vaultx_secret.oidc.data.username_claim}"
 
-        etcd_peers = "${template_file.etcd_members.rendered}"
-        instance_name = "${element(split(",", template_file.etcd_members.vars.name_list), count.index)}"
+        etcd_peers = "${join(",",formatlist("%s=https://%s:2380", null_resource.instances.*.triggers.name, null_resource.instances.*.triggers.ip))}"
+        instance_name = "${element(null_resource.instances.*.triggers.name, count.index)}"
 
         hyperkube = "${ecr_push.hyperkube.latest_url}"
         podmaster = "${ecr_push.podmaster.latest_url}"
@@ -121,7 +162,7 @@ resource coreos_cloudconfig cloud_config {
         fqdn = "${var.fqdn}"
         region = "${var.region}"
         vault_address = "${var.vault_address}"
-        vault_pki_mount = "${template_file.pki_mount.rendered}"
+        vault_pki_mount = "${null_resource.pki_mount.triggers.path}"
         vault_pki_role = "controller"
         vault_instance_role = "${vaultx_policy.controller.name}"
         service_account_path = "${vaultx_secret.service_account.path}"
@@ -141,9 +182,8 @@ resource aws_instance controller {
 
     iam_instance_profile = "${aws_iam_instance_profile.kube_controller.name}"
 
-
     subnet_id = "${element(var.subnets, count.index)}"
-    private_ip = "${element(template_file.instances.*.vars.ip, count.index)}"
+    private_ip = "${element(null_resource.instances.*.triggers.ip, count.index)}"
     vpc_security_group_ids = [
         "${var.security_groups}",
         "${aws_security_group.kube_controller.id}"
@@ -237,5 +277,5 @@ resource aws_route53_record kube {
 }
 
 output address { value = "https://${aws_route53_record.kube.fqdn}"}
-output vault_pki_backend { value = "${template_file.pki_mount.rendered}" }
+output vault_pki_backend { value = "${null_resource.pki_mount.triggers.path}" }
 output worker_security_group { value = "${aws_security_group.kube_worker.id}" }

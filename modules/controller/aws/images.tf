@@ -3,10 +3,9 @@ resource docker_image hyperkube {
     keep_locally = true
 }
 
-module podmaster {
-    source = "../images/podmaster/"
-
-    prefix = "${var.env}-kube-controller"
+resource dockerx_build podmaster {
+    name = "${var.prefix}-podmaster"
+    context_dir = "${replace("${path.module}/../podmaster/docker/", "${path.root}", ".")}"
 }
 
 resource aws_ecr_repository hyperkube {
@@ -17,20 +16,50 @@ resource aws_ecr_repository podmaster {
     name = "${module.podmaster.name}"
 }
 
-resource template_file ecr_pull_policy {
-    template = "${file("${path.module}/ecr/pull-policy.json")}"
-
-    vars { role = "${aws_iam_role.kube_controller.arn}" }
-}
-
 resource aws_ecr_repository_policy hyperkube {
     repository = "${aws_ecr_repository.hyperkube.name}"
-    policy = "${template_file.ecr_pull_policy.rendered}"
+    policy = <<EOF
+{
+    "Version": "2008-10-17",
+    "Statement": [
+        {
+            "Sid": "",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": [ "${aws_iam_role.kube_controller.arn}" ]
+            },
+            "Action": [
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:BatchGetImage",
+                "ecr:BatchCheckLayerAvailability"
+            ]
+        }
+    ]
+}
+EOF
 }
 
 resource aws_ecr_repository_policy podmaster {
     repository = "${aws_ecr_repository.podmaster.name}"
-    policy = "${template_file.ecr_pull_policy.rendered}"
+    policy = <<EOF
+{
+    "Version": "2008-10-17",
+    "Statement": [
+        {
+            "Sid": "",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": [ "${aws_iam_role.kube_controller.arn}" ]
+            },
+            "Action": [
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:BatchGetImage",
+                "ecr:BatchCheckLayerAvailability"
+            ]
+        }
+    ]
+}
+EOF
 }
 
 resource ecr_push hyperkube {
@@ -43,8 +72,8 @@ resource ecr_push hyperkube {
 }
 
 resource ecr_push podmaster {
-    image = "${module.podmaster.image}"
-    tag = "${module.podmaster.tag}"
+    image = "${dockerx_build.podmaster.image}"
+    tag = "${dockerx_build.podmaster.tag}"
     name = "${aws_ecr_repository.podmaster.name}"
     repo = "${replace(aws_ecr_repository.podmaster.repository_url, "/^https://(.*)/.*$/", "$1")}"
 

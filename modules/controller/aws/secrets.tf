@@ -36,8 +36,11 @@ resource vaultx_secret pki_init {
     lifecycle { ignore_changes = [ "data" ] }
 }
 
-resource template_file pki_mount {
-    template = "${vaultx_secret_backend.pki.path}"
+resource null_resource pki_mount {
+    triggers {
+        path = "${vaultx_secret_backend.pki.path}"
+    }
+
     depends_on = [ "vaultx_secret.pki_init" ]
 }
 
