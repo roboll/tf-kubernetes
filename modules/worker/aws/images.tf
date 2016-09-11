@@ -14,7 +14,6 @@ resource aws_ecr_repository_policy hyperkube {
     "Version": "2008-10-17",
     "Statement": [
         {
-            "Sid": "",
             "Effect": "Allow",
             "Principal": {
                 "AWS": [ "${aws_iam_role.kube_worker.arn}" ]
@@ -30,7 +29,7 @@ resource aws_ecr_repository_policy hyperkube {
 EOF
 }
 
-resource dockerx_push hyperkube {
+resource ecr_push hyperkube {
     image = "${var.hyperkube}"
     tag = "${var.hyperkube_tag}"
     name = "${aws_ecr_repository.hyperkube.name}"

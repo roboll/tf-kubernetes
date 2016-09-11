@@ -7,7 +7,6 @@ variable subnets {}
 variable ssh_keypair {}
 variable vault_address {}
 variable ssh_helper_image {}
-variable vault_pki_backend {}
 
 variable security_groups { type = "list" }
 
@@ -23,9 +22,18 @@ variable root_volume_size { default = 20 }
 
 variable worker_class {}
 variable controller_url {}
+variable vault_pki_backend {}
 
 variable hyperkube { default = "gcr.io/google_containers/hyperkube-amd64" }
 variable hyperkube_tag { default = "v1.3.4" }
+
+provider aws {
+    region = "${var.region}"
+}
+
+provider ecr {
+    region = "${var.region}"
+}
 
 resource aws_iam_role kube_worker {
     name = "${var.env}-kube_worker_${var.worker_class}"
@@ -45,7 +53,7 @@ resource aws_iam_role kube_worker {
 }
 EOF
 
-    provisioner local-exec { command = "sleep 30" }
+    provisioner local-exec { command = "sleep 60" }
 }
 
 resource aws_iam_role_policy kube_worker_ecr {
@@ -58,15 +66,23 @@ resource aws_iam_role_policy kube_worker_ecr {
         {
             "Effect": "Allow",
             "Resource": "*",
-            "Action": [ "ecr:GetAuthorizationToken" ]
+            "Action": [
+                "ecr:GetAuthorizationToken",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:GetRepositoryPolicy",
+                "ecr:DescribeRepositories",
+                "ecr:ListImages",
+                "ecr:BatchGetImage"
+            ]
         }
     ]
 }
 EOF
 }
 
-resource aws_iam_role_policy kube_worker_instances {
-    name = "${var.env}-kube_worker_${var.worker_class}-instances"
+resource aws_iam_role_policy kube_worker_ec2 {
+    name = "${var.env}-kube_worker_${var.worker_class}-ec2"
     role = "${aws_iam_role.kube_worker.id}"
     policy = <<EOF
 {
@@ -74,8 +90,8 @@ resource aws_iam_role_policy kube_worker_instances {
     "Statement": [
         {
             "Effect": "Allow",
-            "Action": "ec2:Describe*",
-            "Resource": "*"
+            "Resource": "*",
+            "Action": "ec2:Describe*"
         }
     ]
 }
@@ -91,11 +107,11 @@ resource aws_iam_role_policy kube_worker_volumes {
     "Statement": [
         {
             "Effect": "Allow",
+            "Resource": "*",
             "Action": [
                 "ec2:AttachVolume",
                 "ec2:DetachVolume"
-            ],
-            "Resource": "*"
+            ]
         }
     ]
 }
@@ -108,7 +124,7 @@ resource aws_iam_instance_profile kube_worker {
 
     depends_on = [
         "aws_iam_role_policy.kube_worker_ecr",
-        "aws_iam_role_policy.kube_worker_instances",
+        "aws_iam_role_policy.kube_worker_ec2",
         "aws_iam_role_policy.kube_worker_volumes"
     ]
 
@@ -124,14 +140,14 @@ resource coreos_cloudconfig cloud_config {
         kube_controller_url = "${var.controller_url}"
         kube_controller_host = "${replace(var.controller_url, "https://", "")}"
 
-        hyperkube = "${dockerx_push.hyperkube.latest_url}"
+        hyperkube = "${ecr_push.hyperkube.latest_url}"
         ssh_helper = "${var.ssh_helper_image}"
 
         region = "${var.region}"
         vault_address = "${var.vault_address}"
         vault_pki_mount = "${var.vault_pki_backend}"
         vault_pki_role = "worker-${var.worker_class}"
-        vault_instance_role = "${vaultx_ec2_role.role.role}"
+        vault_instance_role = "${vaultx_policy.worker.name}"
     }
 
     lifecycle { create_before_destroy = true }
@@ -172,11 +188,6 @@ resource aws_autoscaling_group worker {
     health_check_grace_period = 300
     health_check_type = "EC2"
 
-    depends_on = [
-        "vaultx_policy.worker",
-        "vaultx_secret_write_only.worker_role"
-    ]
-
     tag {
         key = "Name"
         value = "${var.env}-kube_worker-${var.worker_class}"
@@ -207,9 +218,9 @@ resource aws_autoscaling_group worker {
         propagate_at_launch = true
     }
 
-    tag {
-        key = "VaultRole"
-        value = "${vaultx_ec2_role_tag.role_tag.tag_value}"
-        propagate_at_launch = true
-    }
+    depends_on = [
+        "vaultx_secret.role",
+        "vaultx_policy.worker",
+        "vaultx_secret.worker_role"
+    ]
 }

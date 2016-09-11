@@ -30,9 +30,6 @@ variable oidc_vault_path {}
 variable hyperkube { default = "gcr.io/google_containers/hyperkube-amd64" }
 variable hyperkube_tag { default = "v1.3.4" }
 
-variable addon_manager { default = "gcr.io/google-containers/kube-addon-manager-amd64" }
-variable addon_manager_tag { default = "v5.1" }
-
 variable cidr_offset { default = "16" }
 
 provider aws {
@@ -89,8 +86,8 @@ resource aws_iam_role_policy kube_controller_ecr {
 EOF
 }
 
-resource aws_iam_role_policy kube_controller_instances {
-    name = "${var.env}-kube_controller-instances"
+resource aws_iam_role_policy kube_controller_ec2 {
+    name = "${var.env}-kube_controller-ec2"
     role = "${aws_iam_role.kube_controller.id}"
     policy = <<EOF
 {
@@ -98,12 +95,48 @@ resource aws_iam_role_policy kube_controller_instances {
     "Statement": [
         {
             "Effect": "Allow",
+            "Resource": "*",
             "Action": [
-                "ec2:*",
-                "autoscaling:Describe*",
+                "ec2:*"
+            ]
+        }
+    ]
+}
+EOF
+}
+
+resource aws_iam_role_policy kube_controller_autoscaling {
+    name = "${var.env}-kube_controller-autoscaling"
+    role = "${aws_iam_role.kube_controller.id}"
+    policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Resource": "*",
+            "Action": [
+                "autoscaling:Describe*"
+            ]
+        }
+    ]
+}
+EOF
+}
+
+resource aws_iam_role_policy kube_controller_elb {
+    name = "${var.env}-kube_controller-elb"
+    role = "${aws_iam_role.kube_controller.id}"
+    policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Resource": "*",
+            "Action": [
                 "elasticloadbalancing:*"
-            ],
-            "Resource": "*"
+            ]
         }
     ]
 }
@@ -116,7 +149,9 @@ resource aws_iam_instance_profile kube_controller {
 
     depends_on = [
         "aws_iam_role_policy.kube_controller_ecr",
-        "aws_iam_role_policy.kube_controller_instances",
+        "aws_iam_role_policy.kube_controller_ec2",
+        "aws_iam_role_policy.kube_controller_elb",
+        "aws_iam_role_policy.kube_controller_autoscaling",
         "null_resource.network"
     ]
 

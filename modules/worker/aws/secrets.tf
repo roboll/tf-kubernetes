@@ -1,10 +1,10 @@
-resource vaultx_secret_write_only worker_role {
+resource vaultx_secret worker_role {
     path = "${var.vault_pki_backend}/roles/worker-${var.worker_class}"
 
     data {
-        allowed_domains = "worker,ec2.internal"
+        allowed_domains = "kubelet"
         allow_bare_domains = true
-        allow_subdomains = true
+        allow_subdomains = false
         allow_localhost = false
         key_type = "ec"
         key_bits = "256"
@@ -22,16 +22,14 @@ path "${var.vault_pki_backend}/issue/worker-${var.worker_class}" {
 EOF
 }
 
-resource vaultx_ec2_role role {
-    role = "${vaultx_policy.worker.name}"
+resource vaultx_secret role {
+    path = "auth/aws-ec2/role/${vaultx_policy.worker.name}"
+    ignore_read = true
 
-    policies = [ "${vaultx_policy.worker.name}" ]
-    bound_ami_id = "${var.image_id}"
-    role_tag_key = "VaultRole"
-    max_ttl = "48h"
-}
-
-resource vaultx_ec2_role_tag role_tag {
-    role = "${vaultx_ec2_role.role.role}"
-    policies = [ "${vaultx_policy.worker.name}" ]
+    data {
+        policies = "${vaultx_policy.worker.name}"
+        bound_ami_id = "${var.image_id}"
+        bound_iam_role_arn = "${aws_iam_role.kube_controller.arn}"
+        max_ttl = "48h"
+    }
 }
