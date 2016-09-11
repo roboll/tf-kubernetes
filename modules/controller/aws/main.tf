@@ -74,7 +74,15 @@ resource aws_iam_role_policy kube_controller_ecr {
         {
             "Effect": "Allow",
             "Resource": "*",
-            "Action": "ecr:GetAuthorizationToken"
+            "Action": [
+                "ecr:GetAuthorizationToken",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:GetRepositoryPolicy",
+                "ecr:DescribeRepositories",
+                "ecr:ListImages",
+                "ecr:BatchGetImage"
+            ]
         }
     ]
 }
