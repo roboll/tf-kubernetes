@@ -384,12 +384,11 @@ write_files:
       #!/bin/bash
       set -eo pipefail
 
-      cn="${instance_name}"
-      san="controller"
+      cn="controller"
       ipsan="10.0.0.1,$private_ipv4"
 
       json=$(curl -sSf -X POST -H "X-Vault-Token: $(cat /root/.vault-token)" \
-        -d "{\"common_name\":\"$cn\", \"alt_names\":\"$san\", \"ip_sans\": \"$ipsan\"}" \
+        -d "{\"common_name\":\"$cn\", \"ip_sans\": \"$ipsan\"}" \
         ${vault_address}/v1/${etcd_pki_mount}/issue/${vault_pki_role})
 
       mkdir -p /etc/ssl/etcd/

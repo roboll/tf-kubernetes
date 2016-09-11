@@ -106,7 +106,7 @@ resource vaultx_secret kube_controller_role {
     data {
         allowed_domains = "${var.fqdn},kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster.local"
         allow_bare_domains = true
-        allow_subdomains = true
+        allow_subdomains = false
         allow_localhost = false
         key_type = "ec"
         key_bits = "256"
@@ -123,7 +123,7 @@ resource vaultx_secret etcd_controller_role {
     data {
         allowed_domains = "controller"
         allow_bare_domains = true
-        allow_subdomains = true
+        allow_subdomains = false
         allow_localhost = false
         key_type = "ec"
         key_bits = "256"
