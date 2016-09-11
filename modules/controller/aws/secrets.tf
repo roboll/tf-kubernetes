@@ -104,7 +104,7 @@ resource vaultx_secret kube_controller_role {
     ignore_read = true
 
     data {
-        allowed_domains = "${var.fqdn},controller,kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster.local,ec2.internal"
+        allowed_domains = "${var.fqdn},kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster.local"
         allow_bare_domains = true
         allow_subdomains = true
         allow_localhost = false
@@ -121,7 +121,7 @@ resource vaultx_secret etcd_controller_role {
     ignore_read = true
 
     data {
-        allowed_domains = "${var.fqdn},controller,kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster.local,ec2.internal"
+        allowed_domains = "controller"
         allow_bare_domains = true
         allow_subdomains = true
         allow_localhost = false
@@ -163,26 +163,10 @@ resource vaultx_secret role {
         policies = "${vaultx_policy.controller.name}"
         bound_ami_id = "${var.image_id}"
         bound_iam_role_arn = "${aws_iam_role.kube_controller.arn}"
-//        role_tag = "VaultRole"
         max_ttl = "48h"
     }
 }
-/*
-resource vaultx_secret role_tag {
-    path = "auth/aws-ec2/role/${vaultx_policy.controller.name}/tag"
-    ignore_read = true
-    ignore_delete = true
 
-    data {
-        role = "${vaultx_policy.controller.name}"
-        policies = "${vaultx_policy.controller.name}"
-        tag_data = ""
-    }
-
-    lifecycle { ignore_changes = [ "data" ] }
-    depends_on = [ "vaultx_secret.role" ]
-}
-*/
 data vaultx_secret oidc {
     path = "${var.oidc_vault_path}"
 }
