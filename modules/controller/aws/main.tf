@@ -138,7 +138,6 @@ resource coreos_cloudconfig cloud_config {
         etcd_peers = "${join(",",formatlist("%s=https://%s:2380", null_resource.etcd.*.triggers.name, null_resource.etcd.*.triggers.ip))}"
 
         hyperkube = "${ecr_push.hyperkube.latest_url}"
-        podmaster = "${ecr_push.podmaster.latest_url}"
         ssh_helper = "${var.ssh_helper_image}"
 
         kube_fqdn = "${var.fqdn}"
@@ -191,7 +190,6 @@ resource aws_instance controller {
         Role = "controller"
         Environment = "${var.env}"
         KubernetesCluster = "${var.env}"
-        //VaultRole = "${vaultx_secret.role_tag.data[tag_value]}"
     }
 
     lifecycle { ignore_changes = [ "ami" ] }
