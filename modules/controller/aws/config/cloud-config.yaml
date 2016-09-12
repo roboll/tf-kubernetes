@@ -295,6 +295,7 @@ coreos:
           -v /var/lib/kubelet/:/var/lib/kubelet/:shared \
           -v /etc/ssl/kubelet/:/etc/ssl/kubelet/ \
           -v /etc/kubernetes/:/etc/kubernetes/ \
+          -v /root/.docker/:/root/.docker/ \
           ${hyperkube} \
             /hyperkube kubelet \
               --containerized \
@@ -546,7 +547,7 @@ write_files:
                 name: kube-certs
                 readOnly: true
               - mountPath: /etc/ssl/kubelet/
-                name: kublet-certs
+                name: kubelet-certs
                 readOnly: true
               - mountPath: /etc/ssl/etcd/
                 name: etcd-certs
