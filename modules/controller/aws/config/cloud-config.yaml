@@ -301,7 +301,6 @@ coreos:
               --containerized \
               --api-servers=https://${kube_fqdn} \
               --node-labels=role=controller \
-              --cloud-provider=aws \
               --tls-cert-file=/etc/ssl/kubelet/cert.pem \
               --tls-private-key-file=/etc/ssl/kubelet/privkey.pem \
               --register-schedulable=false \
@@ -471,19 +470,19 @@ write_files:
     content: |
       apiVersion: v1
       kind: Config
-      current-context: controller
+      current-context: kubelet
       clusters:
         - name: kubernetes
           cluster:
             certificate-authority: /etc/ssl/kube/ca.pem
             server: https://${kube_fqdn}
       contexts:
-        - name: controller
+        - name: kubelet
           context:
             cluster: kubernetes
-            user: controller
+            user: kubelet
       users:
-        - name: controller
+        - name: kubelet
           user:
             client-certificate: /etc/ssl/kube/cert.pem
             client-key: /etc/ssl/kube/privkey.pem
@@ -594,9 +593,9 @@ write_files:
             command:
               - /hyperkube
               - controller-manager
-              - --master=http://127.0.0.1:8080
+              - --master=https://${kube_fqdn}
+              - --kubeconfig=/etc/kubernetes/kubeconfig.yaml
               - --leader-elect=true
-              - --cloud-provider=aws
               - --root-ca-file=/etc/ssl/kube/ca.pem
               - --service-account-private-key-file=/etc/kubernetes/service-account/privkey.pem
             livenessProbe:
@@ -607,8 +606,11 @@ write_files:
               initialDelaySeconds: 15
               timeoutSeconds: 1
             volumeMounts:
-              - mountPath: /etc/ssl/kube/ca.pem
-                name: cluster-ca
+              - mountPath: /etc/kubernetes/kubeconfig.yaml
+                name: kubeconfig
+                readOnly: true
+              - mountPath: /etc/ssl/kube
+                name: kube-certs
                 readOnly: true
               - mountPath: /etc/ssl/certs
                 name: ssl-certs-host
@@ -621,8 +623,11 @@ write_files:
               path: /usr/share/ca-certificates
             name: ssl-certs-host
           - hostPath:
-              path: /etc/ssl/kube/ca.pem
-            name: cluster-ca
+              path: /etc/ssl/kube/
+            name: kube-certs
+          - hostPath:
+              path: /etc/kubernetes/kubeconfig.yaml
+            name: kubeconfig
           - hostPath:
               path: /etc/kubernetes/service-account/privkey.pem
             name: service-account
@@ -646,7 +651,8 @@ write_files:
             command:
               - /hyperkube
               - scheduler
-              - --master=http://127.0.0.1:8080
+              - --master=https://${kube_fqdn}
+              - --kubeconfig=/etc/kubernetes/kubeconfig.yaml
               - --leader-elect=true
             livenessProbe:
               httpGet:
@@ -655,6 +661,20 @@ write_files:
                 port: 10251
               initialDelaySeconds: 15
               timeoutSeconds: 1
+            volumeMounts:
+              - mountPath: /etc/ssl/kube
+                name: kube-certs
+                readOnly: true
+              - mountPath: /etc/kubernetes/kubeconfig.yaml
+                name: kubeconfig
+                readOnly: true
+        volumes:
+          - hostPath:
+              path: /etc/ssl/kube
+            name: kube-certs
+          - hostPath:
+              path: /etc/kubernetes/kubeconfig.yaml
+            name: kubeconfig
 
   - path: /etc/kubernetes/manifests/kube-flannel-server.yaml
     content: |
