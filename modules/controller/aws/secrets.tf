@@ -99,12 +99,29 @@ resource vaultx_secret service_account {
     }
 }
 
-resource vaultx_secret kube_controller_role {
-    path = "${var.env}-kube/roles/controller"
+resource vaultx_secret kube_role {
+    path = "${var.env}-kube/roles/kube"
     ignore_read = true
 
     data {
         allowed_domains = "${var.fqdn},kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster.local"
+        allow_bare_domains = true
+        allow_subdomains = false
+        allow_localhost = false
+        key_type = "ec"
+        key_bits = "256"
+        max_ttl = "48h"
+    }
+
+    depends_on = [ "vaultx_secret.kube_pki_init" ]
+}
+
+resource vaultx_secret controller_role {
+    path = "${var.env}-kube/roles/controller"
+    ignore_read = true
+
+    data {
+        allowed_domains = "controller"
         allow_bare_domains = true
         allow_subdomains = false
         allow_localhost = false
@@ -196,7 +213,7 @@ EOF
     ]
 }
 
-resource vaultx_secret etcd_controller_role {
+resource vaultx_secret etcd_role {
     path = "${var.env}-kube-etcd/roles/controller"
     ignore_read = true
 
@@ -218,6 +235,9 @@ resource vaultx_policy controller {
     name = "${var.env}-kube-controller"
 
     rules = <<EOF
+path "${var.env}-kube/issue/kube" {
+    capabilities = [ "create", "read", "update", "list" ]
+}
 path "${var.env}-kube/issue/kubelet" {
     capabilities = [ "create", "read", "update", "list" ]
 }

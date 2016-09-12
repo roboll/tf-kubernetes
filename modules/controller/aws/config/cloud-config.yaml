@@ -125,6 +125,28 @@ coreos:
         [Timer]
         OnUnitActiveSec=12h
 
+    - name: controller-certs.service
+      command: start
+      content: |
+        [Unit]
+        Before=kubelet.service
+
+        Requires=vault-login.service
+        After=vault-login.service
+
+        [Service]
+        Type=simple
+
+        ExecStart=/opt/bin/controller-certs.sh
+        ExecStartPost=/bin/bash -c "docker restart $(docker ps --format {{.Names}} | grep kube-scheduler) || true"
+        ExecStartPost=/bin/bash -c "docker restart $(docker ps --format {{.Names}} | grep kube-controller-manager) || true"
+
+    - name: controller-certs.timer
+      command: start
+      content: |
+        [Timer]
+        OnUnitActiveSec=12h
+
     - name: etcd-certs.service
       command: start
       content: |
@@ -140,6 +162,7 @@ coreos:
         Type=simple
 
         ExecStart=/opt/bin/etcd-certs.sh
+        ExecStartPost=/bin/bash -c "systemctl kill -s HUP etcd2.service etcd2.service || true"
         ExecStartPost=/bin/bash -c "systemctl kill -s HUP etcd2.service flanneld.service || true"
 
     - name: etcd-certs.timer
@@ -276,14 +299,9 @@ coreos:
 
         ExecStartPre=/usr/bin/mkdir -p /var/lib/kubelet
         ExecStartPre=/usr/bin/docker pull ${hyperkube}
-        ExecStartPre=/usr/bin/test -s /etc/ssl/kube/ca.pem
-        ExecStartPre=/usr/bin/test -s /etc/ssl/kube/cert.pem
-        ExecStartPre=/usr/bin/test -s /etc/ssl/kube/privkey.pem
         ExecStartPre=/usr/bin/test -s /etc/ssl/kubelet/ca.pem
         ExecStartPre=/usr/bin/test -s /etc/ssl/kubelet/cert.pem
         ExecStartPre=/usr/bin/test -s /etc/ssl/kubelet/privkey.pem
-        ExecStartPre=/usr/bin/test -s /etc/kubernetes/service-account/pubkey.pem
-        ExecStartPre=/usr/bin/test -s /etc/kubernetes/service-account/privkey.pem
 
         ExecStart=/usr/bin/docker run --net=host --pid=host --privileged \
           -v /:/rootfs:ro \
@@ -341,10 +359,10 @@ write_files:
       #! /bin/bash
       set -eo pipefail
 
-      mkdir -p /etc/ssl/kube /etc/ssl/kubelet /etc/ssl/etcd
-      curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem -o /etc/ssl/kubelet/ca.pem ${vault_address}/v1/${kube_pki_mount}/ca/pem
+      mkdir -p /etc/ssl/kube /etc/ssl/etcd /etc/ssl/kubelet
       curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem -o /etc/ssl/kube/ca.pem ${vault_address}/v1/${kube_pki_mount}/ca/pem
       curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem -o /etc/ssl/etcd/ca.pem ${vault_address}/v1/${etcd_pki_mount}/ca/pem
+      curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem -o /etc/ssl/kubelet/ca.pem ${vault_address}/v1/${kubelet_pki_mount}/ca/pem
 
   - path: /opt/bin/vault-login.sh
     permissions: 0700
@@ -408,6 +426,23 @@ write_files:
       echo "$json" | \
         sed -re 's/.*"private_key":"([^"]*)".*/\1/g' -e 's/\\n/\n/g' > /etc/ssl/kube/privkey.pem
 
+  - path: /opt/bin/controller-certs.sh
+    permissions: 0700
+    content: |
+      #!/bin/bash
+      set -eo pipefail
+
+      cn="controller"
+      json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem -X POST -H "X-Vault-Token: $(cat /root/.vault-token)" \
+        -d "{\"common_name\":\"$cn\"}" \
+        ${vault_address}/v1/${kube_pki_mount}/issue/${controller_pki_role})
+
+      mkdir -p /etc/ssl/controller/
+      echo "$json" | \
+        sed -re 's/.*"certificate":"([^"]*)".*/\1/g' -e 's/\\n/\n/g' > /etc/ssl/controller/cert.pem
+      echo "$json" | \
+        sed -re 's/.*"private_key":"([^"]*)".*/\1/g' -e 's/\\n/\n/g' > /etc/ssl/controller/privkey.pem
+
   - path: /opt/bin/kubelet-certs.sh
     permissions: 0700
     content: |
@@ -415,10 +450,9 @@ write_files:
       set -eo pipefail
 
       cn="kubelet"
-
       json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem -X POST -H "X-Vault-Token: $(cat /root/.vault-token)" \
         -d "{\"common_name\":\"$cn\"}" \
-        ${vault_address}/v1/${kube_pki_mount}/issue/${kubelet_pki_role})
+        ${vault_address}/v1/${kubelet_pki_mount}/issue/${kubelet_pki_role})
 
       mkdir -p /etc/ssl/kube/
       echo "$json" | \
@@ -466,7 +500,7 @@ write_files:
 
       eval $(docker run --rm -e AWS_DEFAULT_REGION=${region} localhost/awscli ecr get-login)
 
-  - path: /etc/kubernetes/kubeconfig.yaml
+  - path: /etc/kubernetes/kubelet/kubeconfig.yaml
     content: |
       apiVersion: v1
       kind: Config
@@ -484,8 +518,29 @@ write_files:
       users:
         - name: kubelet
           user:
-            client-certificate: /etc/ssl/kube/cert.pem
-            client-key: /etc/ssl/kube/privkey.pem
+            client-certificate: /etc/ssl/kubelet/cert.pem
+            client-key: /etc/ssl/kubelet/privkey.pem
+
+  - path: /etc/kubernetes/controller/kubeconfig.yaml
+    content: |
+      apiVersion: v1
+      kind: Config
+      current-context: kubelet
+      clusters:
+        - name: kubernetes
+          cluster:
+            certificate-authority: /etc/ssl/kube/ca.pem
+            server: https://${kube_fqdn}
+      contexts:
+        - name: controller
+          context:
+            cluster: kubernetes
+            user: controller
+      users:
+        - name: controller
+          user:
+            client-certificate: /etc/ssl/controller/cert.pem
+            client-key: /etc/ssl/controller/privkey.pem
 
   - path: /etc/kubernetes/manifests/kube-apiserver.yaml
     content: |
