@@ -319,8 +319,8 @@ write_files:
       set -eo pipefail
 
       mkdir -p /etc/ssl/kube /etc/ssl/etcd
-      curl -sSf --cacert /etc/ssl/vault/ca.pem -o /etc/ssl/kube/ca.pem ${vault_address}/v1/${kube_pki_mount}/ca/pem
-      curl -sSf --cacert /etc/ssl/vault/ca.pem -o /etc/ssl/etcd/ca.pem ${vault_address}/v1/${etcd_pki_mount}/ca/pem
+      curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem -o /etc/ssl/kube/ca.pem ${vault_address}/v1/${kube_pki_mount}/ca/pem
+      curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem -o /etc/ssl/etcd/ca.pem ${vault_address}/v1/${etcd_pki_mount}/ca/pem
 
   - path: /opt/bin/vault-login.sh
     permissions: 0700
@@ -329,10 +329,10 @@ write_files:
       set -eo pipefail
 
       role="${vault_instance_role}"
-      pkcs="$(curl -sSf --cacert /etc/ssl/vault/ca.pem http://169.254.169.254/latest/dynamic/instance-identity/pkcs7 | tr -d '\n')"
+      pkcs="$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem http://169.254.169.254/latest/dynamic/instance-identity/pkcs7 | tr -d '\n')"
       nonce="$(cat /etc/machine-id | base64)"
 
-      curl -sSf --cacert /etc/ssl/vault/ca.pem -X POST \
+      curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem -X POST \
         -H "Content-Type: application/json" \
         -d "{\"pkcs7\": \"$pkcs\", \"role\": \"$role\", \"nonce\":\"$nonce\"}" \
         ${vault_address}/v1/auth/aws-ec2/login | \
@@ -344,7 +344,7 @@ write_files:
       #!/bin/bash
       set -eo pipefail
 
-      curl -sSf --cacert /etc/ssl/vault/ca.pem -X POST -H "X-Vault-Token: $(cat /root/.vault-token)" \
+      curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem -X POST -H "X-Vault-Token: $(cat /root/.vault-token)" \
         ${vault_address}/v1/auth/token/renew-self > /dev/null
 
   - path: /opt/bin/kube-service-account.sh
@@ -353,7 +353,7 @@ write_files:
       #!/bin/bash
       set -eo pipefail
 
-      json=$(curl -sSf --cacert /etc/ssl/vault/ca.pem -X GET -H "X-Vault-Token: $(cat /root/.vault-token)" \
+      json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem -X GET -H "X-Vault-Token: $(cat /root/.vault-token)" \
         ${vault_address}/v1/${service_account_path})
 
       mkdir -p /etc/kubernetes/service-account
@@ -374,7 +374,7 @@ write_files:
       san="kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster.local"
       ipsan="10.0.0.1,$private_ipv4"
 
-      json=$(curl -sSf --cacert /etc/ssl/vault/ca.pem -X POST -H "X-Vault-Token: $(cat /root/.vault-token)" \
+      json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem -X POST -H "X-Vault-Token: $(cat /root/.vault-token)" \
         -d "{\"common_name\":\"$cn\", \"alt_names\":\"$san\", \"ip_sans\": \"$ipsan\"}" \
         ${vault_address}/v1/${kube_pki_mount}/issue/${vault_pki_role})
 
@@ -393,7 +393,7 @@ write_files:
       cn="controller"
       ipsan="10.0.0.1,$private_ipv4"
 
-      json=$(curl -sSf --cacert /etc/ssl/vault/ca.pem -X POST -H "X-Vault-Token: $(cat /root/.vault-token)" \
+      json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem -X POST -H "X-Vault-Token: $(cat /root/.vault-token)" \
         -d "{\"common_name\":\"$cn\", \"ip_sans\": \"$ipsan\"}" \
         ${vault_address}/v1/${etcd_pki_mount}/issue/${vault_pki_role})
 
