@@ -116,7 +116,7 @@ resource vaultx_secret kube_controller_role {
     depends_on = [ "vaultx_secret.kube_pki_init" ]
 }
 
-resource vaultx_secret kube_controller_role {
+resource vaultx_secret kubelet_role {
     path = "${var.env}-kube/roles/kubelet"
     ignore_read = true
 
