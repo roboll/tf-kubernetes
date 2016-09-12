@@ -323,8 +323,7 @@ coreos:
               --tls-cert-file=/etc/ssl/kubelet/cert.pem \
               --tls-private-key-file=/etc/ssl/kubelet/privkey.pem \
               --register-schedulable=false \
-              --node-ip=$private_ipv4 \
-              --hostname-override=${instance_name} \
+              --hostname-override=$private_ipv4 \
               --config=/etc/kubernetes/manifests \
               --kubeconfig=/etc/kubernetes/kubelet/kubeconfig.yaml \
               --cluster-dns=10.0.0.10 \
