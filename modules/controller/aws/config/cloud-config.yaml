@@ -1,7 +1,14 @@
 #cloud-config
 coreos:
   update:
-    reboot-strategy: off
+    reboot-strategy: etcd-lock
+
+  locksmith:
+    endpoint: https://$private_ipv4:2379
+    etcd_cafile: /etc/ssl/etcd/ca.pem
+    etcd_certfile: /etc/ssl/etcd/cert.pem
+    etcd_keyfile: /etc/ssl/etcd/privkey.pem
+    group: controller
 
   etcd2:
     name: ${instance_name}
