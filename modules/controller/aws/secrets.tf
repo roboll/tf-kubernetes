@@ -116,8 +116,8 @@ resource vaultx_secret kube_controller_role {
     depends_on = [ "vaultx_secret.kube_pki_init" ]
 }
 
-resource vaultx_secret kube_client_role {
-    path = "${var.env}-kube/roles/client"
+resource vaultx_secret kube_user_role {
+    path = "${var.env}-kube/roles/user"
     ignore_read = true
 
     data {
@@ -131,6 +131,52 @@ resource vaultx_secret kube_client_role {
     }
 
     depends_on = [ "vaultx_secret.kube_pki_init" ]
+}
+
+resource vaultx_policy kube_user {
+    name = "${var.env}-kube-user"
+
+    rules = <<EOF
+path "${var.env}-kube/issue/user" {
+    capabilities = [ "create", "read", "update", "list" ]
+}
+EOF
+
+    depends_on = [
+        "vaultx_secret.kube_pki_init"
+    ]
+}
+
+resource vaultx_secret kube_admin_role {
+    path = "${var.env}-kube/roles/admin"
+    ignore_read = true
+
+    data {
+        allowed_domains = "admin"
+        allow_bare_domains = true
+        allow_subdomains = false
+        allow_localhost = false
+        server_flag = false
+        key_type = "ec"
+        key_bits = "256"
+        max_ttl = "48h"
+    }
+
+    depends_on = [ "vaultx_secret.kube_pki_init" ]
+}
+
+resource vaultx_policy kube_admin {
+    name = "${var.env}-kube-admin"
+
+    rules = <<EOF
+path "${var.env}-kube/issue/admin" {
+    capabilities = [ "create", "read", "update", "list" ]
+}
+EOF
+
+    depends_on = [
+        "vaultx_secret.kube_pki_init"
+    ]
 }
 
 resource vaultx_secret etcd_controller_role {
