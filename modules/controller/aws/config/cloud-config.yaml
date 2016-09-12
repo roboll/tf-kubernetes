@@ -664,8 +664,11 @@ write_files:
               - mountPath: /etc/kubernetes/controller/kubeconfig.yaml
                 name: kubeconfig
                 readOnly: true
-              - mountPath: /etc/ssl/kube
-                name: kube-certs
+              - mountPath: /etc/ssl/kube/ca.pem
+                name: kube-ca
+                readOnly: true
+              - mountPath: /etc/ssl/controller
+                name: controller-certs
                 readOnly: true
               - mountPath: /etc/ssl/certs
                 name: ssl-certs-host
@@ -678,8 +681,11 @@ write_files:
               path: /usr/share/ca-certificates
             name: ssl-certs-host
           - hostPath:
-              path: /etc/ssl/kube/
-            name: kube-certs
+              path: /etc/ssl/kube/ca.pem
+            name: kube-ca
+          - hostPath:
+              path: /etc/ssl/controller/
+            name: controller-certs
           - hostPath:
               path: /etc/kubernetes/controller/kubeconfig.yaml
             name: kubeconfig
@@ -717,16 +723,22 @@ write_files:
               initialDelaySeconds: 15
               timeoutSeconds: 1
             volumeMounts:
-              - mountPath: /etc/ssl/kube
-                name: kube-certs
+              - mountPath: /etc/ssl/kube/ca.pem
+                name: kube-ca
+                readOnly: true
+              - mountPath: /etc/ssl/controller
+                name: controller-certs
                 readOnly: true
               - mountPath: /etc/kubernetes/controller/kubeconfig.yaml
                 name: kubeconfig
                 readOnly: true
         volumes:
           - hostPath:
-              path: /etc/ssl/kube
-            name: kube-certs
+              path: /etc/ssl/kube/ca.pem
+            name: kube-ca
+          - hostPath:
+              path: /etc/ssl/controller
+            name: controller-certs
           - hostPath:
               path: /etc/kubernetes/controller/kubeconfig.yaml
             name: kubeconfig
@@ -764,7 +776,7 @@ write_files:
                 port: 8888
             volumeMounts:
               - mountPath: /etc/ssl/kube
-                name: cluster-certs
+                name: kube-certs
                 readOnly: true
               - mountPath: /etc/ssl/etcd
                 name: etcd-certs
@@ -778,7 +790,7 @@ write_files:
             name: service-account
           - hostPath:
               path: /etc/ssl/kube
-            name: cluster-certs
+            name: kube-certs
           - hostPath:
               path: /etc/ssl/etcd
             name: etcd-certs
