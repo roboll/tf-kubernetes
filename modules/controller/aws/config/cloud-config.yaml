@@ -270,7 +270,7 @@ coreos:
           -v /var/log/:/var/log/ \
           -v /var/lib/docker/:/var/lib/docker/ \
           -v /var/lib/kubelet/:/var/lib/kubelet/:shared \
-          -v /etc/ssl/cluster/:/etc/ssl/cluster/ \
+          -v /etc/ssl/kube/:/etc/ssl/kube/ \
           -v /etc/kubernetes/:/etc/kubernetes/ \
           ${hyperkube} \
             /hyperkube kubelet \
@@ -632,7 +632,7 @@ write_files:
               tcpSocket:
                 port: 8888
             volumeMounts:
-              - mountPath: /etc/ssl/cluster
+              - mountPath: /etc/ssl/kube
                 name: cluster-certs
                 readOnly: true
               - mountPath: /etc/ssl/etcd
