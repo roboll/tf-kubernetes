@@ -525,7 +525,7 @@ write_files:
     content: |
       apiVersion: v1
       kind: Config
-      current-context: kubelet
+      current-context: controller
       clusters:
         - name: kubernetes
           cluster:
