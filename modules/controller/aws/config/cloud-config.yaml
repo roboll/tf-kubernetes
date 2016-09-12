@@ -221,8 +221,7 @@ coreos:
       drop-ins:
         - name: 40-ssl-config.conf
           content: |
-            Environment=ETCD_SSL_DIR=/etc/ssl/etcd/
-
+            [Service]
             ExecStartPre=/usr/bin/test -s /etc/ssl/etcd/ca.pem
             ExecStartPre=/usr/bin/test -s /etc/ssl/etcd/cert.pem
             ExecStartPre=/usr/bin/test -s /etc/ssl/etcd/privkey.pem
@@ -255,6 +254,7 @@ coreos:
         RestartSec=10
         TimeoutStartSec=300
 
+        ExecStartPre=/usr/bin/mkdir -p /var/lib/kubelet
         ExecStartPre=/usr/bin/docker pull ${hyperkube}
         ExecStartPre=/usr/bin/test -s /etc/ssl/kube/ca.pem
         ExecStartPre=/usr/bin/test -s /etc/ssl/kube/cert.pem
@@ -466,7 +466,7 @@ write_files:
               - apiserver
               - --secure-port=443
               - --etcd-servers=https://$private_ipv4:2379
-              - --etcd-cafile=/etc/ssl/kube/ca.pem
+              - --etcd-cafile=/etc/ssl/etcd/ca.pem
               - --etcd-certfile=/etc/ssl/etcd/cert.pem
               - --etcd-keyfile=/etc/ssl/etcd/privkey.pem
               - --tls-cert-file=/etc/ssl/kube/cert.pem

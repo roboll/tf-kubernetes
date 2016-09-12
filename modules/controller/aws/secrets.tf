@@ -116,6 +116,23 @@ resource vaultx_secret kube_controller_role {
     depends_on = [ "vaultx_secret.kube_pki_init" ]
 }
 
+resource vaultx_secret kube_client_role {
+    path = "${var.env}-kube/roles/client"
+    ignore_read = true
+
+    data {
+        allowed_domains = "kube-users.local"
+        allow_subdomains = true
+        allow_localhost = false
+        server_flag = false
+        key_type = "ec"
+        key_bits = "256"
+        max_ttl = "48h"
+    }
+
+    depends_on = [ "vaultx_secret.kube_pki_init" ]
+}
+
 resource vaultx_secret etcd_controller_role {
     path = "${var.env}-kube-etcd/roles/controller"
     ignore_read = true
