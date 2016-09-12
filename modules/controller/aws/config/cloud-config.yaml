@@ -311,6 +311,7 @@ coreos:
           -v /var/log/:/var/log/ \
           -v /var/lib/docker/:/var/lib/docker/ \
           -v /var/lib/kubelet/:/var/lib/kubelet/:shared \
+          -v /etc/ssl/kube/ca.pem:/etc/ssl/kube/ca.pem \
           -v /etc/ssl/kubelet/:/etc/ssl/kubelet/ \
           -v /etc/kubernetes/:/etc/kubernetes/ \
           -v /root/.docker/:/root/.docker/ \
