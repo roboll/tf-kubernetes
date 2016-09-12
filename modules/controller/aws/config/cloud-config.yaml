@@ -95,11 +95,31 @@ coreos:
         Type=simple
 
         ExecStart=/opt/bin/kube-certs.sh
-        ExecStartPost=/bin/bash -c "systemctl kill -s HUP kubelet.service || true"
         ExecStartPost=/bin/bash -c "docker restart $(docker ps --format {{.Names}} | grep kube-apiserver) || true"
         ExecStartPost=/bin/bash -c "docker restart $(docker ps --format {{.Names}} | grep kube-flannel-server) || true"
 
     - name: kube-certs.timer
+      command: start
+      content: |
+        [Timer]
+        OnUnitActiveSec=12h
+
+    - name: kubelet-certs.service
+      command: start
+      content: |
+        [Unit]
+        Before=kubelet.service
+
+        Requires=vault-login.service
+        After=vault-login.service
+
+        [Service]
+        Type=simple
+
+        ExecStart=/opt/bin/kubelet-certs.sh
+        ExecStartPost=/bin/bash -c "systemctl kill -s HUP kubelet.service || true"
+
+    - name: kubelet-certs.timer
       command: start
       content: |
         [Timer]
@@ -259,6 +279,9 @@ coreos:
         ExecStartPre=/usr/bin/test -s /etc/ssl/kube/ca.pem
         ExecStartPre=/usr/bin/test -s /etc/ssl/kube/cert.pem
         ExecStartPre=/usr/bin/test -s /etc/ssl/kube/privkey.pem
+        ExecStartPre=/usr/bin/test -s /etc/ssl/kubelet/ca.pem
+        ExecStartPre=/usr/bin/test -s /etc/ssl/kubelet/cert.pem
+        ExecStartPre=/usr/bin/test -s /etc/ssl/kubelet/privkey.pem
         ExecStartPre=/usr/bin/test -s /etc/kubernetes/service-account/pubkey.pem
         ExecStartPre=/usr/bin/test -s /etc/kubernetes/service-account/privkey.pem
 
@@ -270,7 +293,7 @@ coreos:
           -v /var/log/:/var/log/ \
           -v /var/lib/docker/:/var/lib/docker/ \
           -v /var/lib/kubelet/:/var/lib/kubelet/:shared \
-          -v /etc/ssl/kube/:/etc/ssl/kube/ \
+          -v /etc/ssl/kubelet/:/etc/ssl/kubelet/ \
           -v /etc/kubernetes/:/etc/kubernetes/ \
           ${hyperkube} \
             /hyperkube kubelet \
@@ -278,8 +301,8 @@ coreos:
               --api-servers=https://${kube_fqdn} \
               --node-labels=role=controller \
               --cloud-provider=aws \
-              --tls-cert-file=/etc/ssl/kube/cert.pem \
-              --tls-private-key-file=/etc/ssl/kube/privkey.pem \
+              --tls-cert-file=/etc/ssl/kubelet/cert.pem \
+              --tls-private-key-file=/etc/ssl/kubelet/privkey.pem \
               --register-schedulable=false \
               --config=/etc/kubernetes/manifests \
               --kubeconfig=/etc/kubernetes/kubeconfig.yaml \
@@ -319,6 +342,7 @@ write_files:
       set -eo pipefail
 
       mkdir -p /etc/ssl/kube /etc/ssl/etcd
+      curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem -o /etc/ssl/kubelet/ca.pem ${vault_address}/v1/${kube_pki_mount}/ca/pem
       curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem -o /etc/ssl/kube/ca.pem ${vault_address}/v1/${kube_pki_mount}/ca/pem
       curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem -o /etc/ssl/etcd/ca.pem ${vault_address}/v1/${etcd_pki_mount}/ca/pem
 
@@ -376,7 +400,25 @@ write_files:
 
       json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem -X POST -H "X-Vault-Token: $(cat /root/.vault-token)" \
         -d "{\"common_name\":\"$cn\", \"alt_names\":\"$san\", \"ip_sans\": \"$ipsan\"}" \
-        ${vault_address}/v1/${kube_pki_mount}/issue/${vault_pki_role})
+        ${vault_address}/v1/${kube_pki_mount}/issue/${kube_pki_role})
+
+      mkdir -p /etc/ssl/kube/
+      echo "$json" | \
+        sed -re 's/.*"certificate":"([^"]*)".*/\1/g' -e 's/\\n/\n/g' > /etc/ssl/kube/cert.pem
+      echo "$json" | \
+        sed -re 's/.*"private_key":"([^"]*)".*/\1/g' -e 's/\\n/\n/g' > /etc/ssl/kube/privkey.pem
+
+  - path: /opt/bin/kubelet-certs.sh
+    permissions: 0700
+    content: |
+      #!/bin/bash
+      set -eo pipefail
+
+      cn="kubelet"
+
+      json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem -X POST -H "X-Vault-Token: $(cat /root/.vault-token)" \
+        -d "{\"common_name\":\"$cn\"}" \
+        ${vault_address}/v1/${kube_pki_mount}/issue/${kubelet_pki_role})
 
       mkdir -p /etc/ssl/kube/
       echo "$json" | \
@@ -395,7 +437,7 @@ write_files:
 
       json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem -X POST -H "X-Vault-Token: $(cat /root/.vault-token)" \
         -d "{\"common_name\":\"$cn\", \"ip_sans\": \"$ipsan\"}" \
-        ${vault_address}/v1/${etcd_pki_mount}/issue/${vault_pki_role})
+        ${vault_address}/v1/${etcd_pki_mount}/issue/${etcd_pki_role})
 
       mkdir -p /etc/ssl/etcd/
       echo "$json" | \
@@ -472,11 +514,11 @@ write_files:
               - --tls-cert-file=/etc/ssl/kube/cert.pem
               - --tls-private-key-file=/etc/ssl/kube/privkey.pem
               - --service-account-key-file=/etc/kubernetes/service-account/pubkey.pem
-              - --kubelet-certificate-authority=/etc/ssl/kube/ca.pem
-              - --kubelet-client-certificate=/etc/ssl/kube/cert.pem
-              - --kubelet-client-key=/etc/ssl/kube/privkey.pem
-              - --allow-privileged=true
+              - --kubelet-certificate-authority=/etc/ssl/kubelet/ca.pem
+              - --kubelet-client-certificate=/etc/ssl/kubelet/cert.pem
+              - --kubelet-client-key=/etc/ssl/kubelet/privkey.pem
               - --client-ca-file=/etc/ssl/kube/ca.pem
+              - --allow-privileged=true
               - --service-cluster-ip-range=10.0.0.0/16
               - --advertise-address=$private_ipv4
               - --external-hostname=${kube_fqdn}
@@ -501,7 +543,10 @@ write_files:
                 name: service-account
                 readOnly: true
               - mountPath: /etc/ssl/kube/
-                name: cluster-certs
+                name: kube-certs
+                readOnly: true
+              - mountPath: /etc/ssl/kubelet/
+                name: kublet-certs
                 readOnly: true
               - mountPath: /etc/ssl/etcd/
                 name: etcd-certs
@@ -518,7 +563,10 @@ write_files:
             name: service-account
           - hostPath:
               path: /etc/ssl/kube/
-            name: cluster-certs
+            name: kube-certs
+          - hostPath:
+              path: /etc/ssl/kubelet/
+            name: kubelet-certs
           - hostPath:
               path: /etc/ssl/etcd/
             name: etcd-certs

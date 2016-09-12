@@ -116,6 +116,23 @@ resource vaultx_secret kube_controller_role {
     depends_on = [ "vaultx_secret.kube_pki_init" ]
 }
 
+resource vaultx_secret kube_controller_role {
+    path = "${var.env}-kube/roles/kubelet"
+    ignore_read = true
+
+    data {
+        allowed_domains = "kubelet"
+        allow_bare_domains = true
+        allow_subdomains = false
+        allow_localhost = false
+        key_type = "ec"
+        key_bits = "256"
+        max_ttl = "48h"
+    }
+
+    depends_on = [ "vaultx_secret.kube_pki_init" ]
+}
+
 resource vaultx_secret kube_user_role {
     path = "${var.env}-kube/roles/user"
     ignore_read = true
