@@ -323,7 +323,7 @@ coreos:
               --tls-private-key-file=/etc/ssl/kubelet/privkey.pem \
               --register-schedulable=false \
               --config=/etc/kubernetes/manifests \
-              --kubeconfig=/etc/kubernetes/kubeconfig.yaml \
+              --kubeconfig=/etc/kubernetes/kubelet/kubeconfig.yaml \
               --cluster-dns=10.0.0.10 \
               --cluster-domain=cluster.local \
               --allow-privileged --v=2 --logtostderr=true
@@ -649,7 +649,7 @@ write_files:
               - /hyperkube
               - controller-manager
               - --master=https://${kube_fqdn}
-              - --kubeconfig=/etc/kubernetes/kubeconfig.yaml
+              - --kubeconfig=/etc/kubernetes/controller/kubeconfig.yaml
               - --leader-elect=true
               - --root-ca-file=/etc/ssl/kube/ca.pem
               - --service-account-private-key-file=/etc/kubernetes/service-account/privkey.pem
@@ -661,7 +661,7 @@ write_files:
               initialDelaySeconds: 15
               timeoutSeconds: 1
             volumeMounts:
-              - mountPath: /etc/kubernetes/kubeconfig.yaml
+              - mountPath: /etc/kubernetes/controller/kubeconfig.yaml
                 name: kubeconfig
                 readOnly: true
               - mountPath: /etc/ssl/kube
@@ -681,7 +681,7 @@ write_files:
               path: /etc/ssl/kube/
             name: kube-certs
           - hostPath:
-              path: /etc/kubernetes/kubeconfig.yaml
+              path: /etc/kubernetes/controller/kubeconfig.yaml
             name: kubeconfig
           - hostPath:
               path: /etc/kubernetes/service-account/privkey.pem
@@ -707,7 +707,7 @@ write_files:
               - /hyperkube
               - scheduler
               - --master=https://${kube_fqdn}
-              - --kubeconfig=/etc/kubernetes/kubeconfig.yaml
+              - --kubeconfig=/etc/kubernetes/controller/kubeconfig.yaml
               - --leader-elect=true
             livenessProbe:
               httpGet:
@@ -720,7 +720,7 @@ write_files:
               - mountPath: /etc/ssl/kube
                 name: kube-certs
                 readOnly: true
-              - mountPath: /etc/kubernetes/kubeconfig.yaml
+              - mountPath: /etc/kubernetes/controller/kubeconfig.yaml
                 name: kubeconfig
                 readOnly: true
         volumes:
@@ -728,7 +728,7 @@ write_files:
               path: /etc/ssl/kube
             name: kube-certs
           - hostPath:
-              path: /etc/kubernetes/kubeconfig.yaml
+              path: /etc/kubernetes/controller/kubeconfig.yaml
             name: kubeconfig
 
   - path: /etc/kubernetes/manifests/kube-flannel-server.yaml
