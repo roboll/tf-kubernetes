@@ -323,6 +323,7 @@ coreos:
               --tls-cert-file=/etc/ssl/kubelet/cert.pem \
               --tls-private-key-file=/etc/ssl/kubelet/privkey.pem \
               --register-schedulable=false \
+              --node-ip=$private_ipv4 \
               --config=/etc/kubernetes/manifests \
               --kubeconfig=/etc/kubernetes/kubelet/kubeconfig.yaml \
               --cluster-dns=10.0.0.10 \
@@ -451,8 +452,9 @@ write_files:
       set -eo pipefail
 
       cn="kubelet"
+      ipsan="$private_ipv4"
       json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem -X POST -H "X-Vault-Token: $(cat /root/.vault-token)" \
-        -d "{\"common_name\":\"$cn\"}" \
+        -d "{\"common_name\":\"$cn\", \"ip_sans\": \"$ipsan\"}" \
         ${vault_address}/v1/${kubelet_pki_mount}/issue/${kubelet_pki_role})
 
       mkdir -p /etc/ssl/kube/
@@ -468,7 +470,7 @@ write_files:
       set -eo pipefail
 
       cn="controller"
-      ipsan="10.0.0.1,$private_ipv4"
+      ipsan="$private_ipv4"
 
       json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem -X POST -H "X-Vault-Token: $(cat /root/.vault-token)" \
         -d "{\"common_name\":\"$cn\", \"ip_sans\": \"$ipsan\"}" \
