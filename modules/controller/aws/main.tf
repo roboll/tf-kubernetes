@@ -7,6 +7,7 @@ variable subnet_cidrs { type = "list" }
 
 variable ssh_keypair {}
 variable vault_address {}
+variable vault_ca_cert_pem {}
 variable ssh_helper_image {}
 
 variable fqdn {}
@@ -188,6 +189,7 @@ resource coreos_cloudconfig cloud_config {
         vault_address = "${var.vault_address}"
         vault_instance_role = "${vaultx_policy.controller.name}"
 
+        vault_ca_cert_pem = "${base64encode(var.vault_ca_cert_pem)}"
         vault_pki_role = "controller"
         kube_pki_mount = "${null_resource.pki_mount.triggers.kube_path}"
         etcd_pki_mount = "${null_resource.pki_mount.triggers.etcd_path}"
