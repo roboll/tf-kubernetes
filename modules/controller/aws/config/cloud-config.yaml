@@ -312,7 +312,7 @@ write_files:
       #! /bin/bash
       set -eo pipefail
 
-      mkdir -p /etc/ssl/cluster
+      mkdir -p /etc/ssl/kube /etc/ssl/etcd
       curl -sSf -o /etc/ssl/kube/ca.pem ${vault_address}/v1/${kube_pki_mount}/ca/pem
       curl -sSf -o /etc/ssl/etcd/ca.pem ${vault_address}/v1/${etcd_pki_mount}/ca/pem
 
