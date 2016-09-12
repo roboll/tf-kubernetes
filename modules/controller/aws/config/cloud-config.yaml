@@ -422,9 +422,9 @@ write_files:
 
       mkdir -p /etc/ssl/kube/
       echo "$json" | \
-        sed -re 's/.*"certificate":"([^"]*)".*/\1/g' -e 's/\\n/\n/g' > /etc/ssl/kube/cert.pem
+        sed -re 's/.*"certificate":"([^"]*)".*/\1/g' -e 's/\\n/\n/g' > /etc/ssl/kubelet/cert.pem
       echo "$json" | \
-        sed -re 's/.*"private_key":"([^"]*)".*/\1/g' -e 's/\\n/\n/g' > /etc/ssl/kube/privkey.pem
+        sed -re 's/.*"private_key":"([^"]*)".*/\1/g' -e 's/\\n/\n/g' > /etc/ssl/kubelet/privkey.pem
 
   - path: /opt/bin/etcd-certs.sh
     permissions: 0700
