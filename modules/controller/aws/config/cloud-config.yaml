@@ -484,9 +484,10 @@ write_files:
               - --oidc-client-id=${oidc_client_id}
               - --oidc-username-claim=${oidc_username_claim}
               - --oidc-groups-claim=${oidc_groups_claim}
-              - --authorization-mode=AlwaysAllow
+              - --authorization-mode=RBAC
+              - --authorization-rbac-super-user=admin
               - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,ResourceQuota,DenyEscalatingExec,ServiceAccount
-              - --runtime-config=extensions/v1beta1/deployments=true,extensions/v1beta1/daemonsets=true,extensions/v1beta1=true,extensions/v1beta1/thirdpartyresources=true
+              - --runtime-config=extensions/v1beta1/deployments=true,extensions/v1beta1/daemonsets=true,extensions/v1beta1=true,extensions/v1beta1/thirdpartyresources=true,rbac.authorization.k8s.io/v1alpha1
               - --cloud-provider=aws
             livenessProbe:
               httpGet:
