@@ -341,7 +341,7 @@ write_files:
       #! /bin/bash
       set -eo pipefail
 
-      mkdir -p /etc/ssl/kube /etc/ssl/etcd
+      mkdir -p /etc/ssl/kube /etc/ssl/kubelet /etc/ssl/etcd
       curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem -o /etc/ssl/kubelet/ca.pem ${vault_address}/v1/${kube_pki_mount}/ca/pem
       curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem -o /etc/ssl/kube/ca.pem ${vault_address}/v1/${kube_pki_mount}/ca/pem
       curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem -o /etc/ssl/etcd/ca.pem ${vault_address}/v1/${etcd_pki_mount}/ca/pem

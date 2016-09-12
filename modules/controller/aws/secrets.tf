@@ -218,6 +218,9 @@ resource vaultx_policy controller {
     name = "${var.env}-kube-controller"
 
     rules = <<EOF
+path "${var.env}-kube/issue/kubelet" {
+    capabilities = [ "create", "read", "update", "list" ]
+}
 path "${var.env}-kube/issue/controller" {
     capabilities = [ "create", "read", "update", "list" ]
 }
