@@ -253,6 +253,14 @@ write_files:
 
       eval $(docker run --rm -e AWS_DEFAULT_REGION=${region} localhost/awscli ecr get-login)
 
+  - path: /opt/bin/host-rkt
+    permissions: 0755
+    owner: root:root
+    content: |
+      #!/bin/sh
+      # https://github.com/coreos/rkt/issues/2878
+      exec nsenter -m -u -i -n -p -t 1 -- /usr/bin/rkt "$@"
+
   - path: /etc/kubernetes/kubelet/kubeconfig.yaml
     content: |
       apiVersion: v1
