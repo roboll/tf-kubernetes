@@ -148,7 +148,6 @@ coreos:
               --node-labels=role=worker,class=${worker_class} \
               --tls-cert-file=/etc/ssl/kubelet/cert.pem \
               --tls-private-key-file=/etc/ssl/kubelet/privkey.pem \
-              --config=/etc/kubernetes/manifests \
               --kubeconfig=/etc/kubernetes/kubelet/kubeconfig.yaml \
               --cluster-dns=10.0.0.10 \
               --cluster-domain=cluster.local \
@@ -257,7 +256,7 @@ write_files:
       clusters:
         - name: kubernetes
           cluster:
-            certificate-authority: /etc/ssl/kube/ca.pem
+            certificate-authority: /etc/ssl/kubelet/ca.pem
             server: https://${kube_fqdn}
       contexts:
         - name: kubelet
