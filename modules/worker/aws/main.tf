@@ -140,7 +140,6 @@ resource coreos_cloudconfig cloud_config {
     vars {
         worker_class = "${var.worker_class}"
 
-        hyperkube = "${ecr_push.hyperkube.latest_url}"
         ssh_helper = "${var.ssh_helper_image}"
 
         kube_fqdn = "${var.controller_fqdn}"
