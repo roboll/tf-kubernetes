@@ -105,6 +105,7 @@ coreos:
         - name: 99-client.conf
           content: |
             [Service]
+            Environment=ETCD_SSL_DIR=/etc/ssl/kubelet
             Environment=FLANNELD_REMOTE=${kube_fqdn}:8888
             Environment=FLANNELD_REMOTE_CAFILE=/etc/ssl/kubelet/ca.pem
             Environment=FLANNELD_REMOTE_CERTFILE=/etc/ssl/kubelet/cert.pem
