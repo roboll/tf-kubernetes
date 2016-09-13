@@ -577,7 +577,7 @@ write_files:
         imagePullPolicy: Always
         containers:
           - name: kube-apiserver
-            image: ${hyperkube}
+            image: ${hyperkube}:${kube_version}
             command:
               - /hyperkube
               - apiserver
@@ -714,7 +714,7 @@ write_files:
         imagePullPolicy: Always
         containers:
           - name: kube-scheduler
-            image: ${hyperkube}
+            image: ${hyperkube}:${kube_version}
             command:
               - /hyperkube
               - scheduler
@@ -764,7 +764,7 @@ write_files:
         imagePullPolicy: Always
         containers:
           - name: kube-controller-manager
-            image: ${hyperkube}
+            image: ${hyperkube}:${kube_version}
             command:
               - /hyperkube
               - controller-manager
