@@ -2,7 +2,7 @@ variable env {}
 variable region {}
 
 variable vpc {}
-variable subnets {}
+variable subnets { type = "list" }
 
 variable ssh_keypair {}
 variable ssh_helper_image {}
@@ -140,16 +140,20 @@ resource coreos_cloudconfig cloud_config {
 
     vars {
         worker_class = "${var.worker_class}"
-        kube_fqdn = "${var.controller_fqdn}"
 
         hyperkube = "${ecr_push.hyperkube.latest_url}"
         ssh_helper = "${var.ssh_helper_image}"
 
+        kube_fqdn = "${var.controller_fqdn}"
         region = "${var.region}"
         vault_address = "${var.vault_address}"
-        kubelet_pki_mount = "${var.kubelet_pki_backend}"
-        kubelet_pki_role = "worker-${var.worker_class}"
         vault_instance_role = "${vaultx_policy.worker.name}"
+
+        vault_ca_cert_pem = "${base64encode(var.vault_ca_cert_pem)}"
+        vault_curl_opts = "${var.vault_curl_opts}"
+        kubelet_pki_role = "worker-${var.worker_class}"
+
+        kubelet_pki_mount = "${var.kubelet_pki_backend}"
     }
 
     lifecycle { create_before_destroy = true }
