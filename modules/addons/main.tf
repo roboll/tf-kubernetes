@@ -70,6 +70,7 @@ data template_file controller_manager {
 
 data template_file controller_metrics {
     template = "${file("${path.module}/addons/kube-controller-metrics.yaml")}"
+
     vars {
         etcd_metrics_image = "${ecr_push.etcd_metrics.image_url}"
     }
@@ -102,6 +103,10 @@ data template_file scheduler {
 
 data template_file logging {
     template = "${file("${path.module}/addons/logging.yaml")}"
+
+    vars {
+        fqdn = "${var.fqdn}"
+    }
 }
 
 data template_file alerts_config {
