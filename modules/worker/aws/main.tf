@@ -128,8 +128,7 @@ resource aws_iam_instance_profile kube_worker {
     depends_on = [
         "aws_iam_role_policy.kube_worker_ecr",
         "aws_iam_role_policy.kube_worker_ec2",
-        "aws_iam_role_policy.kube_worker_volumes",
-        "null_resource.network"
+        "aws_iam_role_policy.kube_worker_volumes"
     ]
 
     provisioner local-exec { command = "sleep 30" }
