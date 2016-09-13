@@ -36,14 +36,13 @@ spec:
       nodeSelector:
         role: controller
       hostNetwork: true
-      imagePullPolicy: Always
       containers:
         - name: kube-scheduler
-          image: ${hyperkube}
+          image: gcr.io/google_containers/hyperkube:v1.3.6
           command:
             - /hyperkube
             - scheduler
-            - --master=https://${kube_fqdn}
+            - --master=https://kube.dev.kitkit.cloud
             - --kubeconfig=/etc/kubernetes/controller/kubeconfig.yaml
             - --leader-elect=true
           livenessProbe:
@@ -63,13 +62,13 @@ spec:
             - mountPath: /etc/kubernetes/controller/kubeconfig.yaml
               name: kubeconfig
               readOnly: true
-        volumes:
-          - hostPath:
-              path: /etc/ssl/kube/ca.pem
-            name: kube-ca
-          - hostPath:
-              path: /etc/ssl/controller
-            name: controller-certs
-          - hostPath:
-              path: /etc/kubernetes/controller/kubeconfig.yaml
-            name: kubeconfig
+      volumes:
+        - hostPath:
+            path: /etc/ssl/kube/ca.pem
+          name: kube-ca
+        - hostPath:
+            path: /etc/ssl/controller
+          name: controller-certs
+        - hostPath:
+            path: /etc/kubernetes/controller/kubeconfig.yaml
+          name: kubeconfig

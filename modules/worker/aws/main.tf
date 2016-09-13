@@ -21,7 +21,7 @@ variable root_volume_type { default = "gp2" }
 variable root_volume_size { default = 20 }
 
 variable worker_class {}
-variable controller_url {}
+variable controller_fqdn {}
 variable vault_pki_backend {}
 
 variable hyperkube { default = "gcr.io/google_containers/hyperkube-amd64" }
@@ -125,7 +125,8 @@ resource aws_iam_instance_profile kube_worker {
     depends_on = [
         "aws_iam_role_policy.kube_worker_ecr",
         "aws_iam_role_policy.kube_worker_ec2",
-        "aws_iam_role_policy.kube_worker_volumes"
+        "aws_iam_role_policy.kube_worker_volumes",
+        "null_resource.network"
     ]
 
     provisioner local-exec { command = "sleep 30" }
@@ -137,16 +138,15 @@ resource coreos_cloudconfig cloud_config {
 
     vars {
         worker_class = "${var.worker_class}"
-        kube_controller_url = "${var.controller_url}"
-        kube_controller_host = "${replace(var.controller_url, "https://", "")}"
+        kube_fqdn = "${var.controller_fqdn}"
 
         hyperkube = "${ecr_push.hyperkube.latest_url}"
         ssh_helper = "${var.ssh_helper_image}"
 
         region = "${var.region}"
         vault_address = "${var.vault_address}"
-        vault_pki_mount = "${var.vault_pki_backend}"
-        vault_pki_role = "worker-${var.worker_class}"
+        kubelet_pki_mount = "${var.kubelet_pki_backend}"
+        kubelet_pki_role = "worker-${var.worker_class}"
         vault_instance_role = "${vaultx_policy.worker.name}"
     }
 

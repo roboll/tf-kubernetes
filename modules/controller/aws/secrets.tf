@@ -269,7 +269,3 @@ resource vaultx_secret role {
         max_ttl = "48h"
     }
 }
-
-data vaultx_secret oidc {
-    path = "${var.oidc_vault_path}"
-}

@@ -35,7 +35,5 @@ resource ecr_push hyperkube {
     name = "${aws_ecr_repository.hyperkube.name}"
     repo = "${replace(aws_ecr_repository.hyperkube.repository_url, "/^https://(.*)/.*$/", "$1")}"
 
-    ecr_region = "${var.region}"
-
     depends_on = [ "docker_image.hyperkube", "aws_ecr_repository_policy.hyperkube" ]
 }

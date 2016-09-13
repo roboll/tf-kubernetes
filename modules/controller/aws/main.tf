@@ -312,7 +312,11 @@ resource aws_route53_record kube {
     }
 }
 
-output address { value = "https://${aws_route53_record.kube.fqdn}"}
+output fqdn { value = "${aws_route53_record.kube.fqdn}" }
+output address { value = "https://${aws_route53_record.kube.fqdn}" }
+
 output kube_pki_backend { value = "${null_resource.pki_mount.triggers.kube_path}" }
 output etcd_pki_backend { value = "${null_resource.pki_mount.triggers.etcd_path}" }
+output kubelet_pki_backend { value = "${null_resource.pki_mount.triggers.kube_path}" }
+
 output worker_security_group { value = "${aws_security_group.kube_worker.id}" }

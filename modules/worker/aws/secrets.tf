@@ -1,5 +1,5 @@
 resource vaultx_secret worker_role {
-    path = "${var.vault_pki_backend}/roles/worker-${var.worker_class}"
+    path = "${var.kubelet_pki_backend}/roles/worker-${var.worker_class}"
 
     data {
         allowed_domains = "kubelet"
@@ -16,7 +16,7 @@ resource vaultx_policy worker {
     name = "${var.env}-kube-worker-${var.worker_class}"
 
     rules = <<EOF
-path "${var.vault_pki_backend}/issue/worker-${var.worker_class}" {
+path "${var.kubelet_pki_backend}/issue/worker-${var.worker_class}" {
     capabilities = [ "create", "read", "update", "list" ]
 }
 EOF

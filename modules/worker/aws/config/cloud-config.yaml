@@ -4,19 +4,12 @@ coreos:
     reboot-strategy: off
 
   units:
-    - name: ssh-helper.service
+    - name: install-ssh-helper.service
       command: start
       content: |
         [Service]
         Type=oneshot
         ExecStart=/opt/bin/install-ssh-helper.sh
-
-    - name: install-cluster-ca.service
-      command: start
-      content: |
-        [Service]
-        Type=oneshot
-        ExecStart=/opt/bin/install-cluster-ca.sh
 
     - name: vault-login.service
       command: start
@@ -30,7 +23,7 @@ coreos:
       content: |
         [Service]
         Type=simple
-        ExecStart=/opt/bin/vault-renew.sh
+        ExecStart=/opt/bin/vault-renew-token.sh
 
     - name: vault-renew-token.timer
       command: start
@@ -39,18 +32,11 @@ coreos:
         OnActiveSec=12h
         OnUnitActiveSec=12h
 
-    - name: vault-certs.timer
-      command: start
-      content: |
-        [Timer]
-        OnUnitActiveSec=12h
-
-    - name: vault-certs.service
+    - name: kubelet-certs.service
       command: start
       content: |
         [Unit]
         Before=kubelet.service
-        Before=flannel-client.service
 
         Requires=vault-login.service
         After=vault-login.service
@@ -58,48 +44,14 @@ coreos:
         [Service]
         Type=simple
 
-        ExecStart=/opt/bin/vault-certs.sh
-        ExecStartPost=/usr/bin/systemctl try-restart flannel-client.service kubelet.service
+        ExecStart=/opt/bin/kubelet-certs.sh
+        ExecStartPost=/bin/bash -c "systemctl kill -s HUP kubelet.service || true"
 
-    - name: flannel-client.service
+    - name: kubelet-certs.timer
       command: start
       content: |
-        [Unit]
-        Requires=early-docker.service
-        After=early-docker.service
-        Before=early-docker.target
-
-        Before=docker.service
-
-        [Service]
-        Type=notify
-        Restart=always
-        RestartSec=5
-
-        Environment=DOCKER_HOST=unix:///var/run/early-docker.sock
-        LimitNOFILE=40000
-        LimitNPROC=1048576
-
-        ExecStartPre=/sbin/modprobe ip_tables
-        ExecStartPre=/usr/bin/mkdir -p /run/flannel
-        ExecStartPre=/usr/bin/test -f /etc/ssl/cluster/ca.pem
-        ExecStartPre=/usr/bin/test -f /etc/ssl/cluster/instance/cert.pem
-        ExecStartPre=/usr/bin/test -f /etc/ssl/cluster/instance/privkey.pem
-
-        ExecStart=/usr/libexec/sdnotify-proxy /run/flannel/sd.sock \
-          /usr/bin/docker run --net=host --privileged=true --rm \
-          --volume=/run/flannel:/run/flannel \
-          --env=NOTIFY_SOCKET=/run/flannel/sd.sock \
-          -e FLANNELD_REMOTE=${kube_controller_host}:8888 \
-          -e FLANNELD_REMOTE_CAFILE=/etc/ssl/cluster/ca.pem \
-          -e FLANNELD_REMOTE_KEYFILE=/etc/ssl/cluster/instance/privkey.pem \
-          -e FLANNELD_REMOTE_CERTFILE=/etc/ssl/cluster/instance/cert.pem \
-          --volume=/usr/share/ca-certificates:/etc/ssl/certs:ro \
-          --volume=/etc/ssl/cluster/:/etc/ssl/cluster/:ro \
-          quay.io/coreos/flannel:0.5.5 /opt/bin/flanneld --ip-masq=true
-
-        ExecStartPost=/usr/bin/docker run --net=host --rm --volume=/run:/run \
-          quay.io/coreos/flannel:0.5.5 /opt/bin/mk-docker-opts.sh -d /run/flannel_docker_opts.env -i
+        [Timer]
+        OnUnitActiveSec=12h
 
     - name: docker.service
       command: start
@@ -107,8 +59,7 @@ coreos:
         - name: 99-mount-flags.conf
           content: |
             [Unit]
-            Requires=flannel-client.service
-            After=flannel-client.service
+            After=flanneld.service
 
             [Service]
             MountFlags=shared
@@ -122,7 +73,6 @@ coreos:
 
         [Service]
         Type=oneshot
-
         Environment=DOCKER_CONTENT_TRUST=1
         ExecStart=/usr/bin/docker build -t localhost/awscli /opt/awscli/
 
@@ -135,8 +85,7 @@ coreos:
 
         [Service]
         Type=simple
-        ExecStart=/bin/bash -c "\
-          eval $(docker run --rm -e AWS_DEFAULT_REGION=${region} localhost/awscli ecr get-login)"
+        ExecStart=/opt/bin/ecr-login.sh
 
     - name: ecr-login.timer
       command: start
@@ -144,22 +93,41 @@ coreos:
         [Timer]
         OnUnitActiveSec=12h
 
+    - name: flanneld.service
+      command: start
+      drop-ins:
+        - name: 40-ssl-config.conf
+          content: |
+            [Service]
+            ExecStartPre=/usr/bin/test -f /etc/ssl/kubelet/ca.pem
+            ExecStartPre=/usr/bin/test -f /etc/ssl/kubelet/cert.pem
+            ExecStartPre=/usr/bin/test -f /etc/ssl/kubelet/privkey.pem
+        - name: 99-client.conf
+          content: |
+            [Service]
+            Environment=FLANNELD_REMOTE=${kube_fqdn}:8888
+            Environment=FLANNELD_REMOTE_CAFILE=/etc/ssl/kubelet/ca.pem
+            Environment=FLANNELD_REMOTE_CERTFILE=/etc/ssl/kubelet/cert.pem
+            Environment=FLANNELD_REMOTE_KEYFILE=/etc/ssl/kubelet/privkey.pem
+
     - name: kubelet.service
       command: start
       content: |
         [Unit]
-        Requires=docker.service flannel-client.service
-        After=docker.service flannel-client.service
+        Requires=docker.service flanneld.service
+        After=docker.service flanneld.service
 
         [Service]
         Restart=always
         RestartSec=10
         TimeoutStartSec=300
 
+        ExecStartPre=/usr/bin/mkdir -p /var/lib/kubelet
         ExecStartPre=/usr/bin/docker pull ${hyperkube}
-        ExecStartPre=/usr/bin/test -f /etc/ssl/cluster/ca.pem
-        ExecStartPre=/usr/bin/test -f /etc/ssl/cluster/instance/cert.pem
-        ExecStartPre=/usr/bin/test -f /etc/ssl/cluster/instance/privkey.pem
+
+        ExecStartPre=/usr/bin/test -f /etc/ssl/kubelet/ca.pem
+        ExecStartPre=/usr/bin/test -f /etc/ssl/kubelet/cert.pem
+        ExecStartPre=/usr/bin/test -f /etc/ssl/kubelet/privkey.pem
 
         ExecStart=/usr/bin/docker run --net=host --pid=host --privileged \
           -v /:/rootfs:ro \
@@ -169,35 +137,39 @@ coreos:
           -v /var/log/:/var/log/ \
           -v /var/lib/docker/:/var/lib/docker/ \
           -v /var/lib/kubelet/:/var/lib/kubelet/:shared \
-          -v /etc/ssl/cluster/:/etc/ssl/cluster/ \
+          -v /etc/ssl/kubelet/:/etc/ssl/kubelet/ \
           -v /etc/kubernetes/:/etc/kubernetes/ \
+          -v /root/.docker/:/root/.docker/ \
           ${hyperkube} \
             /hyperkube kubelet \
               --containerized \
-              --api-servers=${kube_controller_url} \
+              --api-servers=https://${kube_fqdn} \
               --node-labels=role=worker,class=${worker_class} \
-              --cloud-provider=aws \
-              --tls-cert-file=/etc/ssl/cluster/instance/cert.pem \
-              --tls-private-key-file=/etc/ssl/cluster/instance/privkey.pem \
+              --tls-cert-file=/etc/ssl/kubelet/cert.pem \
+              --tls-private-key-file=/etc/ssl/kubelet/privkey.pem \
               --config=/etc/kubernetes/manifests \
-              --kubeconfig=/etc/kubernetes/kubeconfig.yaml \
+              --kubeconfig=/etc/kubernetes/kubelet/kubeconfig.yaml \
               --cluster-dns=10.0.0.10 \
               --cluster-domain=cluster.local \
               --allow-privileged --v=2 --logtostderr=true
 
 write_files:
-  - path: /opt/awscli/Dockerfile
+  - path: /etc/ssl/vault/ca.pem
+    permissions: 0600
+    encoding: base64
     content: |
-      FROM alpine:3.4
+      ${vault_ca_cert_pem}
 
-      RUN mkdir -p /aws && \
-        apk -Uuv add groff less python py-pip && \
-        pip install awscli && \
-        apk --purge -v del py-pip && \
-        rm /var/cache/apk/*
+  - path: /opt/bin/install-ssh-helper.sh
+    permissions: 0700
+    content: |
+      #!/bin/bash
+      set -eo pipefail
 
-      WORKDIR /aws
-      ENTRYPOINT ["aws"]
+      log="/var/log/vault-ssh.log"
+      replace="auth\t\tsufficient\tpam_exec.so quiet expose_authtok log=$log /opt/bin/ssh-helper"
+      cp /usr/lib64/pam.d/{sshd,system-remote-login,system-login,system-auth} /etc/pam.d/
+      sed -r -i /etc/pam.d/system-auth -e "s,^(auth.*required.*pam_deny.so)$,$replace\\n\1,g"
 
   - path: /opt/bin/ssh-helper
     permissions: 0700
@@ -206,88 +178,93 @@ write_files:
       CMD="docker run -i --rm --net=host -e PAM_USER=$PAM_USER ${ssh_helper}"
       eval $CMD $*
 
-  - path: /opt/bin/install-ssh-helper.sh
-    permissions: 0700
-    content: |
-      #!/bin/bash
-      set -e
-      log="/var/log/vault-ssh.log"
-      replace="auth\t\tsufficient\tpam_exec.so quiet expose_authtok log=$log /opt/bin/ssh-helper"
-      cp /usr/lib64/pam.d/{sshd,system-remote-login,system-login,system-auth} /etc/pam.d/
-      sed -r -i /etc/pam.d/system-auth -e "s,^(auth.*required.*pam_deny.so)$,$replace\\n\1,g"
-
-  - path: /opt/bin/install-cluster-ca.sh
-    permissions: 0700
-    content: |
-      #!/bin/bash
-      set -e
-
-      mkdir -p /etc/ssl/cluster
-      curl -sSf -o /etc/ssl/cluster/ca.pem ${vault_address}/v1/${vault_pki_mount}/ca/pem
-
   - path: /opt/bin/vault-login.sh
     permissions: 0700
     content: |
       #!/bin/bash
-      set -e
+      set -eo pipefail
 
-      role="${vault_instance_role}"
-      pkcs="$(curl -sSf http://169.254.169.254/latest/dynamic/instance-identity/pkcs7 | tr -d '\n')"
       nonce="$(cat /etc/machine-id | base64)"
+      pkcs="$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
+        http://169.254.169.254/latest/dynamic/instance-identity/pkcs7 | tr -d '\n')"
 
-      curl -sSf -X POST \
-        -H "Content-Type: application/json" \
-        -d "{\"pkcs7\": \"$pkcs\", \"role\": \"$role\", \"nonce\":\"$nonce\"}" \
+      curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
+        -X POST -H "Content-Type: application/json" \
+        -d "{\"pkcs7\":\"$pkcs\",\"role\":\"${vault_instance_role}\",\"nonce\":\"$nonce\"}" \
         ${vault_address}/v1/auth/aws-ec2/login | \
         sed -re 's/.*"client_token":"([^"]*)".*/\1/g' > /root/.vault-token
 
-  - path: /opt/bin/vault-renew.sh
+  - path: /opt/bin/vault-renew-token.sh
     permissions: 0700
     content: |
       #!/bin/bash
+      set -eo pipefail
 
-      curl -sSf -X POST -H "X-Vault-Token: $(cat /root/.vault-token)" \
+      token="$(cat /root/.vault-token)"
+      curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
+        -X POST -H "X-Vault-Token: $token" \
         ${vault_address}/v1/auth/token/renew-self > /dev/null
 
-  - path: /opt/bin/vault-certs.sh
+  - path: /opt/bin/kubelet-certs.sh
     permissions: 0700
     content: |
       #!/bin/bash
-      set -e
+      set -eo pipefail
 
-      cn="worker"
-      san="$(hostname)"
-      ipsan="$private_ipv4"
+      mkdir -p /etc/ssl/kubelet
+      curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
+        -o /etc/ssl/kubelet/ca.pem -z /etc/ssl/kubelet/ca.pem \
+        ${vault_address}/v1/${kubelet_pki_mount}/ca/pem
 
-      json=$(curl -sSf -X POST -H "X-Vault-Token: $(cat /root/.vault-token)" \
-        -d "{\"common_name\":\"$cn\", \"alt_names\":\"$san\", \"ip_sans\": \"$ipsan\"}" \
-        ${vault_address}/v1/${vault_pki_mount}/issue/${vault_pki_role})
+      token="$(cat /root/.vault-token)"
+      json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
+        -X POST -H "X-Vault-Token: $token" \
+        -d '{"common_name":"kubelet", "ip_sans": "$private_ipv4"}' \
+        ${vault_address}/v1/${kubelet_pki_mount}/issue/${kubelet_pki_role})
 
-      mkdir -p /etc/ssl/cluster/instance
-      echo "$json" | \
-        sed -re 's/.*"certificate":"([^"]*)".*/\1/g' -e 's/\\n/\n/g' \
-        > /etc/ssl/cluster/instance/cert.pem
-      echo "$json" | \
-        sed -re 's/.*"private_key":"([^"]*)".*/\1/g' -e 's/\\n/\n/g' \
-        > /etc/ssl/cluster/instance/privkey.pem
+      sed -re 's/.*"certificate":"([^"]*)".*/\1/g' \
+        -e 's/\\n/\n/g' > /etc/ssl/kubelet/cert.pem <<< $json
+      sed -re 's/.*"private_key":"([^"]*)".*/\1/g' \
+        -e 's/\\n/\n/g' > /etc/ssl/kubelet/privkey.pem <<< $json
 
-  - path: /etc/kubernetes/kubeconfig.yaml
+  - path: /opt/awscli/Dockerfile
+    content: |
+      FROM alpine:3.4
+
+      RUN mkdir -p /aws && \
+        apk -Uuv add groff less python py-pip jq && \
+        pip install awscli && \
+        apk --purge -v del py-pip && \
+        rm /var/cache/apk/*
+
+      WORKDIR /aws
+      ENTRYPOINT ["aws"]
+
+  - path: /opt/bin/ecr-login.sh
+    permissions: 0700
+    content: |
+      #! /bin/bash
+      set -eo pipefail
+
+      eval $(docker run --rm -e AWS_DEFAULT_REGION=${region} localhost/awscli ecr get-login)
+
+  - path: /etc/kubernetes/kubelet/kubeconfig.yaml
     content: |
       apiVersion: v1
       kind: Config
-      current-context: worker
+      current-context: kubelet
       clusters:
         - name: kubernetes
           cluster:
-            certificate-authority: /etc/ssl/cluster/ca.pem
-            server: ${kube_controller_url}
+            certificate-authority: /etc/ssl/kube/ca.pem
+            server: https://${kube_fqdn}
       contexts:
-        - name: worker
+        - name: kubelet
           context:
             cluster: kubernetes
-            user: worker
+            user: kubelet
       users:
-        - name: worker
+        - name: kubelet
           user:
-            client-certificate: /etc/ssl/cluster/instance/cert.pem
-            client-key: /etc/ssl/cluster/instance/privkey.pem
+            client-certificate: /etc/ssl/kubelet/cert.pem
+            client-key: /etc/ssl/kubelet/privkey.pem
