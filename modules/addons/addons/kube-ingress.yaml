@@ -86,14 +86,6 @@ data:
   body-size: "64m"
 
 ---
-apiVersion: stable.vaultproject.io/v1
-kind: Secret
-metadata:
-  name: kube-ingress-oauth-config
-spec:
-  path: ${auth_oidc_secret}
-
----
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
@@ -136,79 +128,48 @@ spec:
             - /nginx-ingress-controller
             - --default-backend-service=kube-system/kube-ingress-default
             - --nginx-configmap=kube-system/kube-ingress-nginx
-        - image: kickstarter/oauth2_proxy:latest
-          name: oauth-proxy
-          args:
-            - -upstream=http://localhost
-            - -email-domain=${auth_email_domain}
-            - -proxy-prefix=/auth
-          env:
-            - name: OAUTH2_PROXY_CLIENT_ID
-              valueFrom:
-                secretKeyRef:
-                  name: kube-ingress-oauth-config
-                  key: client-id
-            - name: OAUTH2_PROXY_CLIENT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: kube-ingress-oauth-config
-                  key: client-secret
-            - name: OAUTH2_PROXY_COOKIE_SECRET
-              value: ${cookie_secret}
-            #valueFrom:
-            #    secretKeyRef:
-            #     name: kube-ingress-oauth-config
-            #      key: cookie-secret
 
----
-apiVersion: stable.vaultproject.io/v1
-kind: Secret
-metadata:
-  name: kube-ingress-dns-aws
-spec:
-  path: ${dns_aws_secret}
-
----
-apiVersion: extensions/v1beta1
-kind: Deployment
-metadata:
-  name: kube-ingress-dns
-  namespace: kube-system
-  labels:
-    app: kube-ingress
-    component: dns
-spec:
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        app: kube-ingress
-        component: dns
-    spec:
-      containers:
-        - image: roboll/kube-dns-controller:latest
-          imagePullPolicy: Always
-          name: dns-controller
-          args:
-            - /dns-controller
-            - --publish-service=kube-system/kube-ingress-nginx
-          env:
-            - name: AWS_DEFAULT_REGION
-              value: us-east-1
-            - name: AWS_ACCESS_KEY_ID
-              valueFrom:
-                secretKeyRef:
-                  name: kube-ingress-dns-aws
-                  key: access-key
-            - name: AWS_SECRET_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: kube-ingress-dns-aws
-                  key: secret-key
-          volumeMounts:
-            - name: ca-certs
-              mountPath: /etc/ssl/certs
-      volumes:
-        - name: ca-certs
-          hostPath:
-            path: /usr/share/ca-certificates
+#---
+#apiVersion: extensions/v1beta1
+#kind: Deployment
+#metadata:
+#  name: kube-ingress-dns
+#  namespace: kube-system
+#  labels:
+#    app: kube-ingress
+#    component: dns
+#spec:
+#  replicas: 1
+#  template:
+#    metadata:
+#      labels:
+#        app: kube-ingress
+#        component: dns
+#    spec:
+#      containers:
+#        - image: roboll/kube-dns-controller:latest
+#          imagePullPolicy: Always
+#          name: dns-controller
+#          args:
+#            - /dns-controller
+#            - --publish-service=kube-system/kube-ingress-nginx
+#          env:
+#            - name: AWS_DEFAULT_REGION
+#              value: us-east-1
+#            - name: AWS_ACCESS_KEY_ID
+#              valueFrom:
+#                secretKeyRef:
+#                  name: kube-ingress-dns-aws
+#                  key: access-key
+#            - name: AWS_SECRET_ACCESS_KEY
+#              valueFrom:
+#                secretKeyRef:
+#                  name: kube-ingress-dns-aws
+#                  key: secret-key
+#          volumeMounts:
+#            - name: ca-certs
+#              mountPath: /etc/ssl/certs
+#      volumes:
+#        - name: ca-certs
+#          hostPath:
+#            path: /usr/share/ca-certificates

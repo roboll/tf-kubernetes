@@ -29,7 +29,7 @@ spec:
               mountPath: /etc/kubernetes/
               readOnly: true
         - name: kube-addon-manager-data
-          image: gcr.io/google_containers/hyperkube:v1.3.2
+          image: ${hyperkube}:${kube_version}
           command:
             - /copy-addons.sh
           volumeMounts:

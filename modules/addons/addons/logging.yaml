@@ -47,7 +47,7 @@ spec:
           capabilities:
             add:
               - IPC_LOCK
-        image: quay.io/pires/docker-elasticsearch-kubernetes:2.3.4
+        image: quay.io/pires/docker-elasticsearch-kubernetes:2.3.5_1
         env:
         - name: NAMESPACE
           valueFrom:
@@ -70,12 +70,12 @@ spec:
         volumeMounts:
         - mountPath: /data
           name: storage
-      - name: es-metrics
-        image: roboll/elasticsearch-metrics:latest
-        ports:
-          - containerPort: 9108
-            name: metrics
-            protocol: TCP
+#      - name: es-metrics
+#        image: roboll/elasticsearch-metrics:latest
+#        ports:
+#          - containerPort: 9108
+#            name: metrics
+#            protocol: TCP
       volumes:
       - name: storage
         emptyDir: {}
@@ -152,12 +152,12 @@ spec:
         volumeMounts:
         - mountPath: /data
           name: storage
-      - name: es-metrics
-        image: roboll/elasticsearch-metrics:latest
-        ports:
-          - containerPort: 9108
-            name: metrics
-            protocol: TCP
+#      - name: es-metrics
+#        image: roboll/elasticsearch-metrics:latest
+#        ports:
+#          - containerPort: 9108
+#            name: metrics
+#            protocol: TCP
   volumeClaimTemplates:
     - metadata:
         name: storage
@@ -222,12 +222,12 @@ spec:
         volumeMounts:
         - mountPath: /data
           name: storage
-      - name: es-metrics
-        image: roboll/elasticsearch-metrics:latest
-        ports:
-          - containerPort: 9108
-            name: metrics
-            protocol: TCP
+#      - name: es-metrics
+#        image: roboll/elasticsearch-metrics:latest
+#        ports:
+#          - containerPort: 9108
+#            name: metrics
+#            protocol: TCP
       volumes:
       - name: storage
         emptyDir: {}

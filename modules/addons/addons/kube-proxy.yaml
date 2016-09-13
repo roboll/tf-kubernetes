@@ -16,7 +16,7 @@ data:
       - name: local
         cluster:
           certificate-authority: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-          server: ${master_url}
+          server: https://${kube_fqdn}
     contexts:
       - context:
           cluster: local
@@ -42,7 +42,7 @@ spec:
       hostNetwork: true
       containers:
         - name: kube-proxy
-          image: gcr.io/google_containers/hyperkube:${kubernetes_version}
+          image: ${hyperkube}:${kube_version}
           command:
             - /bin/bash
             - -c

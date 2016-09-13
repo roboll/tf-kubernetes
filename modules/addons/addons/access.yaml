@@ -22,6 +22,8 @@ subjects:
     name: controller
   - kind: User
     name: kubelet
+  - kind: User
+    name: admin
 roleRef:
   apiVersion: rbac.authorization.k8s.io/v1alpha1
   kind: ClusterRole
