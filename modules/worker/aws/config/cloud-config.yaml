@@ -127,6 +127,7 @@ coreos:
         ExecStartPre=/usr/bin/test -f /etc/ssl/kubelet/cert.pem
         ExecStartPre=/usr/bin/test -f /etc/ssl/kubelet/privkey.pem
 
+        Environment=KUBELET_ACI=${hyperkube}
         Environment=KUBELET_VERSION=${kube_version}
         Environment=RKT_OPTS="--volume dns,kind=host,source=/etc/resolv.conf \
           --mount volume=dns,target=/etc/resolv.conf \

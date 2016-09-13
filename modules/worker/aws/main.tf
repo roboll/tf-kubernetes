@@ -27,6 +27,7 @@ variable worker_class {}
 variable controller_fqdn {}
 variable kubelet_pki_backend {}
 
+variable hyperkube { default = "quay.io/coreos/hyperkube" }
 variable kube_version { default = "v1.3.6_coreos.0" }
 
 provider aws {
@@ -144,6 +145,7 @@ resource coreos_cloudconfig cloud_config {
 
         kube_fqdn = "${var.controller_fqdn}"
         kube_version = "${var.kube_version}"
+        hyperkube = "${var.hyperkube}"
 
         region = "${var.region}"
         vault_address = "${var.vault_address}"

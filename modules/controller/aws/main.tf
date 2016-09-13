@@ -28,6 +28,7 @@ variable root_volume_size { default = 20 }
 variable etcd_volume_type { default = "gp2" }
 variable etcd_volume_size { default = 20 }
 
+variable hyperkube { default = "quay.io/coreos/hyperkube" }
 variable kube_version { default = "v1.3.6_coreos.0" }
 
 variable cidr_offset { default = "16" }
@@ -179,6 +180,7 @@ resource coreos_cloudconfig cloud_config {
 
         kube_fqdn = "${var.fqdn}"
         kube_version = "${var.kube_version}"
+        hyperkube = "${var.hyperkube}"
 
         region = "${var.region}"
         vault_address = "${var.vault_address}"
