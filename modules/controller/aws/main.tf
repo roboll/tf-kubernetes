@@ -311,6 +311,8 @@ resource aws_route53_record kube {
 output fqdn { value = "${aws_route53_record.kube.fqdn}" }
 output address { value = "https://${aws_route53_record.kube.fqdn}" }
 
+output hyperkube { value = "${var.hyperkube}" }
+
 output kube_pki_backend { value = "${null_resource.pki_mount.triggers.kube_path}" }
 output etcd_pki_backend { value = "${null_resource.pki_mount.triggers.etcd_path}" }
 output kubelet_pki_backend { value = "${null_resource.pki_mount.triggers.kube_path}" }
