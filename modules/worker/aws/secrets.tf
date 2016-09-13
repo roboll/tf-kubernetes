@@ -1,5 +1,6 @@
 resource vaultx_secret worker_role {
     path = "${var.kubelet_pki_backend}/roles/worker-${var.worker_class}"
+    ignore_read = true
 
     data {
         allowed_domains = "kubelet"
