@@ -135,7 +135,7 @@ resource aws_iam_instance_profile kube_worker {
 }
 
 resource coreos_cloudconfig cloud_config {
-    gzip = true
+    gzip = false
     template = "${file("${path.module}/config/cloud-config.yaml")}"
 
     vars {
