@@ -27,8 +27,7 @@ variable worker_class {}
 variable controller_fqdn {}
 variable kubelet_pki_backend {}
 
-variable hyperkube { default = "gcr.io/google_containers/hyperkube-amd64" }
-variable hyperkube_tag { default = "v1.3.6" }
+variable kube_version { default = "v1.3.6_coreos.0" }
 
 provider aws {
     region = "${var.region}"
@@ -145,6 +144,8 @@ resource coreos_cloudconfig cloud_config {
         ssh_helper = "${var.ssh_helper_image}"
 
         kube_fqdn = "${var.controller_fqdn}"
+        kube_version = "${var.kube_version}"
+
         region = "${var.region}"
         vault_address = "${var.vault_address}"
         vault_instance_role = "${vaultx_policy.worker.name}"

@@ -298,39 +298,39 @@ coreos:
         RestartSec=10
         TimeoutStartSec=300
 
-        ExecStartPre=/usr/bin/mkdir -p /var/lib/kubelet
-        ExecStartPre=/usr/bin/docker pull ${hyperkube}
-
         ExecStartPre=/usr/bin/test -s /etc/ssl/kubelet/ca.pem
         ExecStartPre=/usr/bin/test -s /etc/ssl/kubelet/cert.pem
         ExecStartPre=/usr/bin/test -s /etc/ssl/kubelet/privkey.pem
 
-        ExecStart=/usr/bin/docker run --net=host --pid=host --privileged \
-          -v /:/rootfs:ro \
-          -v /sys/:/sys/ \
-          -v /dev/:/dev/ \
-          -v /var/run/:/var/run/ \
-          -v /var/log/:/var/log/ \
-          -v /var/lib/docker/:/var/lib/docker/ \
-          -v /var/lib/kubelet/:/var/lib/kubelet/:shared \
-          -v /etc/ssl/kube/ca.pem:/etc/ssl/kube/ca.pem \
-          -v /etc/ssl/kubelet/:/etc/ssl/kubelet/ \
-          -v /etc/kubernetes/:/etc/kubernetes/ \
-          -v /root/.docker/:/root/.docker/ \
-          ${hyperkube} \
-            /hyperkube kubelet \
-              --containerized \
-              --api-servers=https://${kube_fqdn} \
-              --node-labels=role=controller \
-              --tls-cert-file=/etc/ssl/kubelet/cert.pem \
-              --tls-private-key-file=/etc/ssl/kubelet/privkey.pem \
-              --register-schedulable=false \
-              --hostname-override=$private_ipv4 \
-              --config=/etc/kubernetes/manifests \
-              --kubeconfig=/etc/kubernetes/kubelet/kubeconfig.yaml \
-              --cluster-dns=10.0.0.10 \
-              --cluster-domain=cluster.local \
-              --allow-privileged --v=2 --logtostderr=true
+        Environment=KUBELET_VERSION=${kube_version}
+        Environment=RKT_OPTS="--volume dns,kind=host,source=/etc/resolv.conf \
+          --mount volume=dns,target=/etc/resolv.conf \
+          --volume rkt,kind=host,source=/opt/bin/host-rkt \
+          --mount volume=rkt,target=/usr/bin/rkt \
+          --volume var-lib-rkt,kind=host,source=/var/lib/rkt \
+          --mount volume=var-lib-rkt,target=/var/lib/rkt \
+          --volume stage,kind=host,source=/tmp \
+          --mount volume=stage,target=/tmp \
+          --volume var-log,kind=host,source=/var/log \
+          --mount volume=var-log,target=/var/log \
+          --volume kubelet-ssl,kind=host,source=/etc/ssl/kubelet \
+          --mount volume=kubelet-ssl,target=/etc/ssl/kubelet \
+          --volume kube-ca,kind=host,source=/etc/ssl/kube/ca.pem \
+          --mount volume=kube-ca,target=/etc/ssl/kube/ca.pem"
+
+        ExecStartPre=/usr/bin/mkdir -p /var/log/containers
+        ExecStart=/usr/lib/coreos/kubelet-wrapper \
+          --api-servers=https://${kube_fqdn} \
+          --node-labels=role=controller \
+          --tls-cert-file=/etc/ssl/kubelet/cert.pem \
+          --tls-private-key-file=/etc/ssl/kubelet/privkey.pem \
+          --config=/etc/kubernetes/manifests \
+          --kubeconfig=/etc/kubernetes/kubelet/kubeconfig.yaml \
+          --hostname-override=$private_ipv4 \
+          --cluster-dns=10.0.0.10 \
+          --cluster-domain=cluster.local \
+          --register-schedulable=false \
+          --allow-privileged --v=2 --logtostderr=true
 
 write_files:
   - path: /etc/ssl/vault/ca.pem

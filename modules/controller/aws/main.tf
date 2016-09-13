@@ -28,8 +28,7 @@ variable root_volume_size { default = 20 }
 variable etcd_volume_type { default = "gp2" }
 variable etcd_volume_size { default = 20 }
 
-variable hyperkube { default = "gcr.io/google_containers/hyperkube-amd64" }
-variable hyperkube_tag { default = "v1.3.6" }
+variable kube_version { default = "v1.3.6_coreos.0" }
 
 variable cidr_offset { default = "16" }
 
@@ -176,10 +175,11 @@ resource coreos_cloudconfig cloud_config {
         instance_name = "${element(null_resource.etcd.*.triggers.name, count.index)}"
         etcd_peers = "${join(",",formatlist("%s=https://%s:2380", null_resource.etcd.*.triggers.name, null_resource.etcd.*.triggers.ip))}"
 
-        hyperkube = "${ecr_push.hyperkube.latest_url}"
         ssh_helper = "${var.ssh_helper_image}"
 
         kube_fqdn = "${var.fqdn}"
+        kube_version = "${var.kube_version}"
+
         region = "${var.region}"
         vault_address = "${var.vault_address}"
         vault_instance_role = "${vaultx_policy.controller.name}"
