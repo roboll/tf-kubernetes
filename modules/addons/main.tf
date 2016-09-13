@@ -11,7 +11,7 @@ provider ecr {
     region = "${var.aws_region}"
 }
 
-resource null_resource dir {
+resource null_resource render {
     provisioner local-exec {
         command = <<EOF
 mkdir -p ${path.root}/kube && \
