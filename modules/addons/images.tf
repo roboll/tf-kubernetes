@@ -1,6 +1,6 @@
 resource dockerx_build etcd_metrics {
     name = "${var.env}-etcd-metrics"
-    context_dir = "${replace("${path.module}/../etcd_metrics/docker/", "${path.root}", ".")}"
+    context_dir = "${replace("${path.module}/etcd_metrics/docker/", "${path.root}", ".")}"
 }
 
 resource aws_ecr_repository etcd_metrics {
