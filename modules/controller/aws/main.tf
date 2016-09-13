@@ -6,10 +6,11 @@ variable subnets { type = "list" }
 variable subnet_cidrs { type = "list" }
 
 variable ssh_keypair {}
+variable ssh_helper_image {}
+
 variable vault_address {}
 variable vault_ca_cert_pem {}
 variable vault_curl_opts { default = "" }
-variable ssh_helper_image {}
 
 variable fqdn {}
 variable dns_zone_id {}
@@ -27,10 +28,8 @@ variable root_volume_size { default = 20 }
 variable etcd_volume_type { default = "gp2" }
 variable etcd_volume_size { default = 20 }
 
-variable oidc_vault_path {}
-
 variable hyperkube { default = "gcr.io/google_containers/hyperkube-amd64" }
-variable hyperkube_tag { default = "v1.3.4" }
+variable hyperkube_tag { default = "v1.3.6" }
 
 variable cidr_offset { default = "16" }
 
@@ -174,11 +173,6 @@ resource coreos_cloudconfig cloud_config {
     template = "${file("${path.module}/config/cloud-config.yaml")}"
 
     vars {
-        oidc_issuer_url = "${data.vaultx_secret.oidc.data.issuer_url}"
-        oidc_client_id = "${data.vaultx_secret.oidc.data.client_id}"
-        oidc_groups_claim = "${data.vaultx_secret.oidc.data.groups_claim}"
-        oidc_username_claim = "${data.vaultx_secret.oidc.data.username_claim}"
-
         instance_name = "${element(null_resource.etcd.*.triggers.name, count.index)}"
         etcd_peers = "${join(",",formatlist("%s=https://%s:2380", null_resource.etcd.*.triggers.name, null_resource.etcd.*.triggers.ip))}"
 

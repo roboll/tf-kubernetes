@@ -5,8 +5,11 @@ variable vpc {}
 variable subnets {}
 
 variable ssh_keypair {}
-variable vault_address {}
 variable ssh_helper_image {}
+
+variable vault_address {}
+variable vault_ca_cert_pem {}
+variable vault_curl_opts { default = "" }
 
 variable security_groups { type = "list" }
 
@@ -25,7 +28,7 @@ variable controller_fqdn {}
 variable vault_pki_backend {}
 
 variable hyperkube { default = "gcr.io/google_containers/hyperkube-amd64" }
-variable hyperkube_tag { default = "v1.3.4" }
+variable hyperkube_tag { default = "v1.3.6" }
 
 provider aws {
     region = "${var.region}"
