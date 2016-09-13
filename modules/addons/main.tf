@@ -1,5 +1,11 @@
+variable env {}
+variable aws_region {}
+
 variable fqdn {}
-variable kubernetes_version {}
+variable kube_fqdn {}
+
+variable hyperkube {}
+variable kube_version {}
 
 variable aws_region {}
 
@@ -7,10 +13,58 @@ provider ecr {
     region = "${var.aws_region}"
 }
 
+resource null_resource dir {
+    provisioner local-exec {
+        command = "mkdir -p ${path.root}/kube && \
+            echo ${data.template_file.access.rendered} > ${path.root}/kube/access.yaml && \
+            echo ${data.template_file.dashboard.rendered} > ${path.root}/kube/kube-dashboard.yaml && \
+            echo ${data.template_file.heapster.rendered} > ${path.root}/kube/heapster.yaml && \
+            echo ${data.template_file.addon_manager.rendered} > ${path.root}/kube/kube-addon-manager.yaml && \
+            echo ${data.template_file.controller_manager.rendered} > ${path.root}/kube/kube-controller-manager.yaml && \
+            echo ${data.template_file.controller_metrics.rendered} > ${path.root}/kube/controller-metrics.yaml && \
+            echo ${data.template_file.ingress.rendered} > ${path.root}/kube/kube-ingress.yaml && \
+            echo ${data.template_file.proxy.rendered} > ${path.root}/kube/kube-proxy.yaml && \
+            echo ${data.template_file.scheduler.rendered} > ${path.root}/kube/kube-scheduler.yaml && \
+            echo ${data.template_file.logging.rendered} > ${path.root}/kube/logging.yaml && \
+            echo ${data.template_file.alerts_config.rendered} > ${path.root}/kube/metrics-alerts-config.yaml && \
+            echo ${data.template_file.metrics_config.rendered} > ${path.root}/kube/metrics-config.yaml && \
+            echo ${data.template_file.metrics.rendered} > ${path.root}/kube/metrics.yaml"
+    }
+}
+
+data template_file access {
+    template = "${file("${path.module}/addons/access.yaml")}"
+}
+
+data template_file dashboard {
+    template = "${file("${path.module}/addons/dashboard.yaml")}"
+
+    vars {
+        fqdn = "${var.fqdn}"
+    }
+}
+
+data template_file heapster {
+    template = "${file("${path.module}/addons/heapster.yaml")}"
+}
+
 data template_file addon_manager {
     template = "${file("${path.module}/addons/kube-addon-manager.yaml")}"
+
     vars {
-        kubernetes_version = "${var.kubernetes_version}"
+        hyperkube = "${var.hyperkube}"
+        kube_version = "${var.kube_version}"
+    }
+}
+
+data template_file controller_manager {
+    template = "${file("${path.module}/addons/kube-controller-manager.yaml")}"
+
+    vars {
+        kube_fqdn = "${var.kube_fqdn}"
+
+        hyperkube = "${var.hyperkube}"
+        kube_version = "${var.kube_version}"
     }
 }
 
@@ -21,65 +75,46 @@ data template_file controller_metrics {
     }
 }
 
-data template_file dashboard {
-    template = "${file("${path.module}/addons/dashboard.yaml")}"
-    vars {
-        fqdn = "${var.fqdn}"
-    }
-}
-
-data template_file heapster {
-    template = "${file("${path.module}/addons/heapster.yaml")}"
-    vars {
-        fqdn = "${var.fqdn}"
-    }
-}
-
 data template_file ingress {
     template = "${file("${path.module}/addons/kube-ingress.yaml")}"
-    vars {
-        auth_oidc_secret = "secret/ops/oidc/web"
-        auth_email_domain = "*"
-        cookie_secret = "${uuid()}"
-        dns_aws_secret = "secret/ops/aws-admin" //TODO change this to aws secret
-    }
-
-    lifecycle { ignore_changes = [ "cars.cookie_secret" ] }
 }
 
 data template_file proxy {
     template = "${file("${path.module}/addons/kube-proxy.yaml")}"
     vars {
-        master_url = "https://kube.dev.kitkit.cloud"
-        kubernetes_version = "${var.kubernetes_version}"
+        kube_fqdn = "${var.kube_fqdn}"
+
+        hyperkube = "${var.hyperkube}"
+        kube_version = "${var.kube_version}"
     }
 }
 
-data template_file vault {
-    template = "${file("${path.module}/addons/kube-vault.yaml")}"
+data template_file scheduler {
+    template = "${file("${path.module}/addons/kube-scheduler.yaml")}"
+
     vars {
-        vault_address = ""
-        vault_token = ""
+        kube_fqdn = "${var.kube_fqdn}"
+
+        hyperkube = "${var.hyperkube}"
+        kube_version = "${var.kube_version}"
     }
 }
 
 data template_file logging {
     template = "${file("${path.module}/addons/logging.yaml")}"
-    vars {
-        fqdn = "${var.fqdn}"
-    }
-}
-
-data template_file prometheus_config {
-    template = "${file("${path.module}/addons/metrics-prometheus-config.yaml")}"
 }
 
 data template_file alerts_config {
     template = "${file("${path.module}/addons/metrics-alerts-config.yaml")}"
 }
 
+data template_file metrics_config {
+    template = "${file("${path.module}/addons/metrics-prometheus-config.yaml")}"
+}
+
 data template_file metrics {
     template = "${file("${path.module}/addons/metrics.yaml")}"
+
     vars {
         fqdn = "${var.fqdn}"
     }

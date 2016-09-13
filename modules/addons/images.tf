@@ -1,5 +1,5 @@
 resource dockerx_build etcd_metrics {
-    name = "${var.prefix}-etcd-metrics"
+    name = "${var.env}-etcd-metrics"
     context_dir = "${replace("${path.module}/../etcd_metrics/docker/", "${path.root}", ".")}"
 }
 
