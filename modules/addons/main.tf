@@ -72,7 +72,7 @@ data template_file controller_metrics {
     template = "${file("${path.module}/addons/kube-controller-metrics.yaml")}"
 
     vars {
-        etcd_metrics_image = "${ecr_push.etcd_metrics.image_url}"
+        etcd_metrics_image = "${ecr_push.etcd_metrics.latest_url}"
     }
 }
 
