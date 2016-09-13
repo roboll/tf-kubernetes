@@ -25,7 +25,7 @@ variable root_volume_size { default = 20 }
 
 variable worker_class {}
 variable controller_fqdn {}
-variable vault_pki_backend {}
+variable kubelet_pki_backend {}
 
 variable hyperkube { default = "gcr.io/google_containers/hyperkube-amd64" }
 variable hyperkube_tag { default = "v1.3.6" }
