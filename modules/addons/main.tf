@@ -7,8 +7,6 @@ variable kube_fqdn {}
 variable hyperkube {}
 variable kube_version {}
 
-variable aws_region {}
-
 provider ecr {
     region = "${var.aws_region}"
 }

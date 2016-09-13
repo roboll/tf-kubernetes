@@ -27,7 +27,7 @@ resource aws_ecr_repository_policy etcd_metrics {
 EOF
 }
 
-resource ecr_push hyperkube {
+resource ecr_push etcd_metrics {
     image = "${dockerx_build.etcd_metrics.image}"
     tag = "${dockerx_build.etcd_metrics.tag}"
     name = "${aws_ecr_repository.etcd_metrics.name}"
