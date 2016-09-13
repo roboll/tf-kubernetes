@@ -22,46 +22,6 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: kube-scheduler
-  namespace: kube-system
-  annotations:
-    prometheus.io/scrape: 'true'
-    prometheus.io/port: '10251'
-  labels:
-    name: kube-scheduler
-spec:
-  selector:
-    app: kubernetes
-    component: scheduler
-  ports:
-  - name: metrics
-    port: 10251
-    protocol: TCP
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: kube-controller-manager
-  namespace: kube-system
-  annotations:
-    prometheus.io/scrape: 'true'
-    prometheus.io/port: '10252'
-  labels:
-    name: kube-controller-manager
-spec:
-  selector:
-    app: kubernetes
-    component: controller-manager
-  ports:
-  - name: metrics
-    port: 10252
-    protocol: TCP
-
----
-apiVersion: v1
-kind: Service
-metadata:
   name: kube-etcd
   namespace: kube-system
   annotations:

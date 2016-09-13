@@ -1,0 +1,34 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kube-system
+
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1alpha1
+metadata:
+  name: admin-access
+rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
+    nonResourceURLs: ["*"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1alpha1
+kind: ClusterRoleBinding
+metadata:
+  name: admin-access
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: kube-system
+  - kind: User
+    name: controller
+  - kind: User
+    name: kubelet
+roleRef:
+  apiVersion: rbac.authorization.k8s.io/v1alpha1
+  kind: ClusterRole
+  name: admin-access
