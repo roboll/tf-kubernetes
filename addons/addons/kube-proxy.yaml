@@ -48,9 +48,11 @@ spec:
             - -c
             - "sed -i /etc/kubeconfig/kubeconfig \
                 -e s,{{token}},$(cat /var/run/secrets/kubernetes.io/serviceaccount/token),g && \
+                source /etc/environment && \
                 /hyperkube proxy \
                   --master=https://${kube_fqdn} \
                   --kubeconfig=/etc/kubeconfig/kubeconfig \
+                  --hostname-override=$COREOS_PRIVATE_IPV4 \
                   --proxy-mode=iptables"
           volumeMounts:
             - name: kubeconfig
