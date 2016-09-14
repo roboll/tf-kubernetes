@@ -10,7 +10,7 @@ data:
 
     scrape_configs:
     # apiserver service
-    - job_name: 'kubernetes-cluster'
+    - job_name: "kubernetes-cluster"
       scheme: https
 
       tls_config:
@@ -19,9 +19,9 @@ data:
 
       kubernetes_sd_configs:
       - api_servers:
-        - 'https://kubernetes.default.svc'
+        - "https://kubernetes.default.svc"
         in_cluster: true
-        role: 'endpoint'
+        role: "endpoint"
 
       relabel_configs:
       - source_labels: [__meta_kubernetes_role]
@@ -46,7 +46,7 @@ data:
     # service scraping
     #
     # * `prometheus.io/probe`: Only probe services that have a value of `true`
-    - job_name: 'kubernetes-services'
+    - job_name: "kubernetes-services"
 
       metrics_path: /probe
       params:
@@ -54,9 +54,9 @@ data:
 
       kubernetes_sd_configs:
       - api_servers:
-        - 'https://kubernetes.default.svc'
+        - "https://kubernetes.default.svc"
         in_cluster: true
-        role: 'service'
+        role: "service"
 
       relabel_configs:
       - source_labels: [__meta_kubernetes_role, __meta_kubernetes_service_annotation_prometheus_io_probe]
@@ -89,16 +89,16 @@ data:
     # * `prometheus.io/path`: If the metrics path is not `/metrics` override this.
     # * `prometheus.io/port`: If the metrics are exposed on a different port to the
     # service then set this appropriately.
-    - job_name: 'kubernetes-service-endpoints'
+    - job_name: "kubernetes-service-endpoints"
 
       tls_config:
         ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
 
       kubernetes_sd_configs:
       - api_servers:
-        - 'https://kubernetes.default.svc'
+        - "https://kubernetes.default.svc"
         in_cluster: true
-        role: 'endpoint'
+        role: "endpoint"
 
       relabel_configs:
       - source_labels: [__meta_kubernetes_role, __meta_kubernetes_service_annotation_prometheus_io_scrape]
@@ -137,13 +137,13 @@ data:
     #
     # * `prometheus.io/scrape`: Only scrape pods that have a value of `true`
     # * `prometheus.io/port`: Scrape the pod on the indicated port instead of default `9102`
-    - job_name: 'kubernetes-pods'
+    - job_name: "kubernetes-pods"
 
       kubernetes_sd_configs:
       - api_servers:
-        - 'https://kubernetes.default.svc'
+        - "https://kubernetes.default.svc"
         in_cluster: true
-        role: 'pod'
+        role: "pod"
 
       relabel_configs:
       - source_labels: [__meta_kubernetes_role, __meta_kubernetes_pod_annotation_prometheus_io_scrape]
@@ -168,24 +168,24 @@ data:
         replacement: $1-$2-pod
 
     # vault metrics
-    - job_name: 'vault'
+    - job_name: "vault"
 
       dns_sd_configs:
         - names:
-          - 'metrics.vault.ops.kitkit.cloud'
-          type: 'A'
+          - "metrics.vault.ops.kitkit.cloud"
+          type: "A"
           port: 9102
 
     # vpn mongo metrics
-    - job_name: 'vpn-mongo'
+    - job_name: "vpn-mongo"
 
       dns_sd_configs:
         - names:
-          - 'metrics.mongo.vpn.ops.kitkit.cloud'
-          type: 'A'
+          - "metrics.mongo.vpn.ops.kitkit.cloud"
+          type: "A"
           port: 9001
 
-    - job_name: 'blackbox'
+    - job_name: "blackbox"
 
       metrics_path: /probe
 

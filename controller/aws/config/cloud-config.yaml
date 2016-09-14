@@ -594,6 +594,7 @@ write_files:
               - --kubelet-client-key=/etc/ssl/kubelet/privkey.pem
               - --client-ca-file=/etc/ssl/kube/ca.pem
               - --allow-privileged=true
+              - --cloud-provider=aws
               - --service-cluster-ip-range=10.0.0.0/16
               - --advertise-address=$private_ipv4
               - --external-hostname=${kube_fqdn}
@@ -723,6 +724,7 @@ write_files:
               - --leader-elect=true
               - --root-ca-file=/etc/ssl/kube/ca.pem
               - --service-account-private-key-file=/etc/kubernetes/service-account/privkey.pem
+              - --cloud-provider=aws
             livenessProbe:
               httpGet:
                 host: 127.0.0.1

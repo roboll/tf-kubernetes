@@ -49,7 +49,7 @@ spec:
             - "sed -i /etc/kubeconfig/kubeconfig \
                 -e s,{{token}},$(cat /var/run/secrets/kubernetes.io/serviceaccount/token),g && \
                 /hyperkube proxy \
-                  --master=https://kube.dev.kitkit.cloud \
+                  --master=https://${kube_fqdn} \
                   --kubeconfig=/etc/kubeconfig/kubeconfig \
                   --proxy-mode=iptables"
           volumeMounts:

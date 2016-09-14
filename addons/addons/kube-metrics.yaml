@@ -60,21 +60,21 @@ spec:
       hostNetwork: true
       containers:
         - name: kube-etcd
-          image: ${etcd_metrics_image}
+          image: ${etcd_metrics}
           args:
             - --upstream-server-name=controller
-            - --etcd-ca=/etc/ssl/cluster/ca.pem
-            - --etcd-cert=/etc/ssl/cluster/instance/cert.pem
-            - --etcd-key=/etc/ssl/cluster/instance/privkey.pem
+            - --etcd-ca=/etc/ssl/etcd/ca.pem
+            - --etcd-cert=/etc/ssl/etcd/cert.pem
+            - --etcd-key=/etc/ssl/etcd/privkey.pem
           resources:
             requests:
               cpu: 5m
               memory: 50Mi
           volumeMounts:
-            - mountPath: /etc/ssl/cluster
-              name: cluster-certs
+            - mountPath: /etc/ssl/etcd
+              name: etcd-certs
               readOnly: true
       volumes:
         - name: cluster-certs
           hostPath:
-            path: /etc/ssl/cluster
+            path: /etc/ssl/etcd

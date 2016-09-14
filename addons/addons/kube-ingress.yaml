@@ -103,8 +103,8 @@ spec:
         component: nginx
     spec:
       containers:
-        - image: roboll/nginx-ingress-controller:0.8.2
-          name: nginx
+        - name: nginx
+          image: gcr.io/google_containers/nginx-ingress-controller:0.8.3
           env:
             - name: POD_NAME
               valueFrom:
@@ -128,48 +128,3 @@ spec:
             - /nginx-ingress-controller
             - --default-backend-service=kube-system/kube-ingress-default
             - --nginx-configmap=kube-system/kube-ingress-nginx
-
-#---
-#apiVersion: extensions/v1beta1
-#kind: Deployment
-#metadata:
-#  name: kube-ingress-dns
-#  namespace: kube-system
-#  labels:
-#    app: kube-ingress
-#    component: dns
-#spec:
-#  replicas: 1
-#  template:
-#    metadata:
-#      labels:
-#        app: kube-ingress
-#        component: dns
-#    spec:
-#      containers:
-#        - image: roboll/kube-dns-controller:latest
-#          imagePullPolicy: Always
-#          name: dns-controller
-#          args:
-#            - /dns-controller
-#            - --publish-service=kube-system/kube-ingress-nginx
-#          env:
-#            - name: AWS_DEFAULT_REGION
-#              value: us-east-1
-#            - name: AWS_ACCESS_KEY_ID
-#              valueFrom:
-#                secretKeyRef:
-#                  name: kube-ingress-dns-aws
-#                  key: access-key
-#            - name: AWS_SECRET_ACCESS_KEY
-#              valueFrom:
-#                secretKeyRef:
-#                  name: kube-ingress-dns-aws
-#                  key: secret-key
-#          volumeMounts:
-#            - name: ca-certs
-#              mountPath: /etc/ssl/certs
-#      volumes:
-#        - name: ca-certs
-#          hostPath:
-#            path: /usr/share/ca-certificates

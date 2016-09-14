@@ -284,11 +284,13 @@ metadata:
   name: logging-kibana
   annotations:
     ingress.kubernetes.io/rewrite-target: /
-#    kubernetes.io/tls-acme: "true"
+    kubernetes.io/tls-acme: "true"
+    kubernetes.io/ingress.class: "nginx"
 spec:
-  #  tls:
-  #    - hosts:
-  #      - tools.dev.kitkit.cloud
+  tls:
+    - hosts:
+      - tools.${fqdn}
+      secretName: logging-kibana-acme-tls
   rules:
     - host: tools.${fqdn}
       http:
