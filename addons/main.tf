@@ -116,7 +116,7 @@ data template_file kube_ingress_acme {
     template = "${file("${path.module}/addons/kube-ingress-acme.yaml")}"
 
     vars {
-        email = "${var.acme_email}"
+        acme_email = "${var.acme_email}"
         acme_url = "${var.acme_url}"
     }
 }
