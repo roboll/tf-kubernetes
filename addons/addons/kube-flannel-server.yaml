@@ -39,7 +39,7 @@ spec:
           command:
             - /opt/bin/flanneld
             - --listen=0.0.0.0:8888
-            - --etcd-endpoints=https://$private_ipv4:2379
+            - --etcd-endpoints=https://controller:2379
             - --etcd-cafile=/etc/ssl/etcd/ca.pem
             - --etcd-certfile=/etc/ssl/etcd/cert.pem
             - --etcd-keyfile=/etc/ssl/etcd/privkey.pem

@@ -1,5 +1,6 @@
 #cloud-config
 coreos:
+  hostname: controller
   update:
     reboot-strategy: etcd-lock
 

@@ -39,6 +39,10 @@ cat << "FF" > ${path.root}/addons/kube-dashboard.yaml;
 ${data.template_file.kube_dashboard.rendered}
 FF
 
+cat << "FF" > ${path.root}/addons/kube-flannel-server.yaml;
+${data.template_file.kube_flannel_server.rendered}
+FF
+
 cat << "FF" > ${path.root}/addons/kube-ingress-acme.yaml;
 ${data.template_file.kube_ingress_acme.rendered}
 FF
@@ -106,6 +110,14 @@ data template_file kube_metrics {
 
 data template_file kube_dashboard {
     template = "${file("${path.module}/addons/kube-dashboard.yaml")}"
+
+    vars {
+        fqdn = "${var.fqdn}"
+    }
+}
+
+data template_file kube_flannel_server {
+    template = "${file("${path.module}/addons/kube-flannel-server.yaml")}"
 
     vars {
         fqdn = "${var.fqdn}"
