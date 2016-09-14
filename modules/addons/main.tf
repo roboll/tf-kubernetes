@@ -1,5 +1,5 @@
 variable env {}
-variable aws_region {}
+variable region {}
 
 variable fqdn {}
 variable kube_fqdn {}
@@ -8,7 +8,7 @@ variable hyperkube {}
 variable kube_version {}
 
 provider ecr {
-    region = "${var.aws_region}"
+    region = "${var.region}"
 }
 
 resource null_resource render {
