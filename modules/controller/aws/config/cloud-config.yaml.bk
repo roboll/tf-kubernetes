@@ -1,3 +1,54 @@
+  - path: /etc/kubernetes/manifests/kube-scheduler.yaml
+    content: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: kube-scheduler
+        namespace: kube-system
+        labels:
+          app: kubernetes
+          component: scheduler
+      spec:
+        hostNetwork: true
+        imagePullPolicy: Always
+        containers:
+          - name: kube-scheduler
+            image: ${hyperkube}:${kube_version}
+            command:
+              - /hyperkube
+              - scheduler
+              - --master=https://${kube_fqdn}
+              - --kubeconfig=/etc/kubernetes/controller/kubeconfig.yaml
+              - --leader-elect=true
+            livenessProbe:
+              httpGet:
+                host: 127.0.0.1
+                path: /healthz
+                port: 10251
+              initialDelaySeconds: 15
+              timeoutSeconds: 1
+            volumeMounts:
+              - mountPath: /etc/ssl/kube/ca.pem
+                name: kube-ca
+                readOnly: true
+              - mountPath: /etc/ssl/controller
+                name: controller-certs
+                readOnly: true
+              - mountPath: /etc/kubernetes/controller/kubeconfig.yaml
+                name: kubeconfig
+                readOnly: true
+        volumes:
+          - hostPath:
+              path: /etc/ssl/kube/ca.pem
+            name: kube-ca
+          - hostPath:
+              path: /etc/ssl/controller
+            name: controller-certs
+          - hostPath:
+              path: /etc/kubernetes/controller/kubeconfig.yaml
+            name: kubeconfig
+
+
 #cloud-config
 coreos:
   update:
