@@ -57,27 +57,27 @@ cat <<FF > ${path.root}/kube/kube-controller-manager.yaml;
 FF
 
 cat <<FF > ${path.root}/kube/kube-proxy.yaml;
-echo "${data.template_file.proxy.rendered}"
+"${data.template_file.proxy.rendered}"
 FF
 
 cat <<FF > ${path.root}/kube/kube-scheduler.yaml;
-echo "${data.template_file.scheduler.rendered}"
+"${data.template_file.scheduler.rendered}"
 FF
 
 cat <<FF > ${path.root}/kube/logging.yaml;
-echo "${data.template_file.logging.rendered}"
+"${data.template_file.logging.rendered}"
 FF
 
 cat <<FF > ${path.root}/kube/metrics-alerts-config.yaml;
-echo "${data.template_file.alerts_config.rendered}"
+"${data.template_file.alerts_config.rendered}"
 FF
 
 cat <<FF > ${path.root}/kube/metrics-config.yaml;
-echo "${data.template_file.metrics_config.rendered}"
+"${data.template_file.metrics_config.rendered}"
 FF
 
 cat <<FF > ${path.root}/kube/metrics.yaml;
-echo "${data.template_file.metrics.rendered}"
+"${data.template_file.metrics.rendered}"
 FF
 
 EOF
