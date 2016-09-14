@@ -7,6 +7,10 @@ variable kube_fqdn {}
 variable hyperkube {}
 variable kube_version {}
 
+provider aws {
+    region = "${var.region}"
+}
+
 provider ecr {
     region = "${var.region}"
 }
