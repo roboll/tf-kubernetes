@@ -20,63 +20,63 @@ resource null_resource render {
         command = <<EOF
 mkdir -p ${path.root}/kube;
 
-cat <<FF > ${path.root}/kube/access.yaml
+cat <<FF > ${path.root}/kube/access.yaml;
 "${data.template_file.access.rendered}"
 FF
 
-cat <<FF > ${path.root}/kube/kube-dashboard.yaml
+cat <<FF > ${path.root}/kube/kube-dashboard.yaml;
 "${data.template_file.dashboard.rendered}"
 FF
 
-cat <<FF > ${path.root}/kube/heapster.yaml
+cat <<FF > ${path.root}/kube/heapster.yaml;
 "${data.template_file.heapster.rendered}"
 FF
 
-cat <<FF > ${path.root}/kube/kube-addon-manager.yaml
+cat <<FF > ${path.root}/kube/kube-addon-manager.yaml;
 "${data.template_file.addon_manager.rendered}"
 FF
 
-cat <<FF > ${path.root}/kube/kube-controller-manager.yaml
+cat <<FF > ${path.root}/kube/kube-controller-manager.yaml;
 "${data.template_file.controller_manager.rendered}"
 FF
 
-cat <<FF > ${path.root}/kube/kube-controller-manager.yaml
+cat <<FF > ${path.root}/kube/kube-controller-manager.yaml;
 "${data.template_file.controller_manager.rendered}"
 FF
 
-cat <<FF > ${path.root}/kube/controller-metrics.yaml
+cat <<FF > ${path.root}/kube/controller-metrics.yaml;
 "${data.template_file.controller_metrics.rendered}"
 FF
 
-cat <<FF > ${path.root}/kube/kube-ingress.yaml
+cat <<FF > ${path.root}/kube/kube-ingress.yaml;
 "${data.template_file.ingress.rendered}"
 FF
 
-cat <<FF > ${path.root}/kube/kube-controller-manager.yaml
+cat <<FF > ${path.root}/kube/kube-controller-manager.yaml;
 "${data.template_file.controller_manager.rendered}"
 FF
 
-cat <<FF > ${path.root}/kube/kube-proxy.yaml
+cat <<FF > ${path.root}/kube/kube-proxy.yaml;
 echo "${data.template_file.proxy.rendered}"
 FF
 
-cat <<FF > ${path.root}/kube/kube-scheduler.yaml
+cat <<FF > ${path.root}/kube/kube-scheduler.yaml;
 echo "${data.template_file.scheduler.rendered}"
 FF
 
-cat <<FF > ${path.root}/kube/logging.yaml
+cat <<FF > ${path.root}/kube/logging.yaml;
 echo "${data.template_file.logging.rendered}"
 FF
 
-cat <<FF > ${path.root}/kube/metrics-alerts-config.yaml
+cat <<FF > ${path.root}/kube/metrics-alerts-config.yaml;
 echo "${data.template_file.alerts_config.rendered}"
 FF
 
-cat <<FF > ${path.root}/kube/metrics-config.yaml
+cat <<FF > ${path.root}/kube/metrics-config.yaml;
 echo "${data.template_file.metrics_config.rendered}"
 FF
 
-cat <<FF > ${path.root}/kube/metrics.yaml
+cat <<FF > ${path.root}/kube/metrics.yaml;
 echo "${data.template_file.metrics.rendered}"
 FF
 
