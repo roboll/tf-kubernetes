@@ -57,9 +57,14 @@ spec:
           volumeMounts:
             - name: kubeconfig
               mountPath: /etc/kubeconfig
+            - name: env
+              mountPath: /etc/environment
           securityContext:
             privileged: true
       volumes:
+        - name: env
+          hostPath:
+            path: /etc/environment
         - name: kubeconfig
           configMap:
             name: kube-proxy-config
