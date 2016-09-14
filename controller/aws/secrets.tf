@@ -138,9 +138,9 @@ resource vaultx_secret kubelet_role {
     ignore_read = true
 
     data {
-        allowed_domains = "kubelet"
+        allowed_domains = "kubelet,ec2.internal"
         allow_bare_domains = true
-        allow_subdomains = false
+        allow_subdomains = true
         allow_localhost = false
         key_type = "ec"
         key_bits = "256"
