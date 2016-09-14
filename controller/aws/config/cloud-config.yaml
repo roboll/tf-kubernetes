@@ -328,6 +328,7 @@ coreos:
           --config=/etc/kubernetes/manifests \
           --kubeconfig=/etc/kubernetes/kubelet/kubeconfig.yaml \
           --hostname-override=$private_ipv4 \
+          --cloud-provider=aws \
           --cluster-dns=10.0.0.10 \
           --cluster-domain=cluster.local \
           --register-schedulable=false \

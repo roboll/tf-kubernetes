@@ -152,6 +152,7 @@ coreos:
           --tls-private-key-file=/etc/ssl/kubelet/privkey.pem \
           --config=/etc/kubernetes/manifests \
           --kubeconfig=/etc/kubernetes/kubelet/kubeconfig.yaml \
+          --cloud-provider=aws \
           --hostname-override=$private_ipv4 \
           --cluster-dns=10.0.0.10 \
           --cluster-domain=cluster.local \

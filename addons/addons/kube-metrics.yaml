@@ -75,6 +75,6 @@ spec:
               name: etcd-certs
               readOnly: true
       volumes:
-        - name: cluster-certs
+        - name: etcd-certs
           hostPath:
             path: /etc/ssl/etcd
