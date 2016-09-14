@@ -64,35 +64,6 @@ coreos:
             [Service]
             MountFlags=shared
 
-    - name: awscli.service
-      command: start
-      content: |
-        [Unit]
-        Requires=docker.service
-        After=docker.service
-
-        [Service]
-        Type=oneshot
-        Environment=DOCKER_CONTENT_TRUST=1
-        ExecStart=/usr/bin/docker build -t localhost/awscli /opt/awscli/
-
-    - name: ecr-login.service
-      command: start
-      content: |
-        [Unit]
-        Requires=awscli.service
-        After=awscli.service
-
-        [Service]
-        Type=simple
-        ExecStart=/opt/bin/ecr-login.sh
-
-    - name: ecr-login.timer
-      command: start
-      content: |
-        [Timer]
-        OnUnitActiveSec=12h
-
     - name: flanneld.service
       command: start
       drop-ins:
@@ -232,27 +203,6 @@ write_files:
         -e 's/\\n/\n/g' > /etc/ssl/kubelet/cert.pem <<< $json
       sed -re 's/.*"private_key":"([^"]*)".*/\1/g' \
         -e 's/\\n/\n/g' > /etc/ssl/kubelet/privkey.pem <<< $json
-
-  - path: /opt/awscli/Dockerfile
-    content: |
-      FROM alpine:3.4
-
-      RUN mkdir -p /aws && \
-        apk -Uuv add groff less python py-pip jq && \
-        pip install awscli && \
-        apk --purge -v del py-pip && \
-        rm /var/cache/apk/*
-
-      WORKDIR /aws
-      ENTRYPOINT ["aws"]
-
-  - path: /opt/bin/ecr-login.sh
-    permissions: 0700
-    content: |
-      #! /bin/bash
-      set -eo pipefail
-
-      eval $(docker run --rm -e AWS_DEFAULT_REGION=${region} localhost/awscli ecr get-login)
 
   - path: /opt/bin/host-rkt
     permissions: 0755
