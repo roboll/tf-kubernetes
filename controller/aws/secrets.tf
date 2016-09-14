@@ -158,7 +158,7 @@ resource vaultx_secret etcd_role {
         allowed_domains = "controller"
         allow_bare_domains = true
         allow_subdomains = false
-        allow_localhost = false
+        allow_localhost = true
         key_type = "ec"
         key_bits = "256"
         max_ttl = "48h"
