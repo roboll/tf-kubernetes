@@ -483,7 +483,7 @@ write_files:
       token="$(cat /root/.vault-token)"
       json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
         -X POST -H "X-Vault-Token: $token" \
-        -d '{"common_name":"controller","alt_names":"localhost","ip_sans":"$private_ipv4"}' \
+        -d '{"common_name":"controller","ip_sans":"$private_ipv4"}' \
         ${vault_address}/v1/${etcd_pki_mount}/issue/${etcd_pki_role})
 
       sed -re 's/.*"certificate":"([^"]*)".*/\1/g' \
