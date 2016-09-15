@@ -203,6 +203,8 @@ coreos:
         Requires=docker.service etcd2.service flanneld.service kubelet-certs.service
         After=docker.service etcd2.service flanneld.service kubelet-certs.service
 
+        After=kube-service-account.service
+
         [Service]
         Restart=always
         RestartSec=10
