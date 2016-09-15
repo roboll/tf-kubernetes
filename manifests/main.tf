@@ -21,65 +21,65 @@ provider ecr {
 resource null_resource render {
     provisioner local-exec {
         command = <<EOF
-mkdir -p ${path.root}/addons;
+mkdir -p ${path.root}/manifests;
 
-cat << "FF" > ${path.root}/addons/heapster.yaml;
+cat << "FF" > ${path.root}/manifests/heapster.yaml;
 ${data.template_file.heapster.rendered}
 FF
 
-cat << "FF" > ${path.root}/addons/kube-addon-manager.yaml;
+cat << "FF" > ${path.root}/manifests/kube-addon-manager.yaml;
 ${data.template_file.kube_addon_manager.rendered}
 FF
 
-cat << "FF" > ${path.root}/addons/kube-metrics.yaml;
+cat << "FF" > ${path.root}/manifests/kube-metrics.yaml;
 ${data.template_file.kube_metrics.rendered}
 FF
 
-cat << "FF" > ${path.root}/addons/kube-dashboard.yaml;
+cat << "FF" > ${path.root}/manifests/kube-dashboard.yaml;
 ${data.template_file.kube_dashboard.rendered}
 FF
 
-cat << "FF" > ${path.root}/addons/kube-flannel-server.yaml;
+cat << "FF" > ${path.root}/manifests/kube-flannel-server.yaml;
 ${data.template_file.kube_flannel_server.rendered}
 FF
 
-cat << "FF" > ${path.root}/addons/kube-ingress-acme.yaml;
+cat << "FF" > ${path.root}/manifests/kube-ingress-acme.yaml;
 ${data.template_file.kube_ingress_acme.rendered}
 FF
 
-cat << "FF" > ${path.root}/addons/kube-ingress-dns.yaml;
+cat << "FF" > ${path.root}/manifests/kube-ingress-dns.yaml;
 ${data.template_file.kube_ingress_dns.rendered}
 FF
 
-cat << "FF" > ${path.root}/addons/kube-ingress.yaml;
+cat << "FF" > ${path.root}/manifests/kube-ingress.yaml;
 ${data.template_file.kube_ingress.rendered}
 FF
 
-cat << "FF" > ${path.root}/addons/kube-proxy.yaml;
+cat << "FF" > ${path.root}/manifests/kube-proxy.yaml;
 ${data.template_file.kube_proxy.rendered}
 FF
 
-cat << "FF" > ${path.root}/addons/kube-roles.yaml;
+cat << "FF" > ${path.root}/manifests/kube-roles.yaml;
 ${data.template_file.kube_roles.rendered}
 FF
 
-cat << "FF" > ${path.root}/addons/kube-scheduler.yaml;
+cat << "FF" > ${path.root}/manifests/kube-scheduler.yaml;
 ${data.template_file.kube_scheduler.rendered}
 FF
 
-cat << "FF" > ${path.root}/addons/logging.yaml;
+cat << "FF" > ${path.root}/manifests/logging.yaml;
 ${data.template_file.logging.rendered}
 FF
 
-cat << "FF" > ${path.root}/addons/metrics-alerts-config.yaml;
+cat << "FF" > ${path.root}/manifests/metrics-alerts-config.yaml;
 ${data.template_file.alerts_config.rendered}
 FF
 
-cat << "FF" > ${path.root}/addons/metrics-config.yaml;
+cat << "FF" > ${path.root}/manifests/metrics-config.yaml;
 ${data.template_file.metrics_config.rendered}
 FF
 
-cat << "FF" > ${path.root}/addons/metrics.yaml;
+cat << "FF" > ${path.root}/manifests/metrics.yaml;
 ${data.template_file.metrics.rendered}
 FF
 
@@ -88,11 +88,11 @@ EOF
 }
 
 data template_file heapster {
-    template = "${file("${path.module}/addons/heapster.yaml")}"
+    template = "${file("${path.module}/manifests/heapster.yaml")}"
 }
 
 data template_file kube_addon_manager {
-    template = "${file("${path.module}/addons/kube-addon-manager.yaml")}"
+    template = "${file("${path.module}/manifests/kube-addon-manager.yaml")}"
 
     vars {
         hyperkube = "${var.hyperkube}"
@@ -101,7 +101,7 @@ data template_file kube_addon_manager {
 }
 
 data template_file kube_metrics {
-    template = "${file("${path.module}/addons/kube-metrics.yaml")}"
+    template = "${file("${path.module}/manifests/kube-metrics.yaml")}"
 
     vars {
         etcd_metrics = "${ecr_push.etcd_metrics.latest_url}"
@@ -109,7 +109,7 @@ data template_file kube_metrics {
 }
 
 data template_file kube_dashboard {
-    template = "${file("${path.module}/addons/kube-dashboard.yaml")}"
+    template = "${file("${path.module}/manifests/kube-dashboard.yaml")}"
 
     vars {
         fqdn = "${var.fqdn}"
@@ -117,7 +117,7 @@ data template_file kube_dashboard {
 }
 
 data template_file kube_flannel_server {
-    template = "${file("${path.module}/addons/kube-flannel-server.yaml")}"
+    template = "${file("${path.module}/manifests/kube-flannel-server.yaml")}"
 
     vars {
         fqdn = "${var.fqdn}"
@@ -125,7 +125,7 @@ data template_file kube_flannel_server {
 }
 
 data template_file kube_ingress_acme {
-    template = "${file("${path.module}/addons/kube-ingress-acme.yaml")}"
+    template = "${file("${path.module}/manifests/kube-ingress-acme.yaml")}"
 
     vars {
         acme_email = "${var.acme_email}"
@@ -134,15 +134,15 @@ data template_file kube_ingress_acme {
 }
 
 data template_file kube_ingress_dns {
-    template = "${file("${path.module}/addons/kube-ingress-dns.yaml")}"
+    template = "${file("${path.module}/manifests/kube-ingress-dns.yaml")}"
 }
 
 data template_file kube_ingress {
-    template = "${file("${path.module}/addons/kube-ingress.yaml")}"
+    template = "${file("${path.module}/manifests/kube-ingress.yaml")}"
 }
 
 data template_file kube_proxy {
-    template = "${file("${path.module}/addons/kube-proxy.yaml")}"
+    template = "${file("${path.module}/manifests/kube-proxy.yaml")}"
     vars {
         kube_fqdn = "${var.kube_fqdn}"
 
@@ -152,11 +152,11 @@ data template_file kube_proxy {
 }
 
 data template_file kube_roles {
-    template = "${file("${path.module}/addons/kube-roles.yaml")}"
+    template = "${file("${path.module}/manifests/kube-roles.yaml")}"
 }
 
 data template_file kube_scheduler {
-    template = "${file("${path.module}/addons/kube-scheduler.yaml")}"
+    template = "${file("${path.module}/manifests/kube-scheduler.yaml")}"
 
     vars {
         kube_fqdn = "${var.kube_fqdn}"
@@ -167,7 +167,7 @@ data template_file kube_scheduler {
 }
 
 data template_file logging {
-    template = "${file("${path.module}/addons/logging.yaml")}"
+    template = "${file("${path.module}/manifests/logging.yaml")}"
 
     vars {
         fqdn = "${var.fqdn}"
@@ -175,15 +175,15 @@ data template_file logging {
 }
 
 data template_file alerts_config {
-    template = "${file("${path.module}/addons/metrics-alerts-config.yaml")}"
+    template = "${file("${path.module}/manifests/metrics-alerts-config.yaml")}"
 }
 
 data template_file metrics_config {
-    template = "${file("${path.module}/addons/metrics-prometheus-config.yaml")}"
+    template = "${file("${path.module}/manifests/metrics-prometheus-config.yaml")}"
 }
 
 data template_file metrics {
-    template = "${file("${path.module}/addons/metrics.yaml")}"
+    template = "${file("${path.module}/manifests/metrics.yaml")}"
 
     vars {
         fqdn = "${var.fqdn}"
