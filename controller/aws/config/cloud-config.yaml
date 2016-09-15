@@ -339,21 +339,34 @@ write_files:
         echo "waiting for apiserver"; sleep 5;
       done
 
-      curl -sSf -k -H "Content-Type: application/yaml" -XPOST \
-        --cacert /etc/ssl/controller/ca.pem \
-        --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
-        -d @/etc/kubernetes/system/roles.json \
-        https://$private_ipv4/apis/rbac.authorization.k8s.io/v1alpha1/clusterroles
+      [ ! -f /etc/kubernetes/system/role.json.created ] && {
+        curl -sSf -k -H "Content-Type: application/json" -XPOST \
+          --cacert /etc/ssl/controller/ca.pem \
+          --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
+          -d @/etc/kubernetes/system/role.json \
+          https://localhost/apis/rbac.authorization.k8s.io/v1alpha1/clusterroles
+        touch /etc/kubernetes/system/role.json.created
+      }
 
-      curl -sSf -k -H "Content-Type: application/yaml" -XPOST \
-        --cacert /etc/ssl/controller/ca.pem \
-        --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
-        -d @/etc/kubernetes/system/role-bindings.json \
-        https://$private_ipv4/apis/rbac.authorization.k8s.io/v1alpha1/clusterrolebindings
+      [ ! -f /etc/kubernetes/system/role-binding.json.created ] && {
+        curl -sSf -k -H "Content-Type: application/json" -XPOST \
+          --cacert /etc/ssl/controller/ca.pem \
+          --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
+          -d @/etc/kubernetes/system/role-binding.json \
+          https://localhost/apis/rbac.authorization.k8s.io/v1alpha1/clusterrolebindings
+        touch /etc/kubernetes/system/role-binding.json.created
+      }
 
-      touch /etc/kubernetes/system/init-complete
+      [ ! -f /etc/kubernetes/system/kube-controller-manager.json.created ] && {
+        curl -sSf -k -H "Content-Type: application/json" -XPOST \
+          --cacert /etc/ssl/controller/ca.pem \
+          --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
+          -d @/etc/kubernetes/system/kube-controller-manager.json \
+          https://localhost/api/v1/namespaces/kube-system/pods
+        touch /etc/kubernetes/system/kube-controller-manager.json.created
+      }
 
-  - path: /etc/kubernetes/system/roles.json
+  - path: /etc/kubernetes/system/role.json
     permissions: 0700
     content: |
       {
@@ -372,7 +385,7 @@ write_files:
         ]
       }
 
-  - path: /etc/kubernetes/system/role-bindings.yaml
+  - path: /etc/kubernetes/system/role-bindings.json
     permissions: 0700
     content: |
       {
@@ -401,8 +414,8 @@ write_files:
           }
         ],
         "roleRef": {
-          "apiVersion": "rbac.authorization.k8s.io/v1alpha1",
           "kind": "ClusterRole",
+          "apiVersion": "rbac.authorization.k8s.io/v1alpha1",
           "name": "admin-access"
         }
       }
@@ -652,7 +665,112 @@ write_files:
               path: /usr/share/ca-certificates
             name: ssl-certs-host
 
-  - path: /etc/kubernetes/manifests/kube-controller-manager.yaml
+  - path: /etc/kubernetes/system/kube-controller-manager.json
+    content: |
+      {
+        "kind":"Pod",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "kube-controller-manager",
+          "namespace": "kube-system",
+          "labels": {
+            "app": "kubernetes",
+            "component": "controller-manager"
+          }
+        },
+        "spec": {
+          "hostNetwork": true,
+          "containers": [
+            {
+              "name": "kube-controller-manager",
+              "image": "${hyperkube}:${kube_version}",
+              "command": [
+                "/hyperkube", "controller-manager",
+                "--master=https://${kube_fqdn}",
+                "--kubeconfig=/etc/kubernetes/controller/kubeconfig.yaml",
+                "--leader-elect=true",
+                "--root-ca-file=/etc/ssl/kube/ca.pem",
+                "--service-account-private-key-file=/etc/kubernetes/service-account/privkey.pem",
+                "--cloud-provider=aws"
+              ],
+              "livenessProbe": {
+                "httpGet": {
+                  "host":"127.0.0.1",
+                  "path": "/healthz",
+                  "port": "10252"
+                },
+                "initialDelaySeconds": 15,
+                "timeoutSeconds": 1,
+              },
+              "volumeMounts": [
+                {
+                  "mountPath": "/etc/kubernetes/controller/kubeconfig.yaml",
+                  "name": "kubeconfig",
+                  "readOnly": true
+                },
+                {
+                  "mountPath": "/etc/ssl/controller",
+                  "name": "controller-certs",
+                  "readOnly": true
+                },
+                {
+                  "mountPath": "/etc/ssl/kube/ca.pem",
+                  "name": "kube-ca",
+                  "readOnly": true
+                },
+                {
+                  "mountPath": "/etc/ssl/certs",
+                  "name": "ssl-certs-host",
+                  "readOnly": true
+                },
+                {
+                  "mountPath": "/etc/kubernetes/service-account/privkey.pem",
+                  "name": "service-account",
+                  "readOnly": true
+                }
+              ]
+            }
+          ],
+          "volumes": [
+            {
+              "name":"ssl-certs-host",
+              "hostPath": {
+                "path": "/usr/share/ca-certificates"
+              }
+            },
+
+            {
+              "name":"kube-ca",
+              "hostPath": {
+                "path": "/etc/ssl/kube/ca.pem"
+              }
+            },
+
+            {
+              "name":"controller-certs",
+              "hostPath": {
+                "path": "/etc/ssl/controller"
+              }
+            },
+
+            {
+              "name":"kubeconfig",
+              "hostPath": {
+                "path": "/etc/kubernetes/controller/kubeconfig.yaml"
+              }
+            },
+
+            {
+              "name":"service-account",
+              "hostPath": {
+                "path": "/etc/kubernetes/service-account/privkey.pem"
+              }
+            }
+          ]
+        }
+      }
+
+  - path: /etc/kubernetes/manifests-non/kube-controller-manager.yaml
     content: |
       apiVersion: v1
       kind: Pod
