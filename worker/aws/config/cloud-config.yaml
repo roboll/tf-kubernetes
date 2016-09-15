@@ -127,7 +127,6 @@ coreos:
           --hostname-override=$private_ipv4 \
           --cluster-dns=10.0.0.10 \
           --cluster-domain=cluster.local \
-          --register-schedulable=false \
           --allow-privileged --v=2 --logtostderr=true
 
 write_files:
