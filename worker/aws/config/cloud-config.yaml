@@ -124,7 +124,6 @@ coreos:
           --config=/etc/kubernetes/manifests \
           --kubeconfig=/etc/kubernetes/kubelet/kubeconfig.yaml \
           --cloud-provider=aws \
-          --hostname-override=$private_ipv4 \
           --cluster-dns=10.0.0.10 \
           --cluster-domain=cluster.local \
           --allow-privileged --v=2 --logtostderr=true
