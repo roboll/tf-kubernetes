@@ -226,6 +226,7 @@ coreos:
         --mount volume=kube-ca,target=/etc/ssl/kube/ca.pem"
 
         ExecStartPre=/usr/bin/mkdir -p /var/log/containers
+        ExecStartPost=-/opt/bin/init-kube-system.sh
         ExecStart=/usr/lib/coreos/kubelet-wrapper \
           --api-servers=https://${kube_fqdn} \
           --node-labels=role=controller \
@@ -246,7 +247,7 @@ coreos:
         Requires=kubelet.service
         After=kubelet.service
 
-        ConditionPathExists=!/var/lib/etcd.formatted
+        ConditionPathExists=!/etc/kubernetes/system/init-complete
 
         [Service]
         Type=oneshot
@@ -357,6 +358,11 @@ write_files:
       #!/bin/bash
       set -eo pipefail
 
+      until curl https://$private_ipv4; do
+        echo "waiting for apiserver"; sleep 5;
+      done
+
+
       curl  -H "Content-Type: application/yaml" -XPOST \
         --cacert /etc/ssl/controller/ca.pem \
         --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
@@ -368,6 +374,8 @@ write_files:
         --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
         -d @/etc/kubernetes/system/role-bindings.yaml \
         https://$private_ipv4/api/v1/namespaces/kube-system/clusterrolebindings
+
+      touch /etc/kubernetes/system/init-complete
 
   - path: /etc/kubernetes/system/roles.yaml
     permissions: 0700
