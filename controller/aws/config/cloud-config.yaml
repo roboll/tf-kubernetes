@@ -358,18 +358,17 @@ write_files:
       #!/bin/bash
       set -eo pipefail
 
-      until curl https://$private_ipv4; do
+      until curl -sSf https://$private_ipv4; do
         echo "waiting for apiserver"; sleep 5;
       done
 
-
-      curl  -H "Content-Type: application/yaml" -XPOST \
+      curl -sSf -H "Content-Type: application/yaml" -XPOST \
         --cacert /etc/ssl/controller/ca.pem \
         --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
         -d @/etc/kubernetes/system/roles.yaml \
         https://$private_ipv4/api/v1/namespaces/kube-system/clusterroles
 
-      curl  -H "Content-Type: application/yaml" -XPOST \
+      curl -sSf -H "Content-Type: application/yaml" -XPOST \
         --cacert /etc/ssl/controller/ca.pem \
         --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
         -d @/etc/kubernetes/system/role-bindings.yaml \
