@@ -56,14 +56,12 @@ coreos:
     - name: flanneld.service
       command: start
       drop-ins:
-        - name: 40-ssl-config.conf
-          content: |
-            [Service]
-            ExecStartPre=/usr/bin/test -f /etc/ssl/kubelet/ca.pem
-            ExecStartPre=/usr/bin/test -f /etc/ssl/kubelet/cert.pem
-            ExecStartPre=/usr/bin/test -f /etc/ssl/kubelet/privkey.pem
         - name: 99-client.conf
           content: |
+            [Unit]
+            Requires=kubelet-certs.service
+            After=kubelet-certs.service
+
             [Service]
             Environment=ETCD_SSL_DIR=/etc/ssl/kubelet
             Environment=FLANNELD_REMOTE=${kube_fqdn}:8888
@@ -77,6 +75,7 @@ coreos:
         - name: 99-mount-flags.conf
           content: |
             [Unit]
+            Requires=flanneld.service
             After=flanneld.service
 
             [Service]
@@ -86,17 +85,13 @@ coreos:
       command: start
       content: |
         [Unit]
-        Requires=docker.service flanneld.service
-        After=docker.service flanneld.service
+        Requires=docker.service flanneld.service kubelet-certs.service
+        After=docker.service flanneld.service kubelet-certs.service
 
         [Service]
         Restart=always
         RestartSec=10
         TimeoutStartSec=300
-
-        ExecStartPre=/usr/bin/test -f /etc/ssl/kubelet/ca.pem
-        ExecStartPre=/usr/bin/test -f /etc/ssl/kubelet/cert.pem
-        ExecStartPre=/usr/bin/test -f /etc/ssl/kubelet/privkey.pem
 
         Environment=KUBELET_ACI=${hyperkube}
         Environment=KUBELET_VERSION=${kube_version}

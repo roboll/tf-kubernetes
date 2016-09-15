@@ -67,43 +67,6 @@ coreos:
         OnActiveSec=12h
         OnUnitActiveSec=12h
 
-    - name: kube-service-account.service
-      command: start
-      content: |
-        [Unit]
-        Before=kubelet.service
-
-        Requires=vault-login.service
-        After=vault-login.service
-
-        [Service]
-        Type=oneshot
-        ExecStart=/opt/bin/kube-service-account.sh
-        ExecStartPost=/bin/bash -c "docker restart $(docker ps --format {{.Names}} | grep kube-apiserver) || true"
-        ExecStartPost=/bin/bash -c "docker restart $(docker ps --format {{.Names}} | grep kube-controller-manager) || true"
-
-    - name: kube-certs.service
-      command: start
-      content: |
-        [Unit]
-        Before=kubelet.service
-
-        Requires=vault-login.service
-        After=vault-login.service
-
-        [Service]
-        Type=simple
-
-        ExecStart=/opt/bin/kube-certs.sh
-        ExecStartPost=/bin/bash -c "docker restart $(docker ps --format {{.Names}} | grep kube-apiserver) || true"
-        ExecStartPost=/bin/bash -c "docker restart $(docker ps --format {{.Names}} | grep kube-flannel-server) || true"
-
-    - name: kube-certs.timer
-      command: start
-      content: |
-        [Timer]
-        OnUnitActiveSec=12h
-
     - name: kubelet-certs.service
       command: start
       content: |
@@ -125,28 +88,6 @@ coreos:
         [Timer]
         OnUnitActiveSec=12h
 
-    - name: controller-certs.service
-      command: start
-      content: |
-        [Unit]
-        Before=kubelet.service
-
-        Requires=vault-login.service
-        After=vault-login.service
-
-        [Service]
-        Type=simple
-
-        ExecStart=/opt/bin/controller-certs.sh
-        ExecStartPost=/bin/bash -c "docker restart $(docker ps --format {{.Names}} | grep kube-scheduler) || true"
-        ExecStartPost=/bin/bash -c "docker restart $(docker ps --format {{.Names}} | grep kube-controller-manager) || true"
-
-    - name: controller-certs.timer
-      command: start
-      content: |
-        [Timer]
-        OnUnitActiveSec=12h
-
     - name: etcd-certs.service
       command: start
       content: |
@@ -162,9 +103,8 @@ coreos:
         Type=simple
 
         ExecStart=/opt/bin/etcd-certs.sh
-        ExecStartPost=/bin/bash -c "systemctl kill -s HUP etcd2.service etcd2.service || true"
-        ExecStartPost=/bin/bash -c "systemctl kill -s HUP etcd2.service flanneld.service || true"
-        ExecStartPost=/bin/bash -c "docker restart $(docker ps --format {{.Names}} | grep kube-apiserver) || true"
+        ExecStartPost=/bin/bash -c "systemctl kill -s HUP etcd2.service || true"
+        ExecStartPost=/bin/bash -c "systemctl kill -s HUP flanneld.service || true"
 
     - name: etcd-certs.timer
       command: start
@@ -212,6 +152,9 @@ coreos:
             Requires=var-lib-etcd.mount
             After=var-lib-etcd.mount
 
+            Requires=etcd-certs.service
+            After=etcd-certs.service
+
             [Service]
             Restart=always
             RestartSec=10
@@ -226,9 +169,8 @@ coreos:
         - name: 40-ssl-config.conf
           content: |
             [Service]
-            ExecStartPre=/usr/bin/test -s /etc/ssl/etcd/ca.pem
-            ExecStartPre=/usr/bin/test -s /etc/ssl/etcd/cert.pem
-            ExecStartPre=/usr/bin/test -s /etc/ssl/etcd/privkey.pem
+            Requires=etcd-certs.service
+            After=etcd-certs.service
 
         - name: 50-network-config.conf
           content: |
@@ -262,17 +204,13 @@ coreos:
       command: start
       content: |
         [Unit]
-        Requires=docker.service etcd2.service flanneld.service
-        After=docker.service etcd2.service flanneld.service
+        Requires=docker.service etcd2.service flanneld.service kubelet-certs.service
+        After=docker.service etcd2.service flanneld.service kubelet-certs.service
 
         [Service]
         Restart=always
         RestartSec=10
         TimeoutStartSec=300
-
-        ExecStartPre=/usr/bin/test -s /etc/ssl/kubelet/ca.pem
-        ExecStartPre=/usr/bin/test -s /etc/ssl/kubelet/cert.pem
-        ExecStartPre=/usr/bin/test -s /etc/ssl/kubelet/privkey.pem
 
         Environment=KUBELET_ACI=${hyperkube}
         Environment=KUBELET_VERSION=${kube_version}
@@ -304,6 +242,53 @@ coreos:
           --cluster-domain=cluster.local \
           --register-schedulable=false \
           --allow-privileged --v=2 --logtostderr=true
+
+    - name: kube-service-account.service
+      command: start
+      content: |
+        [Unit]
+        Requires=vault-login.service
+        After=vault-login.service
+
+        [Service]
+        Type=oneshot
+        ExecStart=/opt/bin/kube-service-account.sh
+
+    - name: kube-certs.service
+      command: start
+      content: |
+        [Unit]
+        Requires=vault-login.service
+        After=vault-login.service
+
+        [Service]
+        Type=simple
+
+        ExecStart=/opt/bin/kube-certs.sh
+
+    - name: kube-certs.timer
+      command: start
+      content: |
+        [Timer]
+        OnUnitActiveSec=12h
+
+    - name: controller-certs.service
+      command: start
+      content: |
+        [Unit]
+        Requires=vault-login.service
+        After=vault-login.service
+
+        [Service]
+        Type=simple
+
+        ExecStart=/opt/bin/controller-certs.sh
+
+    - name: controller-certs.timer
+      command: start
+      content: |
+        [Timer]
+        OnUnitActiveSec=12h
 
 write_files:
   - path: /etc/ssl/vault/ca.pem
