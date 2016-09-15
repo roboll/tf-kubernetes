@@ -1,0 +1,108 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kube-apiserver
+  namespace: kube-system
+  annotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/scheme: 'https'
+  labels:
+    name: kube-apiserver
+spec:
+  selector:
+    app: kubernetes
+    component: apiserver
+  ports:
+  - name: metrics
+    port: 443
+    protocol: TCP
+
+---
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: kube-apiserver
+  labels:
+    app: kubernetes
+    component: apiserver
+spec:
+  template:
+    metadata:
+      labels:
+        app: kubernetes
+        component: apiserver
+    spec:
+      nodeSelector:
+        role: controller
+      hostNetwork: true
+      containers:
+        - name: kube-apiserver
+          image: ${hyperkube}:${kube_version}
+          command:
+            - /hyperkube
+            - apiserver
+            - --secure-port=443
+            - --etcd-servers=https://localhost:2379
+            - --etcd-cafile=/etc/ssl/etcd/ca.pem
+            - --etcd-certfile=/etc/ssl/etcd/cert.pem
+            - --etcd-keyfile=/etc/ssl/etcd/privkey.pem
+            - --tls-cert-file=/etc/ssl/kube/cert.pem
+            - --tls-private-key-file=/etc/ssl/kube/privkey.pem
+            - --service-account-key-file=/etc/kubernetes/service-account/pubkey.pem
+            - --kubelet-certificate-authority=/etc/ssl/kubelet/ca.pem
+            - --kubelet-client-certificate=/etc/ssl/kubelet/cert.pem
+            - --kubelet-client-key=/etc/ssl/kubelet/privkey.pem
+            - --client-ca-file=/etc/ssl/kube/ca.pem
+            - --allow-privileged=true
+            - --cloud-provider=aws
+            - --service-cluster-ip-range=10.0.0.0/16
+            - --enable-swagger-ui=true
+            - --advertise-address=$private_ipv4
+            - --external-hostname=${kube_fqdn}
+            - --authorization-mode=RBAC
+            - --authorization-rbac-super-user=admin
+            - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,ResourceQuota,DenyEscalatingExec,ServiceAccount
+            - --runtime-config=extensions/v1beta1=true,extensions/v1beta1/thirdpartyresources=true,rbac.authorization.k8s.io/v1alpha1
+          livenessProbe:
+            httpGet:
+              host: 127.0.0.1
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 30
+            timeoutSeconds: 1
+          volumeMounts:
+            - mountPath: /etc/kubernetes/service-account/pubkey.pem
+              name: service-account
+              readOnly: true
+            - mountPath: /etc/ssl/kube/
+              name: kube-certs
+              readOnly: true
+            - mountPath: /etc/ssl/kubelet/
+              name: kubelet-certs
+              readOnly: true
+            - mountPath: /etc/ssl/etcd/
+              name: etcd-certs
+              readOnly: true
+            - mountPath: /etc/ssl/certs
+              name: ssl-certs-host
+              readOnly: true
+      volumes:
+        - hostPath:
+            path: /etc/kubernetes/controller
+          name: ssl-certs-kubernetes
+        - hostPath:
+            path: /etc/kubernetes/service-account/pubkey.pem
+          name: service-account
+        - hostPath:
+            path: /etc/ssl/kube/
+          name: kube-certs
+        - hostPath:
+            path: /etc/ssl/kubelet/
+          name: kubelet-certs
+        - hostPath:
+            path: /etc/ssl/etcd/
+          name: etcd-certs
+        - hostPath:
+            path: /usr/share/ca-certificates
+          name: ssl-certs-host

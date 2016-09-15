@@ -533,7 +533,7 @@ write_files:
               - /hyperkube
               - apiserver
               - --secure-port=443
-              - --etcd-servers=https://$private_ipv4:2379
+              - --etcd-servers=https://localhost:2379
               - --etcd-cafile=/etc/ssl/etcd/ca.pem
               - --etcd-certfile=/etc/ssl/etcd/cert.pem
               - --etcd-keyfile=/etc/ssl/etcd/privkey.pem
@@ -547,12 +547,13 @@ write_files:
               - --allow-privileged=true
               - --cloud-provider=aws
               - --service-cluster-ip-range=10.0.0.0/16
+              - --enable-swagger-ui=true
               - --advertise-address=$private_ipv4
               - --external-hostname=${kube_fqdn}
               - --authorization-mode=RBAC
               - --authorization-rbac-super-user=admin
               - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,ResourceQuota,DenyEscalatingExec,ServiceAccount
-              - --runtime-config=extensions/v1beta1/deployments=true,extensions/v1beta1/daemonsets=true,extensions/v1beta1=true,extensions/v1beta1/thirdpartyresources=true,rbac.authorization.k8s.io/v1alpha1
+              - --runtime-config=extensions/v1beta1=true,extensions/v1beta1/thirdpartyresources=true,rbac.authorization.k8s.io/v1alpha1
             livenessProbe:
               httpGet:
                 host: 127.0.0.1
