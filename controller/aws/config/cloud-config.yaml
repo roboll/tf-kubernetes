@@ -250,7 +250,7 @@ coreos:
 
         [Service]
         Type=oneshot
-        ExecStart=/opt/bin/init-kube-system.service
+        ExecStart=/opt/bin/init-kube-system.sh
 
     - name: kube-service-account.service
       command: start
@@ -361,13 +361,48 @@ write_files:
         --cacert /etc/ssl/controller/ca.pem \
         --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
         -d @/etc/kubernetes/system/roles.yaml \
-        https://localhost/api/v1/namespaces/kube-system/clusterroles
+        https://$private_ipv4/api/v1/namespaces/kube-system/clusterroles
 
       curl  -H "Content-Type: application/yaml" -XPOST \
         --cacert /etc/ssl/controller/ca.pem \
         --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
         -d @/etc/kubernetes/system/role-bindings.yaml \
-        https://localhost/api/v1/namespaces/kube-system/clusterrolebindings
+        https://$private_ipv4/api/v1/namespaces/kube-system/clusterrolebindings
+
+  - path: /etc/kubernetes/system/roles.yaml
+    permissions: 0700
+    content: |
+      kind: ClusterRole
+      apiVersion: rbac.authorization.k8s.io/v1alpha1
+      metadata:
+        name: admin-access
+      rules:
+        - apiGroups: ["*"]
+          resources: ["*"]
+          verbs: ["*"]
+          nonResourceURLs: ["*"]
+
+  - path: /etc/kubernetes/system/role-bindings.yaml
+    permissions: 0700
+    content: |
+      apiVersion: rbac.authorization.k8s.io/v1alpha1
+      kind: ClusterRoleBinding
+      metadata:
+        name: admin-access
+      subjects:
+        - kind: ServiceAccount
+          name: default
+          namespace: kube-system
+        - kind: User
+          name: controller
+        - kind: User
+          name: kubelet
+        - kind: User
+          name: admin
+      roleRef:
+        apiVersion: rbac.authorization.k8s.io/v1alpha1
+        kind: ClusterRole
+        name: admin-access
 
   - path: /opt/bin/kube-service-account.sh
     permissions: 0700
