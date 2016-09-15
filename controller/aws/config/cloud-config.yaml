@@ -243,6 +243,19 @@ coreos:
           --register-schedulable=false \
           --allow-privileged --v=2 --logtostderr=true
 
+    - name: init-kube-system.service
+      command: start
+      content: |
+        [Unit]
+        Requires=kubelet.service
+        After=kubelet.service
+
+        ConditionPathExists=!/var/lib/etcd.formatted
+
+        [Service]
+        Type=oneshot
+        ExecStart=/opt/bin/init-kube-system.service
+
     - name: kube-service-account.service
       command: start
       content: |
@@ -341,6 +354,24 @@ write_files:
       curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
         -X POST -H "X-Vault-Token: $token" \
         ${vault_address}/v1/auth/token/renew-self > /dev/null
+
+  - path: /opt/bin/init-kube-system.sh
+    permissions: 0700
+    content: |
+      #!/bin/bash
+      set -eo pipefail
+
+      curl  -H "Content-Type: application/yaml" -XPOST \
+        --cacert /etc/ssl/controller/ca.pem \
+        --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
+        -d @/etc/kubernetes/system/roles.yaml \
+        https://localhost/api/v1/namespaces/kube-system/clusterroles
+
+      curl  -H "Content-Type: application/yaml" -XPOST \
+        --cacert /etc/ssl/controller/ca.pem \
+        --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
+        -d @/etc/kubernetes/system/role-bindings.yaml \
+        https://localhost/api/v1/namespaces/kube-system/clusterrolebindings
 
   - path: /opt/bin/kube-service-account.sh
     permissions: 0700
@@ -536,7 +567,7 @@ write_files:
               - --advertise-address=$private_ipv4
               - --external-hostname=${kube_fqdn}
               - --authorization-mode=RBAC
-              - --authorization-rbac-super-user=admin
+              - --authorization-rbac-super-user=controller
               - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,ResourceQuota,DenyEscalatingExec,ServiceAccount
               - --runtime-config=extensions/v1beta1=true,extensions/v1beta1/thirdpartyresources=true,rbac.authorization.k8s.io/v1alpha1
             livenessProbe:
