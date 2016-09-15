@@ -150,10 +150,7 @@ coreos:
             [Unit]
             Before=flanneld.service
             Requires=var-lib-etcd.mount
-            After=var-lib-etcd.mount
-
-            Requires=etcd-certs.service
-            After=etcd-certs.service
+            After=var-lib-etcd.mount etcd-certs.service
 
             [Service]
             Restart=always
@@ -169,7 +166,6 @@ coreos:
         - name: 40-ssl-config.conf
           content: |
             [Unit]
-            Requires=etcd-certs.service
             After=etcd-certs.service
 
         - name: 50-network-config.conf
