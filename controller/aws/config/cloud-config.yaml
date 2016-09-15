@@ -168,7 +168,7 @@ coreos:
       drop-ins:
         - name: 40-ssl-config.conf
           content: |
-            [Service]
+            [Unit]
             Requires=etcd-certs.service
             After=etcd-certs.service
 
