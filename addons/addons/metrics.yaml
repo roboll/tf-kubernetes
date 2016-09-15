@@ -127,13 +127,14 @@ spec:
 
 ---
 apiVersion: extensions/v1beta1
-kind: Deployment
+kind: PetSet
 metadata:
   name: metrics-alertmanager
   labels:
     app: metrics
     component: alertmanager
 spec:
+  serviceName: metrics-alertmanager
   replicas: 1
   template:
     metadata:
@@ -160,8 +161,6 @@ spec:
             - name: config-volume
               mountPath: /etc/alertmanager
       volumes:
-        - name: storage
-          emptyDir: {}
         - name: config-volume
           configMap:
             name: metrics-alertmanager
@@ -258,8 +257,6 @@ spec:
         - name: config-volume
           configMap:
             name: metrics-prometheus
-        - name: storage
-          emptyDir: {}
   volumeClaimTemplates:
     - metadata:
         name: storage
