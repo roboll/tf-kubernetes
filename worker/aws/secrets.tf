@@ -5,7 +5,8 @@ resource vaultx_secret worker_role {
     data {
         allowed_domains = "kubelet"
         allow_bare_domains = true
-        allow_subdomains = false
+        allow_subdomains = true
+        allow_any_name = true
         allow_localhost = false
         key_type = "ec"
         key_bits = "256"
