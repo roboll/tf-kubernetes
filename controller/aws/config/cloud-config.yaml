@@ -252,6 +252,7 @@ coreos:
         - name: 99-mount-flags.conf
           content: |
             [Unit]
+            Requires=flanneld.service
             After=flanneld.service
 
             [Service]
