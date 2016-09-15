@@ -126,7 +126,7 @@ spec:
     port: 80
 
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1alpha1
 kind: PetSet
 metadata:
   name: metrics-alertmanager
