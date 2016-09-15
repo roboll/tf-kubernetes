@@ -203,8 +203,6 @@ coreos:
         Requires=docker.service etcd2.service flanneld.service kubelet-certs.service
         After=docker.service etcd2.service flanneld.service kubelet-certs.service
 
-        After=kube-service-account.service
-
         [Service]
         Restart=always
         RestartSec=10
@@ -228,6 +226,7 @@ coreos:
         --mount volume=kube-ca,target=/etc/ssl/kube/ca.pem"
 
         ExecStartPre=/usr/bin/mkdir -p /var/log/containers
+        ExecStartPre=/opt/bin/kube-service-account.sh
         ExecStartPost=-/opt/bin/init-kube-system.sh
         ExecStart=/usr/lib/coreos/kubelet-wrapper \
           --api-servers=https://${kube_fqdn} \
@@ -254,17 +253,6 @@ coreos:
         [Service]
         Type=oneshot
         ExecStart=/opt/bin/init-kube-system.sh
-
-    - name: kube-service-account.service
-      command: start
-      content: |
-        [Unit]
-        Requires=vault-login.service
-        After=vault-login.service
-
-        [Service]
-        Type=oneshot
-        ExecStart=/opt/bin/kube-service-account.sh
 
     - name: kube-certs.service
       command: start
