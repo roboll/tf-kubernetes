@@ -53,17 +53,6 @@ coreos:
         [Timer]
         OnUnitActiveSec=12h
 
-    - name: docker.service
-      command: start
-      drop-ins:
-        - name: 99-mount-flags.conf
-          content: |
-            [Unit]
-            After=flanneld.service
-
-            [Service]
-            MountFlags=shared
-
     - name: flanneld.service
       command: start
       drop-ins:
@@ -81,6 +70,17 @@ coreos:
             Environment=FLANNELD_REMOTE_CAFILE=/etc/ssl/kubelet/ca.pem
             Environment=FLANNELD_REMOTE_CERTFILE=/etc/ssl/kubelet/cert.pem
             Environment=FLANNELD_REMOTE_KEYFILE=/etc/ssl/kubelet/privkey.pem
+
+    - name: docker.service
+      command: start
+      drop-ins:
+        - name: 99-mount-flags.conf
+          content: |
+            [Unit]
+            After=flanneld.service
+
+            [Service]
+            MountFlags=shared
 
     - name: kubelet.service
       command: start

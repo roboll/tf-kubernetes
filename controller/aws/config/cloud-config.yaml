@@ -172,17 +172,6 @@ coreos:
         [Timer]
         OnUnitActiveSec=12h
 
-    - name: docker.service
-      command: start
-      drop-ins:
-        - name: 99-mount-flags.conf
-          content: |
-            [Unit]
-            After=flanneld.service
-
-            [Service]
-            MountFlags=shared
-
     - name: dev-xvdb-format.service
       command: start
       content: |
@@ -256,6 +245,17 @@ coreos:
               --key-file /etc/ssl/etcd/privkey.pem \
               set /coreos.com/network/config \
                 '{ "Network": "10.10.0.0/16", "Backend": { "Type": "vxlan" } }'
+
+    - name: docker.service
+      command: start
+      drop-ins:
+        - name: 99-mount-flags.conf
+          content: |
+            [Unit]
+            After=flanneld.service
+
+            [Service]
+            MountFlags=shared
 
     - name: kubelet.service
       command: start
