@@ -241,19 +241,6 @@ coreos:
           --register-schedulable=false \
           --allow-privileged --v=2 --logtostderr=true
 
-    - name: init-kube-system.service
-      command: start
-      content: |
-        [Unit]
-        Requires=kubelet.service
-        After=kubelet.service
-
-        ConditionPathExists=!/etc/kubernetes/system/init-complete
-
-        [Service]
-        Type=oneshot
-        ExecStart=/opt/bin/init-kube-system.sh
-
     - name: kube-certs.service
       command: start
       content: |
@@ -348,58 +335,77 @@ write_files:
       #!/bin/bash
       set -eo pipefail
 
-      until curl -sSf https://$private_ipv4; do
+      until curl -sSf http://localhost:8080/healthz; do
         echo "waiting for apiserver"; sleep 5;
       done
 
-      curl -sSf -H "Content-Type: application/yaml" -XPOST \
+      curl -sSf -k -H "Content-Type: application/yaml" -XPOST \
         --cacert /etc/ssl/controller/ca.pem \
         --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
-        -d @/etc/kubernetes/system/roles.yaml \
-        https://$private_ipv4/api/v1/namespaces/kube-system/clusterroles
+        -d @/etc/kubernetes/system/roles.json \
+        https://$private_ipv4/apis/rbac.authorization.k8s.io/v1alpha1/clusterroles
 
-      curl -sSf -H "Content-Type: application/yaml" -XPOST \
+      curl -sSf -k -H "Content-Type: application/yaml" -XPOST \
         --cacert /etc/ssl/controller/ca.pem \
         --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
-        -d @/etc/kubernetes/system/role-bindings.yaml \
-        https://$private_ipv4/api/v1/namespaces/kube-system/clusterrolebindings
+        -d @/etc/kubernetes/system/role-bindings.json \
+        https://$private_ipv4/apis/rbac.authorization.k8s.io/v1alpha1/clusterrolebindings
 
       touch /etc/kubernetes/system/init-complete
 
-  - path: /etc/kubernetes/system/roles.yaml
+  - path: /etc/kubernetes/system/roles.json
     permissions: 0700
     content: |
-      kind: ClusterRole
-      apiVersion: rbac.authorization.k8s.io/v1alpha1
-      metadata:
-        name: admin-access
-      rules:
-        - apiGroups: ["*"]
-          resources: ["*"]
-          verbs: ["*"]
-          nonResourceURLs: ["*"]
+      {
+        "kind": "ClusterRole",
+        "apiVersion": "rbac.authorization.k8s.io/v1alpha1",
+        "metadata": {
+          "name": "admin-access"
+        },
+        "rules": [
+          {
+            "apiGroups": ["*"],
+            "resources": ["*"],
+            "verbs": ["*"],
+            "nonResourceURLs": ["*"]
+          }
+        ]
+      }
 
   - path: /etc/kubernetes/system/role-bindings.yaml
     permissions: 0700
     content: |
-      apiVersion: rbac.authorization.k8s.io/v1alpha1
-      kind: ClusterRoleBinding
-      metadata:
-        name: admin-access
-      subjects:
-        - kind: ServiceAccount
-          name: default
-          namespace: kube-system
-        - kind: User
-          name: controller
-        - kind: User
-          name: kubelet
-        - kind: User
-          name: admin
-      roleRef:
-        apiVersion: rbac.authorization.k8s.io/v1alpha1
-        kind: ClusterRole
-        name: admin-access
+      {
+        "kind": "ClusterRoleBinding",
+        "apiVersion": "rbac.authorization.k8s.io/v1alpha1",
+        "metadata": {
+          "name": "admin-access"
+        },
+        "subjects": [
+          {
+            "kind": "ServiceAccount",
+            "name": "default",
+            "namespace": "kube-system"
+          },
+          {
+            "kind": "User",
+            "name": "controller"
+          },
+          {
+            "kind": "User",
+            "name": "kubelet"
+          },
+          {
+            "kind": "User",
+            "name": "admin"
+          }
+        ],
+        "roleRef": {
+          "apiVersion": "rbac.authorization.k8s.io/v1alpha1",
+          "kind": "ClusterRole",
+          "name": "admin-access"
+        }
+      }
 
   - path: /opt/bin/kube-service-account.sh
     permissions: 0700
@@ -597,12 +603,12 @@ write_files:
               - --cloud-provider=aws
               - --service-cluster-ip-range=10.0.0.0/16
               - --enable-swagger-ui=true
+              - --runtime-config=extensions/v1beta1=true,extensions/v1beta1/networkpolicies=true,rbac.authorization.k8s.io/v1alpha1=true
               - --advertise-address=$private_ipv4
               - --external-hostname=${kube_fqdn}
               - --authorization-mode=RBAC
               - --authorization-rbac-super-user=controller
               - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,ResourceQuota,DenyEscalatingExec,ServiceAccount
-              - --runtime-config=extensions/v1beta1=true,extensions/v1beta1/thirdpartyresources=true,rbac.authorization.k8s.io/v1alpha1
             livenessProbe:
               httpGet:
                 host: 127.0.0.1
