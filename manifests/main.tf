@@ -10,6 +10,12 @@ variable kube_version {}
 variable acme_email {}
 variable acme_url { default = "" }
 
+variable vpn_address {}
+variable vpn_mongo_metrics_address {}
+
+variable vault_address {}
+variable vault_metrics_address {}
+
 provider aws {
     region = "${var.region}"
 }
@@ -180,6 +186,14 @@ data template_file alerts_config {
 
 data template_file metrics_config {
     template = "${file("${path.module}/manifests/metrics-prometheus-config.yaml")}"
+
+    vars {
+        vpn_address = "${var.vpn_address}"
+        vpn_mongo_metrics_address = "${var.vpn_mongo_metrics_address}"
+
+        vault_address = "${var.vault_address}"
+        vault_metrics_address = "${var.vault_metrics_address}"
+    }
 }
 
 data template_file metrics {

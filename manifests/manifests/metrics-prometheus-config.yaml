@@ -172,7 +172,7 @@ data:
 
       dns_sd_configs:
         - names:
-          - "metrics.vault.ops.kitkit.cloud"
+          - "${vault_metrics_address}"
           type: "A"
           port: 9102
 
@@ -181,7 +181,7 @@ data:
 
       dns_sd_configs:
         - names:
-          - "metrics.mongo.vpn.ops.kitkit.cloud"
+          - "${vpn_mongo_metrics_address}"
           type: "A"
           port: 9001
 
@@ -194,8 +194,8 @@ data:
 
       static_configs:
         - targets:
-          - vault.ops.kitkit.cloud/v1/sys/health
-          - vpn.ops.kitkit.cloud
+          - "${vpn_address}"
+          - "${vault_address}/v1/sys/health"
 
       relabel_configs:
         - source_labels: [__address__]
