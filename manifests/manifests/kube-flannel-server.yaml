@@ -37,18 +37,15 @@ spec:
         - name: flannel-server
           image: quay.io/coreos/flannel:0.5.5
           command:
-            - /bin/bash
-            - -c
-            - "source /etc/environment && \
-               /opt/bin/flanneld \
-                --listen=0.0.0.0:8888 \
-                --etcd-endpoints=https://$COREOS_PRIVATE_IPV4:2379 \
-                  --etcd-cafile=/etc/ssl/etcd/ca.pem \
-                  --etcd-certfile=/etc/ssl/etcd/cert.pem \
-                  --etcd-keyfile=/etc/ssl/etcd/privkey.pem \
-                  --remote-cafile=/etc/ssl/kube/ca.pem \
-                  --remote-certfile=/etc/ssl/kube/cert.pem \
-                  --remote-keyfile=/etc/ssl/kube/privkey.pem"
+            - /opt/bin/flanneld
+            - --listen=0.0.0.0:8888
+            - --etcd-endpoints=https://localhost:2379
+            - --etcd-cafile=/etc/ssl/etcd/ca.pem
+            - --etcd-certfile=/etc/ssl/etcd/cert.pem
+            - --etcd-keyfile=/etc/ssl/etcd/privkey.pem
+            - --remote-cafile=/etc/ssl/kube/ca.pem
+            - --remote-certfile=/etc/ssl/kube/cert.pem
+            - --remote-keyfile=/etc/ssl/kube/privkey.pem
           securityContext:
             privileged: true
           livenessProbe:
