@@ -138,11 +138,11 @@ resource vaultx_secret kubelet_role {
     ignore_read = true
 
     data {
-        allowed_domains = "kubelet"
-        allow_bare_domains = true
-        allow_subdomains = true
+        #allowed_domains = "kubelet"
+        #allow_bare_domains = true
+        #allow_subdomains = true
         allow_any_name = true
-        allow_localhost = false
+        #allow_localhost = false
         key_type = "ec"
         key_bits = "256"
         max_ttl = "48h"
