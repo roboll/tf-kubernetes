@@ -340,61 +340,61 @@ write_files:
         exit
       }
 
-      until curl -sSf -k \
+      until curl -sSf \
           --cacert /etc/ssl/controller/ca.pem \
           --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
-          https://localhost/healthz; do
+          https://$private_ipv4/healthz; do
         echo "waiting for bootstrap apiserver"; sleep 5;
       done
       echo "bootstrap apiserver ready"
 
       [ ! -f /etc/kubernetes/system/kube-apiserver.json.created ] && {
         echo "creating from /etc/kubernetes/system/kube-apiserver.json"
-        curl -sSf -k -H "Content-Type: application/json" -XPOST \
+        curl -sSf -H "Content-Type: application/json" -XPOST \
           --cacert /etc/ssl/controller/ca.pem \
           --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
           -d @/etc/kubernetes/system/kube-apiserver.json \
-          https://localhost/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
+          https://$private_ipv4/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
         touch /etc/kubernetes/system/kube-apiserver.json.created
       }
 
       [ ! -f /etc/kubernetes/system/kube-controller-manager.json.created ] && {
         echo "creating from /etc/kubernetes/system/kube-controller-manager.json"
-        curl -sSf -k -H "Content-Type: application/json" -XPOST \
+        curl -sSf -H "Content-Type: application/json" -XPOST \
           --cacert /etc/ssl/controller/ca.pem \
           --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
           -d @/etc/kubernetes/system/kube-controller-manager.json \
-          https://localhost/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
+          https://$private_ipv4/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
         touch /etc/kubernetes/system/kube-controller-manager.json.created
       }
 
       [ ! -f /etc/kubernetes/system/kube-flannel-server.json.created ] && {
         echo "creating from /etc/kubernetes/system/kube-flannel-server.json"
-        curl -sSf -k -H "Content-Type: application/json" -XPOST \
+        curl -sSf -H "Content-Type: application/json" -XPOST \
           --cacert /etc/ssl/controller/ca.pem \
           --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
           -d @/etc/kubernetes/system/kube-flannel-server.json \
-          https://localhost/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
+          https://$private_ipv4/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
         touch /etc/kubernetes/system/kube-flannel-server.json.created
       }
 
       [ ! -f /etc/kubernetes/system/role.json.created ] && {
         echo "creating from /etc/kubernetes/system/role.json"
-        curl -sSf -k -H "Content-Type: application/json" -XPOST \
+        curl -sSf -H "Content-Type: application/json" -XPOST \
           --cacert /etc/ssl/controller/ca.pem \
           --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
           -d @/etc/kubernetes/system/role.json \
-          https://localhost/apis/rbac.authorization.k8s.io/v1alpha1/clusterroles
+          https://$private_ipv4/apis/rbac.authorization.k8s.io/v1alpha1/clusterroles
         touch /etc/kubernetes/system/role.json.created
       }
 
       [ ! -f /etc/kubernetes/system/role-binding.json.created ] && {
         echo "creating from /etc/kubernetes/system/role-binding.json"
-        curl -sSf -k -H "Content-Type: application/json" -XPOST \
+        curl -sSf -H "Content-Type: application/json" -XPOST \
           --cacert /etc/ssl/controller/ca.pem \
           --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
           -d @/etc/kubernetes/system/role-binding.json \
-          https://localhost/apis/rbac.authorization.k8s.io/v1alpha1/clusterrolebindings
+          https://$private_ipv4/apis/rbac.authorization.k8s.io/v1alpha1/clusterrolebindings
         touch /etc/kubernetes/system/role-binding.json.created
       }
 
