@@ -342,61 +342,53 @@ write_files:
         exit
       }
 
-      until curl -sSf \
-          --cacert /etc/ssl/controller/ca.pem \
-          --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
-          https://$private_ipv4/healthz; do
-        echo "waiting for bootstrap apiserver"; sleep 5;
+      curl_opts="-sSf --resolve kubernetes:443:127.0.0.1 \
+        --cacert /etc/ssl/controller/ca.pem \
+        --cert /etc/ssl/controller/cert.pem \
+        --key /etc/ssl/controller/privkey.pem"
+
+      until curl $curl_opts https://kubernetes/healthz; do
+        echo "waiting for apiserver..."; sleep 5;
       done
-      echo "bootstrap apiserver ready"
+      echo "apiserver ready"
 
       [ ! -f /etc/kubernetes/system/kube-apiserver.json.created ] && {
         echo "creating from /etc/kubernetes/system/kube-apiserver.json"
-        curl -sSf -H "Content-Type: application/json" -XPOST \
-          --cacert /etc/ssl/controller/ca.pem \
-          --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
+        curl $curl_opts -H "Content-Type: application/json" -XPOST \
           -d @/etc/kubernetes/system/kube-apiserver.json \
-          https://$private_ipv4/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
+          https://kubernetes/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
         touch /etc/kubernetes/system/kube-apiserver.json.created
       }
 
       [ ! -f /etc/kubernetes/system/kube-controller-manager.json.created ] && {
         echo "creating from /etc/kubernetes/system/kube-controller-manager.json"
-        curl -sSf -H "Content-Type: application/json" -XPOST \
-          --cacert /etc/ssl/controller/ca.pem \
-          --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
+        curl $curl_opts -H "Content-Type: application/json" -XPOST \
           -d @/etc/kubernetes/system/kube-controller-manager.json \
-          https://$private_ipv4/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
+          https://kubernetes/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
         touch /etc/kubernetes/system/kube-controller-manager.json.created
       }
 
       [ ! -f /etc/kubernetes/system/kube-flannel-server.json.created ] && {
         echo "creating from /etc/kubernetes/system/kube-flannel-server.json"
-        curl -sSf -H "Content-Type: application/json" -XPOST \
-          --cacert /etc/ssl/controller/ca.pem \
-          --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
+        curl $curl_opts -H "Content-Type: application/json" -XPOST \
           -d @/etc/kubernetes/system/kube-flannel-server.json \
-          https://$private_ipv4/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
+          https://kubernetes/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
         touch /etc/kubernetes/system/kube-flannel-server.json.created
       }
 
       [ ! -f /etc/kubernetes/system/role.json.created ] && {
         echo "creating from /etc/kubernetes/system/role.json"
-        curl -sSf -H "Content-Type: application/json" -XPOST \
-          --cacert /etc/ssl/controller/ca.pem \
-          --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
+        curl $curl_opts -H "Content-Type: application/json" -XPOST \
           -d @/etc/kubernetes/system/role.json \
-          https://$private_ipv4/apis/rbac.authorization.k8s.io/v1alpha1/clusterroles
+          https://kubernetes/apis/rbac.authorization.k8s.io/v1alpha1/clusterroles
         touch /etc/kubernetes/system/role.json.created
       }
 
       [ ! -f /etc/kubernetes/system/role-binding.json.created ] && {
         echo "creating from /etc/kubernetes/system/role-binding.json"
-        curl -sSf -H "Content-Type: application/json" -XPOST \
-          --cacert /etc/ssl/controller/ca.pem \
-          --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
+        curl $curl_opts -H "Content-Type: application/json" -XPOST \
           -d @/etc/kubernetes/system/role-binding.json \
-          https://$private_ipv4/apis/rbac.authorization.k8s.io/v1alpha1/clusterrolebindings
+          https://kubernetes/apis/rbac.authorization.k8s.io/v1alpha1/clusterrolebindings
         touch /etc/kubernetes/system/role-binding.json.created
       }
 
