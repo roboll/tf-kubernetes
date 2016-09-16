@@ -335,11 +335,18 @@ write_files:
       #!/bin/bash
       set -eo pipefail
 
-      until curl -sSf -k https://localhost:8088/healthz; do
+      [ -f /etc/kubernetes/init-complete ] && {
+        echo "init already complete, exiting"
+        exit
+      }
+
+      until curl -sSf -k http://localhost:8088/healthz; do
         echo "waiting for bootstrap apiserver"; sleep 5;
       done
+      echo "bootstrap apiserver ready"
 
       [ ! -f /etc/kubernetes/system/role.json.created ] && {
+        echo "creating from /etc/kubernetes/system/role.json"
         curl -sSf -k -H "Content-Type: application/json" -XPOST \
           -d @/etc/kubernetes/system/role.json \
           http://localhost:8088/apis/rbac.authorization.k8s.io/v1alpha1/clusterroles
@@ -347,6 +354,7 @@ write_files:
       }
 
       [ ! -f /etc/kubernetes/system/role-binding.json.created ] && {
+        echo "creating from /etc/kubernetes/system/role-binding.json"
         curl -sSf -k -H "Content-Type: application/json" -XPOST \
           -d @/etc/kubernetes/system/role-binding.json \
           http://localhost:8088/apis/rbac.authorization.k8s.io/v1alpha1/clusterrolebindings
@@ -354,6 +362,7 @@ write_files:
       }
 
       [ ! -f /etc/kubernetes/system/kube-apiserver.json.created ] && {
+        echo "creating from /etc/kubernetes/system/kube-apiserver.json"
         curl -sSf -k -H "Content-Type: application/json" -XPOST \
           -d @/etc/kubernetes/system/kube-apiserver.json \
           http://localhost:8088/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
@@ -361,6 +370,7 @@ write_files:
       }
 
       [ ! -f /etc/kubernetes/system/kube-controller-manager.json.created ] && {
+        echo "creating from /etc/kubernetes/system/kube-controller-manager.json"
         curl -sSf -k -H "Content-Type: application/json" -XPOST \
           -d @/etc/kubernetes/system/kube-controller-manager.json \
           http://localhost:8088/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
@@ -368,14 +378,16 @@ write_files:
       }
 
       [ ! -f /etc/kubernetes/system/kube-flannel-server.yaml.created ] && {
+        echo "creating from /etc/kubernetes/system/kube-flannel-server.json"
         curl -sSf -k -H "Content-Type: application/yaml" -XPOST \
           -d @/etc/kubernetes/system/kube-flannel-server.yaml \
           http://localhost:8088/api/v1/namespaces/kube-system/pods
         touch /etc/kubernetes/system/kube-flannel-server.yaml.created
       }
 
-      rm /etc/kubernetes/manifests/bootstrap-apiserver.yaml
-      rm /etc/kubernetes/manifests/bootstrap-controller-manager.yaml
+      echo "all manifests created, destroying bootstrap components"
+      rm /etc/kubernetes/manifests/bootstrap-apiserver.yaml /etc/kubernetes/manifests/bootstrap-controller-manager.yaml
+      touch /etc/kubernetes/init-completed
 
   - path: /opt/bin/kube-service-account.sh
     permissions: 0700
