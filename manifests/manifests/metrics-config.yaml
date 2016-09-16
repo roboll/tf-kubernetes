@@ -52,7 +52,7 @@ data:
     # to set this to `https` & most likely set the `tls_config` of the scrape config.
     # * `prometheus.io/path`: If the metrics path is not `/metrics` override this.
     # * `prometheus.io/port`: If the metrics are exposed on a different port to the
-    - job_name: "kubernetes-services"
+    - job_name: "kubernetes-services-probe"
 
       metrics_path: /probe
       params:
@@ -68,6 +68,60 @@ data:
       - source_labels: [__meta_kubernetes_role, __meta_kubernetes_service_annotation_prometheus_io_probe]
         action: keep
         regex: service;true
+      - source_labels: [__meta_kubernetes_service_name]
+        action: drop
+        regex: kube-apiserver
+      - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_scheme]
+        action: replace
+        target_label: __address__
+        regex: (.+);(https?)
+        replacement: $2://$1
+      - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+        action: replace
+        target_label: __address__
+        regex: (.+)(?::\d+);(\d+)
+        replacement: $1:$2
+      - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_path]
+        action: replace
+        target_label: __address__
+        regex: (.+);(.+)
+        replacement: $1$2
+      - source_labels: [__address__]
+        target_label: __param_target
+      - target_label: __address__
+        replacement: metrics-blackbox
+      - source_labels: [__param_target]
+        target_label: instance
+      - action: labelmap
+        regex: __meta_kubernetes_service_label_(.+)
+      - source_labels: [__meta_kubernetes_role]
+        target_label: kubernetes_role
+      - source_labels: [__meta_kubernetes_service_namespace]
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_service_name]
+        target_label: kubernetes_name
+      - source_labels: [__meta_kubernetes_service_namespace, __meta_kubernetes_service_name]
+        regex: (.+);(.+)
+        target_label: job
+        replacement: $1-$2-svc
+
+    # service endpoint probe scraping
+    - job_name: "kubernetes-service-endpoints-probe"
+
+      metrics_path: /probe
+      params:
+        module: [http_2xx]
+
+      kubernetes_sd_configs:
+      - api_servers:
+        - "https://kubernetes.default.svc"
+        in_cluster: true
+        role: "endpoint"
+
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_role, __meta_kubernetes_service_annotation_prometheus_io_probe]
+        action: keep
+        regex: endpoint;true
       - source_labels: [__meta_kubernetes_service_name]
         action: drop
         regex: kube-apiserver
