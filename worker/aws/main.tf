@@ -25,6 +25,7 @@ variable root_volume_size { default = 20 }
 
 variable worker_class {}
 variable controller_fqdn {}
+variable kube_pki_backend {}
 variable kubelet_pki_backend {}
 
 variable hyperkube { default = "quay.io/coreos/hyperkube" }
@@ -155,6 +156,7 @@ resource coreos_cloudconfig cloud_config {
         vault_curl_opts = "${var.vault_curl_opts}"
         kubelet_pki_role = "worker-${var.worker_class}"
 
+        kube_pki_mount = "${var.kube_pki_backend}"
         kubelet_pki_mount = "${var.kubelet_pki_backend}"
     }
 
