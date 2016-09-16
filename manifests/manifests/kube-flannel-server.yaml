@@ -61,13 +61,7 @@ spec:
             - mountPath: /etc/ssl/certs
               name: ssl-certs-host
               readOnly: true
-            - mountPath: /etc/environment
-              name: env
-              readOnly: true
       volumes:
-        - hostPath:
-            path: /etc/kubernetes/service-account/pubkey.pem
-          name: service-account
         - hostPath:
             path: /etc/ssl/kube
           name: kube-certs
@@ -77,6 +71,3 @@ spec:
         - hostPath:
             path: /usr/share/ca-certificates
           name: ssl-certs-host
-        - hostPath:
-            path: /etc/environment
-          name: env

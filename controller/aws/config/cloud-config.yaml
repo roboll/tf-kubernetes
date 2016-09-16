@@ -335,90 +335,47 @@ write_files:
       #!/bin/bash
       set -eo pipefail
 
-      until curl -sSf http://localhost:8080/healthz; do
-        echo "waiting for apiserver"; sleep 5;
+      until curl -sSf -k https://localhost:8088/healthz; do
+        echo "waiting for bootstrap apiserver"; sleep 5;
       done
 
       [ ! -f /etc/kubernetes/system/role.json.created ] && {
         curl -sSf -k -H "Content-Type: application/json" -XPOST \
-          --cacert /etc/ssl/controller/ca.pem \
-          --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
           -d @/etc/kubernetes/system/role.json \
-          https://localhost/apis/rbac.authorization.k8s.io/v1alpha1/clusterroles
+          http://localhost:8088/apis/rbac.authorization.k8s.io/v1alpha1/clusterroles
         touch /etc/kubernetes/system/role.json.created
       }
 
       [ ! -f /etc/kubernetes/system/role-binding.json.created ] && {
         curl -sSf -k -H "Content-Type: application/json" -XPOST \
-          --cacert /etc/ssl/controller/ca.pem \
-          --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
           -d @/etc/kubernetes/system/role-binding.json \
-          https://localhost/apis/rbac.authorization.k8s.io/v1alpha1/clusterrolebindings
+          http://localhost:8088/apis/rbac.authorization.k8s.io/v1alpha1/clusterrolebindings
         touch /etc/kubernetes/system/role-binding.json.created
+      }
+
+      [ ! -f /etc/kubernetes/system/kube-apiserver.json.created ] && {
+        curl -sSf -k -H "Content-Type: application/json" -XPOST \
+          -d @/etc/kubernetes/system/kube-apiserver.json \
+          http://localhost:8088/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
+        touch /etc/kubernetes/system/kube-apiserver.json.created
       }
 
       [ ! -f /etc/kubernetes/system/kube-controller-manager.json.created ] && {
         curl -sSf -k -H "Content-Type: application/json" -XPOST \
-          --cacert /etc/ssl/controller/ca.pem \
-          --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
           -d @/etc/kubernetes/system/kube-controller-manager.json \
-          https://localhost/api/v1/namespaces/kube-system/pods
+          http://localhost:8088/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
         touch /etc/kubernetes/system/kube-controller-manager.json.created
       }
 
-  - path: /etc/kubernetes/system/role.json
-    permissions: 0700
-    content: |
-      {
-        "kind": "ClusterRole",
-        "apiVersion": "rbac.authorization.k8s.io/v1alpha1",
-        "metadata": {
-          "name": "admin-access"
-        },
-        "rules": [
-          {
-            "apiGroups": ["*"],
-            "resources": ["*"],
-            "verbs": ["*"],
-            "nonResourceURLs": ["*"]
-          }
-        ]
+      [ ! -f /etc/kubernetes/system/kube-flannel-server.yaml.created ] && {
+        curl -sSf -k -H "Content-Type: application/yaml" -XPOST \
+          -d @/etc/kubernetes/system/kube-flannel-server.yaml \
+          http://localhost:8088/api/v1/namespaces/kube-system/pods
+        touch /etc/kubernetes/system/kube-flannel-server.yaml.created
       }
 
-  - path: /etc/kubernetes/system/role-bindings.json
-    permissions: 0700
-    content: |
-      {
-        "kind": "ClusterRoleBinding",
-        "apiVersion": "rbac.authorization.k8s.io/v1alpha1",
-        "metadata": {
-          "name": "admin-access"
-        },
-        "subjects": [
-          {
-            "kind": "ServiceAccount",
-            "name": "default",
-            "namespace": "kube-system"
-          },
-          {
-            "kind": "User",
-            "name": "controller"
-          },
-          {
-            "kind": "User",
-            "name": "kubelet"
-          },
-          {
-            "kind": "User",
-            "name": "admin"
-          }
-        ],
-        "roleRef": {
-          "kind": "ClusterRole",
-          "apiVersion": "rbac.authorization.k8s.io/v1alpha1",
-          "name": "admin-access"
-        }
-      }
+      rm /etc/kubernetes/manifests/bootstrap-apiserver.yaml
+      rm /etc/kubernetes/manifests/bootstrap-controller-manager.yaml
 
   - path: /opt/bin/kube-service-account.sh
     permissions: 0700
@@ -581,32 +538,30 @@ write_files:
             client-certificate: /etc/ssl/controller/cert.pem
             client-key: /etc/ssl/controller/privkey.pem
 
-  - path: /etc/kubernetes/manifests/kube-apiserver.yaml
+  - path: /etc/kubernetes/manifests/bootstrap-apiserver.yaml
     content: |
       apiVersion: v1
       kind: Pod
       metadata:
-        name: kube-apiserver
+        name: bootstrap-apiserver
         namespace: kube-system
         labels:
-          app: kubernetes
+          app: kubernetes-bootstrap
           component: apiserver
       spec:
         hostNetwork: true
-        imagePullPolicy: Always
         containers:
           - name: kube-apiserver
             image: ${hyperkube}:${kube_version}
             command:
               - /hyperkube
               - apiserver
-              - --secure-port=443
+              - --secure-port=0
+              - --insecure-port=8088
               - --etcd-servers=https://localhost:2379
               - --etcd-cafile=/etc/ssl/etcd/ca.pem
               - --etcd-certfile=/etc/ssl/etcd/cert.pem
               - --etcd-keyfile=/etc/ssl/etcd/privkey.pem
-              - --tls-cert-file=/etc/ssl/kube/cert.pem
-              - --tls-private-key-file=/etc/ssl/kube/privkey.pem
               - --service-account-key-file=/etc/kubernetes/service-account/pubkey.pem
               - --kubelet-certificate-authority=/etc/ssl/kubelet/ca.pem
               - --kubelet-client-certificate=/etc/ssl/kubelet/cert.pem
@@ -615,20 +570,8 @@ write_files:
               - --allow-privileged=true
               - --cloud-provider=aws
               - --service-cluster-ip-range=10.0.0.0/16
-              - --enable-swagger-ui=true
               - --runtime-config=extensions/v1beta1=true,extensions/v1beta1/networkpolicies=true,rbac.authorization.k8s.io/v1alpha1=true
               - --advertise-address=$private_ipv4
-              - --external-hostname=${kube_fqdn}
-              - --authorization-mode=RBAC
-              - --authorization-rbac-super-user=controller
-              - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,ResourceQuota,DenyEscalatingExec,ServiceAccount
-            livenessProbe:
-              httpGet:
-                host: 127.0.0.1
-                path: /healthz
-                port: 8080
-              initialDelaySeconds: 30
-              timeoutSeconds: 1
             volumeMounts:
               - mountPath: /etc/kubernetes/service-account/pubkey.pem
                 name: service-account
@@ -647,9 +590,6 @@ write_files:
                 readOnly: true
         volumes:
           - hostPath:
-              path: /etc/kubernetes/controller
-            name: ssl-certs-kubernetes
-          - hostPath:
               path: /etc/kubernetes/service-account/pubkey.pem
             name: service-account
           - hostPath:
@@ -665,153 +605,29 @@ write_files:
               path: /usr/share/ca-certificates
             name: ssl-certs-host
 
-  - path: /etc/kubernetes/system/kube-controller-manager.json
-    content: |
-      {
-        "kind":"Pod",
-        "apiVersion": "v1",
-        "metadata": {
-          "name": "kube-controller-manager",
-          "namespace": "kube-system",
-          "labels": {
-            "app": "kubernetes",
-            "component": "controller-manager"
-          }
-        },
-        "spec": {
-          "hostNetwork": true,
-          "containers": [
-            {
-              "name": "kube-controller-manager",
-              "image": "${hyperkube}:${kube_version}",
-              "command": [
-                "/hyperkube", "controller-manager",
-                "--master=https://${kube_fqdn}",
-                "--kubeconfig=/etc/kubernetes/controller/kubeconfig.yaml",
-                "--leader-elect=true",
-                "--root-ca-file=/etc/ssl/kube/ca.pem",
-                "--service-account-private-key-file=/etc/kubernetes/service-account/privkey.pem",
-                "--cloud-provider=aws"
-              ],
-              "livenessProbe": {
-                "httpGet": {
-                  "host":"127.0.0.1",
-                  "path": "/healthz",
-                  "port": "10252"
-                },
-                "initialDelaySeconds": 15,
-                "timeoutSeconds": 1,
-              },
-              "volumeMounts": [
-                {
-                  "mountPath": "/etc/kubernetes/controller/kubeconfig.yaml",
-                  "name": "kubeconfig",
-                  "readOnly": true
-                },
-                {
-                  "mountPath": "/etc/ssl/controller",
-                  "name": "controller-certs",
-                  "readOnly": true
-                },
-                {
-                  "mountPath": "/etc/ssl/kube/ca.pem",
-                  "name": "kube-ca",
-                  "readOnly": true
-                },
-                {
-                  "mountPath": "/etc/ssl/certs",
-                  "name": "ssl-certs-host",
-                  "readOnly": true
-                },
-                {
-                  "mountPath": "/etc/kubernetes/service-account/privkey.pem",
-                  "name": "service-account",
-                  "readOnly": true
-                }
-              ]
-            }
-          ],
-          "volumes": [
-            {
-              "name":"ssl-certs-host",
-              "hostPath": {
-                "path": "/usr/share/ca-certificates"
-              }
-            },
-
-            {
-              "name":"kube-ca",
-              "hostPath": {
-                "path": "/etc/ssl/kube/ca.pem"
-              }
-            },
-
-            {
-              "name":"controller-certs",
-              "hostPath": {
-                "path": "/etc/ssl/controller"
-              }
-            },
-
-            {
-              "name":"kubeconfig",
-              "hostPath": {
-                "path": "/etc/kubernetes/controller/kubeconfig.yaml"
-              }
-            },
-
-            {
-              "name":"service-account",
-              "hostPath": {
-                "path": "/etc/kubernetes/service-account/privkey.pem"
-              }
-            }
-          ]
-        }
-      }
-
-  - path: /etc/kubernetes/manifests-non/kube-controller-manager.yaml
+  - path: /etc/kubernetes/manifests/bootstrap-controller-manager.yaml
     content: |
       apiVersion: v1
       kind: Pod
       metadata:
-        name: kube-controller-manager
+        name: bootstrap-controller-manager
         namespace: kube-system
         labels:
-          app: kubernetes
+          app: kubernetes-bootstrap
           component: controller-manager
       spec:
         hostNetwork: true
-        imagePullPolicy: Always
         containers:
           - name: kube-controller-manager
             image: ${hyperkube}:${kube_version}
             command:
               - /hyperkube
               - controller-manager
-              - --master=https://${kube_fqdn}
-              - --kubeconfig=/etc/kubernetes/controller/kubeconfig.yaml
+              - --master=http://localhost:8088
               - --leader-elect=true
-              - --root-ca-file=/etc/ssl/kube/ca.pem
               - --service-account-private-key-file=/etc/kubernetes/service-account/privkey.pem
               - --cloud-provider=aws
-            livenessProbe:
-              httpGet:
-                host: 127.0.0.1
-                path: /healthz
-                port: 10252
-              initialDelaySeconds: 15
-              timeoutSeconds: 1
             volumeMounts:
-              - mountPath: /etc/kubernetes/controller/kubeconfig.yaml
-                name: kubeconfig
-                readOnly: true
-              - mountPath: /etc/ssl/kube/ca.pem
-                name: kube-ca
-                readOnly: true
-              - mountPath: /etc/ssl/controller
-                name: controller-certs
-                readOnly: true
               - mountPath: /etc/ssl/certs
                 name: ssl-certs-host
                 readOnly: true
@@ -823,72 +639,409 @@ write_files:
               path: /usr/share/ca-certificates
             name: ssl-certs-host
           - hostPath:
-              path: /etc/ssl/kube/ca.pem
-            name: kube-ca
-          - hostPath:
-              path: /etc/ssl/controller/
-            name: controller-certs
-          - hostPath:
-              path: /etc/kubernetes/controller/kubeconfig.yaml
-            name: kubeconfig
-          - hostPath:
               path: /etc/kubernetes/service-account/privkey.pem
             name: service-account
 
-  - path: /etc/kubernetes/manifests/kube-flannel-server.yaml
+  - path: /etc/kubernetes/system/role.json
+    permissions: 0644
     content: |
-      apiVersion: v1
-      kind: Pod
-      metadata:
-        name: kube-flannel-server
-        namespace: kube-system
-        labels:
-          app: kubernetes
-          component: flannel-server
-      spec:
-        hostNetwork: true
-        containers:
-          - name: flannel-server
-            image: quay.io/coreos/flannel:0.5.5
-            command:
-              - /opt/bin/flanneld
-              - --listen=0.0.0.0:8888
-              - --etcd-endpoints=https://localhost:2379
-              - --etcd-cafile=/etc/ssl/etcd/ca.pem
-              - --etcd-certfile=/etc/ssl/etcd/cert.pem
-              - --etcd-keyfile=/etc/ssl/etcd/privkey.pem
-              - --remote-cafile=/etc/ssl/kube/ca.pem
-              - --remote-certfile=/etc/ssl/kube/cert.pem
-              - --remote-keyfile=/etc/ssl/kube/privkey.pem
-            livenessProbe:
-              tcpSocket:
-                port: 8888
-            volumeMounts:
-              - mountPath: /etc/ssl/kube
-                name: kube-certs
-                readOnly: true
-              - mountPath: /etc/ssl/etcd
-                name: etcd-certs
-                readOnly: true
-              - mountPath: /etc/ssl/certs
-                name: ssl-certs-host
-                readOnly: true
-              - mountPath: /etc/environment
-                name: env
-                readOnly: true
-        volumes:
-          - hostPath:
-              path: /etc/kubernetes/service-account/pubkey.pem
-            name: service-account
-          - hostPath:
-              path: /etc/ssl/kube
-            name: kube-certs
-          - hostPath:
-              path: /etc/ssl/etcd
-            name: etcd-certs
-          - hostPath:
-              path: /usr/share/ca-certificates
-            name: ssl-certs-host
-          - hostPath:
-              path: /etc/environment
-            name: env
+      {
+        "kind": "ClusterRole",
+        "apiVersion": "rbac.authorization.k8s.io/v1alpha1",
+        "metadata": {
+          "name": "admin-access"
+        },
+        "rules": [
+          {
+            "apiGroups": ["*"],
+            "resources": ["*"],
+            "verbs": ["*"],
+            "nonResourceURLs": ["*"]
+          }
+        ]
+      }
+
+  - path: /etc/kubernetes/system/role-binding.json
+    permissions: 0644
+    content: |
+      {
+        "kind": "ClusterRoleBinding",
+        "apiVersion": "rbac.authorization.k8s.io/v1alpha1",
+        "metadata": {
+          "name": "admin-access"
+        },
+        "subjects": [
+          {
+            "kind": "ServiceAccount",
+            "name": "default",
+            "namespace": "kube-system"
+          },
+          {
+            "kind": "User",
+            "name": "controller"
+          },
+          {
+            "kind": "User",
+            "name": "kubelet"
+          },
+          {
+            "kind": "User",
+            "name": "admin"
+          }
+        ],
+        "roleRef": {
+          "kind": "ClusterRole",
+          "apiVersion": "rbac.authorization.k8s.io/v1alpha1",
+          "name": "admin-access"
+        }
+      }
+
+  - path: /etc/kubernetes/system/kube-apiserver.json
+    content: |
+      {
+        "kind": "DaemonSet",
+        "apiVersion": "extensions/v1beta1",
+        "metadata": {
+          "name": "kube-apiserver",
+          "namespace": "kube-system",
+          "labels": {
+            "app": "kubernetes",
+            "component": "apiserver"
+          }
+        },
+        "spec": {
+          "template": {
+            "metadata": {
+              "labels": {
+                "app": "kubernetes",
+                "component": "apiserver"
+              }
+            },
+            "spec": {
+              "nodeSelector": {
+                "role": "controller"
+              },
+              "hostNetwork": true,
+
+              "containers": [
+                {
+                  "name": "kube-apiserver",
+                  "image": "${hyperkube}:${kube_version}",
+                  "command": [
+                    "/hyperkube", "apiserver",
+                    "--secure-port=443",
+                    "--etcd-servers=https://localhost:2379",
+                    "--etcd-cafile=/etc/ssl/etcd/ca.pem",
+                    "--etcd-certfile=/etc/ssl/etcd/cert.pem",
+                    "--etcd-keyfile=/etc/ssl/etcd/privkey.pem",
+                    "--tls-cert-file=/etc/ssl/kube/cert.pem",
+                    "--tls-private-key-file=/etc/ssl/kube/privkey.pem",
+                    "--service-account-key-file=/etc/kubernetes/service-account/pubkey.pem",
+                    "--kubelet-certificate-authority=/etc/ssl/kubelet/ca.pem",
+                    "--kubelet-client-certificate=/etc/ssl/kubelet/cert.pem",
+                    "--kubelet-client-key=/etc/ssl/kubelet/privkey.pem",
+                    "--client-ca-file=/etc/ssl/kube/ca.pem",
+                    "--allow-privileged=true",
+                    "--cloud-provider=aws",
+                    "--service-cluster-ip-range=10.0.0.0/16",
+                    "--enable-swagger-ui=true",
+                    "--runtime-config=extensions/v1beta1=true,extensions/v1beta1/networkpolicies=true,rbac.authorization.k8s.io/v1alpha1=true",
+                    "--advertise-address=$private_ipv4",
+                    "--external-hostname=${kube_fqdn}",
+                    "--authorization-mode=RBAC",
+                    "--authorization-rbac-super-user=controller",
+                    "--admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,ResourceQuota,DenyEscalatingExec,ServiceAccount"
+                  ],
+                  "livenessProbe": {
+                    "httpGet": {
+                      "host":"127.0.0.1",
+                      "path": "/healthz",
+                      "port": 8080
+                    },
+                    "initialDelaySeconds": 30,
+                    "timeoutSeconds": 1
+                  },
+                  "volumeMounts": [
+                    {
+                      "mountPath": "/etc/kubernetes/service-account/pubkey.pem",
+                      "name": "service-account",
+                      "readOnly": true
+                    },
+                    {
+                      "mountPath": "/etc/ssl/kube",
+                      "name": "kube-certs",
+                      "readOnly": true
+                    },
+                    {
+                      "mountPath": "/etc/ssl/etcd",
+                      "name": "etcd-certs",
+                      "readOnly": true
+                    },
+                    {
+                      "mountPath": "/etc/ssl/kubelet",
+                      "name": "kubelet-certs",
+                      "readOnly": true
+                    },
+                    {
+                      "mountPath": "/etc/ssl/controller",
+                      "name": "controller-certs",
+                      "readOnly": true
+                    },
+                    {
+                      "mountPath": "/etc/ssl/certs",
+                      "name": "ssl-certs-host",
+                      "readOnly": true
+                    }
+                  ]
+                }
+              ],
+              "volumes": [
+                {
+                  "name":"service-account",
+                  "hostPath": {
+                    "path": "/etc/kubernetes/service-account/pubkey.pem"
+                  }
+                },
+                {
+                  "name":"kube-certs",
+                  "hostPath": {
+                    "path": "/etc/ssl/kube"
+                  }
+                },
+                {
+                  "name":"kubelet-certs",
+                  "hostPath": {
+                    "path": "/etc/ssl/kubelet"
+                  }
+                },
+                {
+                  "name":"etcd-certs",
+                  "hostPath": {
+                    "path": "/etc/ssl/etcd"
+                  }
+                },
+                {
+                  "name":"controller-certs",
+                  "hostPath": {
+                    "path": "/etc/ssl/controller"
+                  }
+                },
+                {
+                  "name":"ssl-certs-host",
+                  "hostPath": {
+                    "path": "/usr/share/ca-certificates"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+
+  - path: /etc/kubernetes/system/kube-controller-manager.json
+    content: |
+      {
+        "kind": "DaemonSet",
+        "apiVersion": "extensions/v1beta1",
+        "metadata": {
+          "name": "kube-controller-manager",
+          "namespace": "kube-system",
+          "labels": {
+            "app": "kubernetes",
+            "component": "controller-manager"
+          }
+        },
+        "spec": {
+          "template": {
+            "metadata": {
+              "labels": {
+                "app": "kubernetes",
+                "component": "controller-manager"
+              }
+            },
+            "spec": {
+              "nodeSelector": {
+                "role": "controller"
+              },
+              "hostNetwork": true,
+
+              "containers": [
+                {
+                  "name": "kube-controller-manager",
+                  "image": "${hyperkube}:${kube_version}",
+                  "command": [
+                    "/hyperkube", "controller-manager",
+                    "--master=https://${kube_fqdn}",
+                    "--kubeconfig=/etc/kubernetes/controller/kubeconfig.yaml",
+                    "--leader-elect=true",
+                    "--root-ca-file=/etc/ssl/kube/ca.pem",
+                    "--service-account-private-key-file=/etc/kubernetes/service-account/privkey.pem",
+                    "--cloud-provider=aws"
+                  ],
+                  "livenessProbe": {
+                    "httpGet": {
+                      "host":"127.0.0.1",
+                      "path": "/healthz",
+                      "port": 10252
+                    },
+                    "initialDelaySeconds": 15,
+                    "timeoutSeconds": 1
+                  },
+                  "volumeMounts": [
+                    {
+                      "mountPath": "/etc/kubernetes/controller/kubeconfig.yaml",
+                      "name": "kubeconfig",
+                      "readOnly": true
+                    },
+                    {
+                      "mountPath": "/etc/ssl/controller",
+                      "name": "controller-certs",
+                      "readOnly": true
+                    },
+                    {
+                      "mountPath": "/etc/ssl/kube/ca.pem",
+                      "name": "kube-ca",
+                      "readOnly": true
+                    },
+                    {
+                      "mountPath": "/etc/ssl/certs",
+                      "name": "ssl-certs-host",
+                      "readOnly": true
+                    },
+                    {
+                      "mountPath": "/etc/kubernetes/service-account/privkey.pem",
+                      "name": "service-account",
+                      "readOnly": true
+                    }
+                  ]
+                }
+              ],
+              "volumes": [
+                {
+                  "name":"ssl-certs-host",
+                  "hostPath": {
+                    "path": "/usr/share/ca-certificates"
+                  }
+                },
+                {
+                  "name":"kube-ca",
+                  "hostPath": {
+                    "path": "/etc/ssl/kube/ca.pem"
+                  }
+                },
+                {
+                  "name":"controller-certs",
+                  "hostPath": {
+                    "path": "/etc/ssl/controller"
+                  }
+                },
+                {
+                  "name":"kubeconfig",
+                  "hostPath": {
+                    "path": "/etc/kubernetes/controller/kubeconfig.yaml"
+                  }
+                },
+                {
+                  "name":"service-account",
+                  "hostPath": {
+                    "path": "/etc/kubernetes/service-account/privkey.pem"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+
+  - path: /etc/kubernetes/system/kube-flannel-server.json
+    content: |
+      {
+        "kind": "DaemonSet",
+        "apiVersion": "extensions/v1beta1",
+        "metadata": {
+          "name": "kube-flannel-server",
+          "namespace": "kube-system",
+          "labels": {
+            "app": "kubernetes",
+            "component": "flannel-server"
+          }
+        },
+        "spec": {
+          "template": {
+            "metadata": {
+              "labels": {
+                "app": "kubernetes",
+                "component": "flannel-server"
+              }
+            },
+            "spec": {
+              "nodeSelector": {
+                "role": "controller"
+              },
+              "hostNetwork": true,
+              "containers": [
+                {
+                  "name": "flannel-server",
+                  "image": "quay.io/coreos/flannel:0.5.5",
+                  "command": [
+                    "/opt/bin/flanneld",
+                    "--listen=0.0.0.0:8888",
+                    "--etcd-endpoints=https://localhost:2379",
+                    "--etcd-cafile=/etc/ssl/etcd/ca.pem",
+                    "--etcd-certfile=/etc/ssl/etcd/cert.pem",
+                    "--etcd-keyfile=/etc/ssl/etcd/privkey.pem",
+                    "--remote-cafile=/etc/ssl/kube/ca.pem",
+                    "--remote-certfile=/etc/ssl/kube/cert.pem",
+                    "--remote-keyfile=/etc/ssl/kube/privkey.pem"
+                  ],
+                  "securityContext": {
+                    "privileged": true
+                  },
+                  "livenessProbe": {
+                    "tcpSocket": {
+                      "port": 8888
+                    }
+                  },
+                  "volumeMounts": [
+                    {
+                      "mountPath": "/etc/ssl/kube",
+                      "name": "kube-certs",
+                      "readOnly": true
+                    },
+                    {
+                      "mountPath": "/etc/ssl/etcd",
+                      "name": "etcd-certs",
+                      "readOnly": true
+                    },
+                    {
+                      "mountPath": "/etc/ssl/certs",
+                      "name": "ssl-certs-host",
+                      "readOnly": true
+                    }
+                  ]
+                }
+              ],
+              "volumes": [
+                {
+                  "name":"ssl-certs-host",
+                  "hostPath": {
+                    "path": "/usr/share/ca-certificates"
+                  }
+                },
+                {
+                  "name":"kube-certs",
+                  "hostPath": {
+                    "path": "/etc/ssl/kube"
+                  }
+                },
+                {
+                  "name":"etcd-certs",
+                  "hostPath": {
+                    "path": "/etc/ssl/etcd"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
