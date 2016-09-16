@@ -47,7 +47,7 @@ spec:
           capabilities:
             add:
               - IPC_LOCK
-        image: quay.io/pires/docker-elasticsearch-kubernetes:2.3.5_1
+        image: quay.io/pires/docker-elasticsearch-kubernetes:2.4.0
         env:
         - name: NAMESPACE
           valueFrom:
@@ -131,7 +131,7 @@ spec:
           capabilities:
             add:
               - IPC_LOCK
-        image: quay.io/pires/docker-elasticsearch-kubernetes:2.3.4
+        image: quay.io/pires/docker-elasticsearch-kubernetes:2.4.0
         env:
         - name: NAMESPACE
           valueFrom:
@@ -196,7 +196,7 @@ spec:
           capabilities:
             add:
               - IPC_LOCK
-        image: quay.io/pires/docker-elasticsearch-kubernetes:2.3.4
+        image: quay.io/pires/docker-elasticsearch-kubernetes:2.4.0
         env:
         - name: NAMESPACE
           valueFrom:
@@ -337,7 +337,7 @@ spec:
     spec:
       containers:
         - name: kibana
-          image: kibana:4
+          image: kibana:4.6
           args:
             - --elasticsearch=http://logging-elasticsearch:9200
             - --server.basePath=/kibana
