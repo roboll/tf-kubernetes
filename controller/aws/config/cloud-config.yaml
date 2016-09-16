@@ -393,9 +393,12 @@ write_files:
       }
 
       echo "all manifests created"
-      touch /etc/kubernetes/init-completed
+      until docker ps | grep -q kube-apiserver && docker ps | grep -q kube-controller-manager; do
+        echo "waiting for apiserver to be scheduled"; sleep 5;
+      done
 
-      #rm /etc/kubernetes/manifests/bootstrap-apiserver.yaml /etc/kubernetes/manifests/bootstrap-controller-manager.yaml
+      rm /etc/kubernetes/manifests/bootstrap-apiserver.yaml /etc/kubernetes/manifests/bootstrap-controller-manager.yaml
+      touch /etc/kubernetes/init-completed
 
   - path: /opt/bin/kube-service-account.sh
     permissions: 0700
@@ -571,7 +574,7 @@ write_files:
       spec:
         hostNetwork: true
         containers:
-          - name: kube-apiserver
+          - name: apiserver
             image: ${hyperkube}:${kube_version}
             command:
               - /hyperkube
@@ -642,7 +645,7 @@ write_files:
       spec:
         hostNetwork: true
         containers:
-          - name: kube-controller-manager
+          - name: controller-manager
             image: ${hyperkube}:${kube_version}
             command:
               - /hyperkube
@@ -748,7 +751,7 @@ write_files:
               "hostNetwork": true,
               "containers": [
                 {
-                  "name": "kube-apiserver",
+                  "name": "apiserver",
                   "image": "${hyperkube}:${kube_version}",
                   "command": [
                     "/hyperkube", "apiserver",
@@ -889,7 +892,7 @@ write_files:
               "hostNetwork": true,
               "containers": [
                 {
-                  "name": "kube-controller-manager",
+                  "name": "controller-manager",
                   "image": "${hyperkube}:${kube_version}",
                   "command": [
                     "/hyperkube", "controller-manager",
