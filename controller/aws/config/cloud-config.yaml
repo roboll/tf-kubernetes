@@ -238,6 +238,9 @@ coreos:
         RestartSec=10
         TimeoutStartSec=300
 
+        # TAKE THIS AWAY WITH POD MOVE
+        ExecStartPre=/opt/bin/kube-service-account.sh
+
         Environment=KUBELET_ACI=${hyperkube}
         Environment=KUBELET_VERSION=${kube_version}
         Environment="RKT_OPTS=--volume dns,kind=host,source=/etc/resolv.conf \
@@ -256,8 +259,7 @@ coreos:
         --mount volume=kube-ca,target=/etc/ssl/kube/ca.pem"
 
         ExecStartPre=/usr/bin/mkdir -p /var/log/containers
-        ExecStartPre=/opt/bin/kube-service-account.sh
-        ExecStartPost=-/opt/bin/init-kube-system.sh
+        ExecStartPre-/usr/bin/mkdir -p /etc/kubernetes/manifests
         ExecStart=/usr/lib/coreos/kubelet-wrapper \
           --api-servers=https://${kube_fqdn} \
           --node-labels=role=controller \
@@ -270,6 +272,7 @@ coreos:
           --cluster-domain=cluster.local \
           --register-schedulable=false \
           --allow-privileged --v=2 --logtostderr=true
+        ExecStartPost=-/opt/bin/init-kube-system.sh
 
 write_files:
   - path: /etc/ssl/vault/ca.pem
