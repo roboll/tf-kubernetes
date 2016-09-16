@@ -100,10 +100,6 @@ data template_file kube_addon_manager {
 
 data template_file kube_controller {
     template = "${file("${path.module}/manifests/kube-controller.yaml")}"
-
-    vars {
-        etcd_metrics = "${ecr_push.etcd_metrics.latest_url}"
-    }
 }
 
 data template_file kube_dashboard {

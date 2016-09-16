@@ -99,7 +99,7 @@ spec:
       hostNetwork: true
       containers:
         - name: kube-etcd
-          image: ${etcd_metrics}
+          image: quay.io/roboll/etcd-metrics-proxy:v0.5
           args:
             - --upstream-server-name=controller
             - --etcd-ca=/etc/ssl/etcd/ca.pem
