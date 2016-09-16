@@ -392,9 +392,10 @@ write_files:
         touch /etc/kubernetes/system/role-binding.json.created
       }
 
-      echo "all manifests created, destroying bootstrap components"
-      rm /etc/kubernetes/manifests/bootstrap-apiserver.yaml /etc/kubernetes/manifests/bootstrap-controller-manager.yaml
+      echo "all manifests created"
       touch /etc/kubernetes/init-completed
+
+      #rm /etc/kubernetes/manifests/bootstrap-apiserver.yaml /etc/kubernetes/manifests/bootstrap-controller-manager.yaml
 
   - path: /opt/bin/kube-service-account.sh
     permissions: 0700
