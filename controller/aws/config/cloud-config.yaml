@@ -340,7 +340,10 @@ write_files:
         exit
       }
 
-      until curl -sSf -k https://localhost/healthz; do
+      until curl -sSf -k \
+          --cacert /etc/ssl/controller/ca.pem \
+          --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
+          https://localhost/healthz; do
         echo "waiting for bootstrap apiserver"; sleep 5;
       done
       echo "bootstrap apiserver ready"
