@@ -1035,6 +1035,14 @@ write_files:
               "hostNetwork": true,
               "containers": [
                 {
+                  "name": "healthz",
+                  "image": "gcr.io/google_containers/exechealthz:1.0",
+                  "args": [
+                    "-port=10259",
+                    "-cmd=netstat -lnt | awk '$6 == \"LISTEN\" && $4 ~ \".8888\"'"
+                  ]
+                },
+                {
                   "name": "flannel-server",
                   "image": "quay.io/coreos/flannel:0.5.5",
                   "command": [
