@@ -32,6 +32,14 @@ coreos:
         OnActiveSec=12h
         OnUnitActiveSec=12h
 
+    - name: kube-ca.service
+      command: start
+      content: |
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStart=/opt/bin/kube-ca.sh
+
     - name: kubelet-certs.service
       command: start
       content: |
@@ -43,7 +51,6 @@ coreos:
 
         [Service]
         Type=simple
-
         ExecStart=/opt/bin/kubelet-certs.sh
         ExecStartPost=/bin/bash -c "systemctl kill -s HUP kubelet.service || true"
 
@@ -63,11 +70,11 @@ coreos:
             After=kubelet-certs.service
 
             [Service]
-            Environment=ETCD_SSL_DIR=/etc/ssl/kubelet
+            Environment=ETCD_SSL_DIR=/etc/ssl/kube
             Environment=FLANNELD_REMOTE=${kube_fqdn}:8888
-            Environment=FLANNELD_REMOTE_CAFILE=/etc/ssl/kubelet/ca.pem
-            Environment=FLANNELD_REMOTE_CERTFILE=/etc/ssl/kubelet/cert.pem
-            Environment=FLANNELD_REMOTE_KEYFILE=/etc/ssl/kubelet/privkey.pem
+            Environment=FLANNELD_REMOTE_CAFILE=/etc/ssl/kube/ca.pem
+            Environment=FLANNELD_REMOTE_CERTFILE=/etc/ssl/kube/kubelet/cert.pem
+            Environment=FLANNELD_REMOTE_KEYFILE=/etc/ssl/kube/kubelet/privkey.pem
 
     - name: docker.service
       command: start
@@ -85,8 +92,8 @@ coreos:
       command: start
       content: |
         [Unit]
-        Requires=docker.service flanneld.service kubelet-certs.service
-        After=docker.service flanneld.service kubelet-certs.service
+        Requires=docker.service flanneld.service kube-ca.service kubelet-certs.service
+        After=docker.service flanneld.service kube-ca.service kubelet-certs.service
 
         [Service]
         Restart=always
@@ -105,21 +112,19 @@ coreos:
         --mount volume=stage,target=/tmp \
         --volume var-log,kind=host,source=/var/log \
         --mount volume=var-log,target=/var/log \
-        --volume kubelet-ssl,kind=host,source=/etc/ssl/kubelet \
-        --mount volume=kubelet-ssl,target=/etc/ssl/kubelet \
-        --volume kube-ca,kind=host,source=/etc/ssl/kubelet/ca.pem \
-        --mount volume=kube-ca,target=/etc/ssl/kubelet/ca.pem"
+        --volume kubelet-ssl,kind=host,source=/etc/ssl/kube \
+        --mount volume=kubelet-ssl,target=/etc/ssl/kube"
 
         ExecStartPre=/usr/bin/mkdir -p /var/log/containers
         ExecStart=/usr/lib/coreos/kubelet-wrapper \
           --api-servers=https://${kube_fqdn} \
-          --node-labels=role=worker,class=${worker_class} \
-          --tls-cert-file=/etc/ssl/kubelet/cert.pem \
-          --tls-private-key-file=/etc/ssl/kubelet/privkey.pem \
+          --tls-cert-file=/etc/ssl/kube/kubelet/cert.pem \
+          --tls-private-key-file=/etc/ssl/kube/kubelet/privkey.pem \
           --kubeconfig=/etc/kubernetes/kubelet/kubeconfig.yaml \
-          --cloud-provider=aws \
           --cluster-dns=10.0.0.10 \
           --cluster-domain=cluster.local \
+          --node-labels=role=worker,class=${worker_class} \
+          --cloud-provider=aws \
           --allow-privileged --v=2 --logtostderr=true
 
 write_files:
@@ -174,17 +179,24 @@ write_files:
         -X POST -H "X-Vault-Token: $token" \
         ${vault_address}/v1/auth/token/renew-self > /dev/null
 
+  - path: /opt/bin/kube-ca.sh
+    permissions: 0700
+    content: |
+      #!/bin/bash
+      set -eo pipefail
+
+      mkdir -p /etc/ssl/kube
+      curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
+        -o /etc/ssl/kube/ca.pem -z /etc/ssl/kube/ca.pem \
+        ${vault_address}/v1/${kube_pki_mount}/ca/pem
+
   - path: /opt/bin/kubelet-certs.sh
     permissions: 0700
     content: |
       #!/bin/bash
       set -eo pipefail
 
-      mkdir -p /etc/ssl/kubelet
-      curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
-        -o /etc/ssl/kubelet/ca.pem -z /etc/ssl/kubelet/ca.pem \
-        ${vault_address}/v1/${kubelet_pki_mount}/ca/pem
-
+      mkdir -p /etc/ssl/kube/kubelet
       token="$(cat /root/.vault-token)"
       json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
         -X POST -H "X-Vault-Token: $token" \
@@ -192,9 +204,9 @@ write_files:
         ${vault_address}/v1/${kubelet_pki_mount}/issue/${kubelet_pki_role})
 
       sed -re 's/.*"certificate":"([^"]*)".*/\1/g' \
-        -e 's/\\n/\n/g' > /etc/ssl/kubelet/cert.pem <<< $json
+        -e 's/\\n/\n/g' > /etc/ssl/kube/kubelet/cert.pem <<< $json
       sed -re 's/.*"private_key":"([^"]*)".*/\1/g' \
-        -e 's/\\n/\n/g' > /etc/ssl/kubelet/privkey.pem <<< $json
+        -e 's/\\n/\n/g' > /etc/ssl/kube/kubelet/privkey.pem <<< $json
 
   - path: /opt/bin/host-rkt
     permissions: 0755
@@ -212,7 +224,7 @@ write_files:
       clusters:
         - name: kubernetes
           cluster:
-            certificate-authority: /etc/ssl/kubelet/ca.pem
+            certificate-authority: /etc/ssl/kube/ca.pem
             server: https://${kube_fqdn}
       contexts:
         - name: kubelet
@@ -222,5 +234,5 @@ write_files:
       users:
         - name: kubelet
           user:
-            client-certificate: /etc/ssl/kubelet/cert.pem
-            client-key: /etc/ssl/kubelet/privkey.pem
+            client-certificate: /etc/ssl/kube/kubelet/cert.pem
+            client-key: /etc/ssl/kube/kubelet/privkey.pem

@@ -78,7 +78,6 @@ coreos:
 
         [Service]
         Type=simple
-
         ExecStart=/opt/bin/kubelet-certs.sh
         ExecStartPost=/bin/bash -c "systemctl kill -s HUP kubelet.service || true"
 
