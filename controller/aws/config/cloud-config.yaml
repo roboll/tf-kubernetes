@@ -259,18 +259,18 @@ coreos:
         --mount volume=kube-ca,target=/etc/ssl/kube/ca.pem"
 
         ExecStartPre=/usr/bin/mkdir -p /var/log/containers
-        ExecStartPre-/usr/bin/mkdir -p /etc/kubernetes/manifests
+        ExecStartPre=/usr/bin/mkdir -p /etc/kubernetes/manifests
         ExecStart=/usr/lib/coreos/kubelet-wrapper \
           --api-servers=https://${kube_fqdn} \
-          --node-labels=role=controller \
           --tls-cert-file=/etc/ssl/kubelet/cert.pem \
           --tls-private-key-file=/etc/ssl/kubelet/privkey.pem \
-          --config=/etc/kubernetes/manifests \
           --kubeconfig=/etc/kubernetes/kubelet/kubeconfig.yaml \
-          --cloud-provider=aws \
+          --config=/etc/kubernetes/manifests \
           --cluster-dns=10.0.0.10 \
           --cluster-domain=cluster.local \
+          --node-labels=role=controller \
           --register-schedulable=false \
+          --cloud-provider=aws \
           --allow-privileged --v=2 --logtostderr=true
         ExecStartPost=-/opt/bin/init-kube-system.sh
 
