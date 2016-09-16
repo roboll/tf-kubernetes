@@ -186,7 +186,7 @@ resource aws_launch_configuration worker {
 }
 
 resource aws_autoscaling_group worker {
-    name = "${var.env}-kube-worker-${var.worker_class}-autoscale"
+    name = "${var.env}-kube-worker-${var.worker_class}"
 
     launch_configuration = "${aws_launch_configuration.worker.name}"
     vpc_zone_identifier = [ "${var.subnets}" ]
