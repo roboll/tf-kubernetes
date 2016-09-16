@@ -347,7 +347,7 @@ write_files:
 
       [ ! -f /etc/kubernetes/bootstrap/linked ] && {
         echo "linking bootstrap components as static pods"
-        ln -s /etc/kubernetes/bootstrap/*.yaml /etc/kubernetes/manifests
+        ln -sf /etc/kubernetes/bootstrap/*.yaml /etc/kubernetes/manifests
         touch /etc/kubernetes/bootstrap/linked
       }
 
@@ -401,8 +401,8 @@ write_files:
         echo "waiting for daemonsets to be scheduled"; sleep 5;
       done
 
-      rm /etc/kubernetes/manifests/bootstrap-apiserver.yaml \
-        /etc/kubernetes/manifests/bootstrap-controller-manager.yaml
+      rm /etc/kubernetes/bootstrap/apiserver.yaml \
+        /etc/kubernetes/bootstrap/controller-manager.yaml
       touch /etc/kubernetes/init-completed
 
   - path: /opt/bin/kube-service-account.sh
@@ -569,7 +569,7 @@ write_files:
             client-certificate: /etc/ssl/controller/cert.pem
             client-key: /etc/ssl/controller/privkey.pem
 
-  - path: /etc/kubernetes/manifests/bootstrap-apiserver.yaml
+  - path: /etc/kubernetes/bootstrap/apiserver.yaml
     content: |
       apiVersion: v1
       kind: Pod
@@ -640,7 +640,7 @@ write_files:
               path: /usr/share/ca-certificates
             name: ssl-certs-host
 
-  - path: /etc/kubernetes/manifests/bootstrap-controller-manager.yaml
+  - path: /etc/kubernetes/bootstrap/controller-manager.yaml
     content: |
       apiVersion: v1
       kind: Pod
