@@ -10,7 +10,7 @@ data:
 
     scrape_configs:
     # apiserver service
-    - job_name: "kubernetes-cluster"
+    - job_name: "kubernetes-apiserver"
       scheme: https
 
       tls_config:
@@ -21,22 +21,24 @@ data:
       - api_servers:
         - "https://kubernetes.default.svc"
         in_cluster: true
-        role: "endpoint"
+        role: "apiserver"
+
+    # apiserver service
+    - job_name: "kubernetes-nodes"
+      scheme: https
+
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+
+      kubernetes_sd_configs:
+      - api_servers:
+        - "https://kubernetes.default.svc"
+        in_cluster: true
+        role: "node"
 
       relabel_configs:
-      - source_labels: [__meta_kubernetes_role]
-        action: keep
-        regex: (?:apiserver|node)
       - action: labelmap
         regex: __meta_kubernetes_node_label_(.+)
-      - source_labels: [__meta_kubernetes_role]
-        action: replace
-        target_label: kubernetes_role
-      - source_labels: [__meta_kubernetes_role]
-        regex: apiserver
-        action: replace
-        target_label: job
-        replacement: kubernetes-apiserver
       - source_labels: [__meta_kubernetes_node_label_role]
         regex: (.+)
         action: replace
@@ -66,6 +68,9 @@ data:
       - source_labels: [__meta_kubernetes_role, __meta_kubernetes_service_annotation_prometheus_io_probe]
         action: keep
         regex: service;true
+      - source_labels: [__meta_kubernetes_service_name]
+        action: drop
+        regex: kube-apiserver
       - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_scheme]
         action: replace
         target_label: __address__
@@ -123,6 +128,55 @@ data:
       - source_labels: [__meta_kubernetes_role, __meta_kubernetes_service_annotation_prometheus_io_scrape]
         action: keep
         regex: endpoint;true
+      - source_labels: [__meta_kubernetes_service_name]
+        action: drop
+        regex: kube-apiserver
+      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
+        action: replace
+        target_label: __scheme__
+        regex: (https?)
+      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+        action: replace
+        target_label: __address__
+        regex: (.+)(?::\d+);(\d+)
+        replacement: $1:$2
+      - action: labelmap
+        regex: __meta_kubernetes_service_label_(.+)
+      - source_labels: [__meta_kubernetes_role]
+        action: replace
+        target_label: kubernetes_role
+      - source_labels: [__meta_kubernetes_service_namespace]
+        action: replace
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_service_name]
+        action: replace
+        target_label: kubernetes_name
+      - source_labels: [__meta_kubernetes_service_namespace, __meta_kubernetes_service_name]
+        regex: (.+);(.+)
+        target_label: job
+        replacement: $1-$2-svc
+
+    # same as kubernetes-service-endpoints, but uses kubernetes secret token to auth
+    - job_name: "kubernetes-apiserver-endpoints"
+
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+      kubernetes_sd_configs:
+      - api_servers:
+        - "https://kubernetes.default.svc"
+        in_cluster: true
+        role: "endpoint"
+
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_role, __meta_kubernetes_service_annotation_prometheus_io_scrape, __meta_kubernetes_service_name]
+        action: keep
+        regex: endpoint;true;kube-apiserver
       - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
         action: replace
         target_label: __scheme__
