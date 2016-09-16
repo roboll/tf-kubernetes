@@ -165,7 +165,7 @@ data template_file alerts_config {
 }
 
 data template_file metrics_config {
-    template = "${file("${path.module}/manifests/metrics-prometheus-config.yaml")}"
+    template = "${file("${path.module}/manifests/metrics-config.yaml")}"
 
     vars {
         vpn_address = "${var.vpn_address}"

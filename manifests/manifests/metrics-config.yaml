@@ -74,8 +74,8 @@ data:
       - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_scheme]
         action: replace
         target_label: __address__
-        regex: ?(.+:://)(.+);(https?)
-        replacement: $1://$2
+        regex: (.+);(https?)
+        replacement: $2://$1
       - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
         action: replace
         target_label: __address__
@@ -89,7 +89,7 @@ data:
       - source_labels: [__address__]
         target_label: __param_target
       - target_label: __address__
-        replacement: blackbox
+        replacement: metrics-blackbox
       - source_labels: [__param_target]
         target_label: instance
       - action: labelmap

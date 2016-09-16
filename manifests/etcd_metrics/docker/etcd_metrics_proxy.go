@@ -88,7 +88,7 @@ func main() {
 
 	addr := fmt.Sprintf(":%d", c.port)
 	log.Printf("server: listening on %s\n", addr)
-	if err := http.ListenAndServeTLS(addr, c.etcdCert, c.etcdKey, server); err != nil {
+	if err := http.ListenAndServe(addr, server); err != nil {
 		log.Fatal(err)
 	}
 }
