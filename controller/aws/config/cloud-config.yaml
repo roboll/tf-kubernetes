@@ -345,22 +345,6 @@ write_files:
       done
       echo "bootstrap apiserver ready"
 
-      [ ! -f /etc/kubernetes/system/role.json.created ] && {
-        echo "creating from /etc/kubernetes/system/role.json"
-        curl -sSf -k -H "Content-Type: application/json" -XPOST \
-          -d @/etc/kubernetes/system/role.json \
-          http://localhost:8088/apis/rbac.authorization.k8s.io/v1alpha1/clusterroles
-        touch /etc/kubernetes/system/role.json.created
-      }
-
-      [ ! -f /etc/kubernetes/system/role-binding.json.created ] && {
-        echo "creating from /etc/kubernetes/system/role-binding.json"
-        curl -sSf -k -H "Content-Type: application/json" -XPOST \
-          -d @/etc/kubernetes/system/role-binding.json \
-          http://localhost:8088/apis/rbac.authorization.k8s.io/v1alpha1/clusterrolebindings
-        touch /etc/kubernetes/system/role-binding.json.created
-      }
-
       [ ! -f /etc/kubernetes/system/kube-apiserver.json.created ] && {
         echo "creating from /etc/kubernetes/system/kube-apiserver.json"
         curl -sSf -k -H "Content-Type: application/json" -XPOST \
@@ -381,9 +365,25 @@ write_files:
         echo "creating from /etc/kubernetes/system/kube-flannel-server.json"
         curl -sSf -k -H "Content-Type: application/yaml" -XPOST \
           -d @/etc/kubernetes/system/kube-flannel-server.yaml \
-          http://localhost:8088/api/v1/namespaces/kube-system/pods
+          http://localhost:8088/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
         touch /etc/kubernetes/system/kube-flannel-server.yaml.created
       }
+
+#      [ ! -f /etc/kubernetes/system/role.json.created ] && {
+#        echo "creating from /etc/kubernetes/system/role.json"
+#        curl -sSf -k -H "Content-Type: application/json" -XPOST \
+#          -d @/etc/kubernetes/system/role.json \
+#          http://localhost:8088/apis/rbac.authorization.k8s.io/v1alpha1/clusterroles
+#        touch /etc/kubernetes/system/role.json.created
+#      }
+
+#      [ ! -f /etc/kubernetes/system/role-binding.json.created ] && {
+#        echo "creating from /etc/kubernetes/system/role-binding.json"
+#        curl -sSf -k -H "Content-Type: application/json" -XPOST \
+#          -d @/etc/kubernetes/system/role-binding.json \
+#          http://localhost:8088/apis/rbac.authorization.k8s.io/v1alpha1/clusterrolebindings
+#        touch /etc/kubernetes/system/role-binding.json.created
+#      }
 
       echo "all manifests created, destroying bootstrap components"
       rm /etc/kubernetes/manifests/bootstrap-apiserver.yaml /etc/kubernetes/manifests/bootstrap-controller-manager.yaml
@@ -734,7 +734,6 @@ write_files:
                 "role": "controller"
               },
               "hostNetwork": true,
-
               "containers": [
                 {
                   "name": "kube-apiserver",
@@ -876,7 +875,6 @@ write_files:
                 "role": "controller"
               },
               "hostNetwork": true,
-
               "containers": [
                 {
                   "name": "kube-controller-manager",
