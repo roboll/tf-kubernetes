@@ -37,16 +37,12 @@ cat << "FF" > ${path.root}/manifests/kube-addon-manager.yaml;
 ${data.template_file.kube_addon_manager.rendered}
 FF
 
-cat << "FF" > ${path.root}/manifests/kube-metrics.yaml;
-${data.template_file.kube_metrics.rendered}
+cat << "FF" > ${path.root}/manifests/kube-controller.yaml;
+${data.template_file.kube_controller.rendered}
 FF
 
 cat << "FF" > ${path.root}/manifests/kube-dashboard.yaml;
 ${data.template_file.kube_dashboard.rendered}
-FF
-
-cat << "FF" > ${path.root}/manifests/kube-flannel-server.yaml;
-${data.template_file.kube_flannel_server.rendered}
 FF
 
 cat << "FF" > ${path.root}/manifests/kube-ingress-acme.yaml;
@@ -63,10 +59,6 @@ FF
 
 cat << "FF" > ${path.root}/manifests/kube-proxy.yaml;
 ${data.template_file.kube_proxy.rendered}
-FF
-
-cat << "FF" > ${path.root}/manifests/kube-roles.yaml;
-${data.template_file.kube_roles.rendered}
 FF
 
 cat << "FF" > ${path.root}/manifests/kube-scheduler.yaml;
@@ -106,8 +98,8 @@ data template_file kube_addon_manager {
     }
 }
 
-data template_file kube_metrics {
-    template = "${file("${path.module}/manifests/kube-metrics.yaml")}"
+data template_file kube_controller {
+    template = "${file("${path.module}/manifests/kube-controller.yaml")}"
 
     vars {
         etcd_metrics = "${ecr_push.etcd_metrics.latest_url}"
@@ -116,14 +108,6 @@ data template_file kube_metrics {
 
 data template_file kube_dashboard {
     template = "${file("${path.module}/manifests/kube-dashboard.yaml")}"
-
-    vars {
-        fqdn = "${var.fqdn}"
-    }
-}
-
-data template_file kube_flannel_server {
-    template = "${file("${path.module}/manifests/kube-flannel-server.yaml")}"
 
     vars {
         fqdn = "${var.fqdn}"
@@ -155,10 +139,6 @@ data template_file kube_proxy {
         hyperkube = "${var.hyperkube}"
         kube_version = "${var.kube_version}"
     }
-}
-
-data template_file kube_roles {
-    template = "${file("${path.module}/manifests/kube-roles.yaml")}"
 }
 
 data template_file kube_scheduler {
