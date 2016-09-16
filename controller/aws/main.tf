@@ -242,8 +242,8 @@ resource aws_instance controller {
 
     tags {
         Name = "${var.env}-kube_controller${count.index}"
-        Role = "controller"
         Environment = "${var.env}"
+        KubernetesRole = "controller"
         KubernetesCluster = "${var.env}"
     }
 

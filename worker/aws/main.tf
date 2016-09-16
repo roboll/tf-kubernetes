@@ -203,20 +203,20 @@ resource aws_autoscaling_group worker {
     }
 
     tag {
-        key = "Role"
+        key = "Environment"
+        value = "${var.env}"
+        propagate_at_launch = true
+    }
+
+    tag {
+        key = "KubernetesRole"
         value = "worker"
         propagate_at_launch = true
     }
 
     tag {
-        key = "WorkerClass"
+        key = "KubernetesWorkerClass"
         value = "${var.worker_class}"
-        propagate_at_launch = true
-    }
-
-    tag {
-        key = "Environment"
-        value = "${var.env}"
         propagate_at_launch = true
     }
 
