@@ -340,7 +340,7 @@ write_files:
         exit
       }
 
-      until curl -sSf -k http://localhost:8088/healthz; do
+      until curl -sSf -k https://localhost/healthz; do
         echo "waiting for bootstrap apiserver"; sleep 5;
       done
       echo "bootstrap apiserver ready"
@@ -348,42 +348,52 @@ write_files:
       [ ! -f /etc/kubernetes/system/kube-apiserver.json.created ] && {
         echo "creating from /etc/kubernetes/system/kube-apiserver.json"
         curl -sSf -k -H "Content-Type: application/json" -XPOST \
+          --cacert /etc/ssl/controller/ca.pem \
+          --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
           -d @/etc/kubernetes/system/kube-apiserver.json \
-          http://localhost:8088/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
+          https://localhost/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
         touch /etc/kubernetes/system/kube-apiserver.json.created
       }
 
       [ ! -f /etc/kubernetes/system/kube-controller-manager.json.created ] && {
         echo "creating from /etc/kubernetes/system/kube-controller-manager.json"
         curl -sSf -k -H "Content-Type: application/json" -XPOST \
+          --cacert /etc/ssl/controller/ca.pem \
+          --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
           -d @/etc/kubernetes/system/kube-controller-manager.json \
-          http://localhost:8088/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
+          https://localhost/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
         touch /etc/kubernetes/system/kube-controller-manager.json.created
       }
 
-      [ ! -f /etc/kubernetes/system/kube-flannel-server.yaml.created ] && {
+      [ ! -f /etc/kubernetes/system/kube-flannel-server.json.created ] && {
         echo "creating from /etc/kubernetes/system/kube-flannel-server.json"
-        curl -sSf -k -H "Content-Type: application/yaml" -XPOST \
-          -d @/etc/kubernetes/system/kube-flannel-server.yaml \
-          http://localhost:8088/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
-        touch /etc/kubernetes/system/kube-flannel-server.yaml.created
+        curl -sSf -k -H "Content-Type: application/json" -XPOST \
+          --cacert /etc/ssl/controller/ca.pem \
+          --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
+          -d @/etc/kubernetes/system/kube-flannel-server.json \
+          https://localhost/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
+        touch /etc/kubernetes/system/kube-flannel-server.json.created
       }
 
-      #      [ ! -f /etc/kubernetes/system/role.json.created ] && {
-      #        echo "creating from /etc/kubernetes/system/role.json"
-      #        curl -sSf -k -H "Content-Type: application/json" -XPOST \
-      #          -d @/etc/kubernetes/system/role.json \
-      #          http://localhost:8088/apis/rbac.authorization.k8s.io/v1alpha1/clusterroles
-      #        touch /etc/kubernetes/system/role.json.created
-      #      }
+      [ ! -f /etc/kubernetes/system/role.json.created ] && {
+        echo "creating from /etc/kubernetes/system/role.json"
+        curl -sSf -k -H "Content-Type: application/json" -XPOST \
+          --cacert /etc/ssl/controller/ca.pem \
+          --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
+          -d @/etc/kubernetes/system/role.json \
+          https://localhost/apis/rbac.authorization.k8s.io/v1alpha1/clusterroles
+        touch /etc/kubernetes/system/role.json.created
+      }
 
-      #      [ ! -f /etc/kubernetes/system/role-binding.json.created ] && {
-      #        echo "creating from /etc/kubernetes/system/role-binding.json"
-      #        curl -sSf -k -H "Content-Type: application/json" -XPOST \
-      #          -d @/etc/kubernetes/system/role-binding.json \
-      #          http://localhost:8088/apis/rbac.authorization.k8s.io/v1alpha1/clusterrolebindings
-      #        touch /etc/kubernetes/system/role-binding.json.created
-      #      }
+      [ ! -f /etc/kubernetes/system/role-binding.json.created ] && {
+        echo "creating from /etc/kubernetes/system/role-binding.json"
+        curl -sSf -k -H "Content-Type: application/json" -XPOST \
+          --cacert /etc/ssl/controller/ca.pem \
+          --cert /etc/ssl/controller/cert.pem --key /etc/ssl/controller/privkey.pem \
+          -d @/etc/kubernetes/system/role-binding.json \
+          https://localhost/apis/rbac.authorization.k8s.io/v1alpha1/clusterrolebindings
+        touch /etc/kubernetes/system/role-binding.json.created
+      }
 
       echo "all manifests created, destroying bootstrap components"
       rm /etc/kubernetes/manifests/bootstrap-apiserver.yaml /etc/kubernetes/manifests/bootstrap-controller-manager.yaml
@@ -568,18 +578,26 @@ write_files:
             command:
               - /hyperkube
               - apiserver
-              - --secure-port=0
-              - --insecure-port=8088
+              - --secure-port=443
               - --etcd-servers=https://localhost:2379
               - --etcd-cafile=/etc/ssl/etcd/ca.pem
               - --etcd-certfile=/etc/ssl/etcd/cert.pem
               - --etcd-keyfile=/etc/ssl/etcd/privkey.pem
+              - --tls-cert-file=/etc/ssl/kube/cert.pem
+              - --tls-private-key-file=/etc/ssl/kube/privkey.pem
               - --service-account-key-file=/etc/kubernetes/service-account/pubkey.pem
+              - --kubelet-certificate-authority=/etc/ssl/kubelet/ca.pem
+              - --kubelet-client-certificate=/etc/ssl/kubelet/cert.pem
+              - --kubelet-client-key=/etc/ssl/kubelet/privkey.pem
+              - --client-ca-file=/etc/ssl/kube/ca.pem
               - --allow-privileged=true
               - --cloud-provider=aws
               - --service-cluster-ip-range=10.0.0.0/16
               - --runtime-config=extensions/v1beta1=true,extensions/v1beta1/networkpolicies=true,rbac.authorization.k8s.io/v1alpha1=true
               - --advertise-address=$private_ipv4
+              - --authorization-mode=RBAC
+              - --authorization-rbac-super-user=controller
+              - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,ResourceQuota,DenyEscalatingExec,ServiceAccount
             volumeMounts:
               - mountPath: /etc/kubernetes/service-account/pubkey.pem
                 name: service-account
