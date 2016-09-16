@@ -665,10 +665,16 @@ write_files:
               - mountPath: /etc/ssl/controller
                 name: controller-certs
                 readOnly: true
+              - mountPath: /etc/kubernetes/controller/kubeconfig.yaml
+                name: kubeconfig
+                readOnly: true
               - mountPath: /etc/kubernetes/service-account/privkey.pem
                 name: service-account
                 readOnly: true
         volumes:
+          - hostPath:
+              path: /etc/kubernetes/controller/kubeconfig.yaml
+            name: kubeconfig
           - hostPath:
               path: /usr/share/ca-certificates
             name: ssl-certs-host
