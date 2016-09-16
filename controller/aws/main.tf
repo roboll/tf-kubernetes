@@ -31,6 +31,10 @@ variable etcd_volume_size { default = 20 }
 variable hyperkube { default = "quay.io/coreos/hyperkube" }
 variable kube_version { default = "v1.3.6_coreos.0" }
 
+variable kube_runtime_config {
+    default = "extensions/v1beta1=true,extensions/v1beta1/networkpolicies=true,rbac.authorization.k8s.io/v1alpha1=true"
+}
+
 variable cidr_offset { default = "16" }
 
 provider aws {
@@ -181,6 +185,8 @@ resource coreos_cloudconfig cloud_config {
         kube_fqdn = "${var.fqdn}"
         kube_version = "${var.kube_version}"
         hyperkube = "${var.hyperkube}"
+
+        kube_runtime_config = "${var.kube_runtime_config}"
 
         region = "${var.region}"
         vault_address = "${var.vault_address}"

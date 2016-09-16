@@ -156,24 +156,15 @@ coreos:
             Restart=always
             RestartSec=10
 
-            ExecStartPre=/usr/bin/test -s /etc/ssl/etcd/ca.pem
-            ExecStartPre=/usr/bin/test -s /etc/ssl/etcd/cert.pem
-            ExecStartPre=/usr/bin/test -s /etc/ssl/etcd/privkey.pem
-
     - name: flanneld.service
       command: start
       drop-ins:
-        - name: 40-ssl-config.conf
-          content: |
-            [Unit]
-            After=etcd-certs.service
-
         - name: 50-network-config.conf
           content: |
             [Unit]
             Before=docker.service
             Requires=etcd2.service
-            After=etcd2.service
+            After=etcd2.service etcd-certs.service
 
             [Service]
             ExecStartPre=/usr/bin/etcdctl \
@@ -182,7 +173,7 @@ coreos:
               --cert-file /etc/ssl/etcd/cert.pem \
               --key-file /etc/ssl/etcd/privkey.pem \
               set /coreos.com/network/config \
-                '{ "Network": "10.10.0.0/16", "Backend": { "Type": "vxlan" } }'
+                '{"Network":"10.10.0.0/16","Backend":{"Type":"vxlan"}}'
 
     - name: docker.service
       command: start
@@ -200,12 +191,12 @@ coreos:
       command: start
       content: |
         [Unit]
+        Description=MOVE TO POD
         Requires=vault-login.service
         After=vault-login.service
 
         [Service]
         Type=simple
-
         ExecStart=/opt/bin/kube-certs.sh
 
     - name: kube-certs.timer
@@ -218,12 +209,12 @@ coreos:
       command: start
       content: |
         [Unit]
+        Description=MOVE TO POD
         Requires=vault-login.service
         After=vault-login.service
 
         [Service]
         Type=simple
-
         ExecStart=/opt/bin/controller-certs.sh
 
     - name: controller-certs.timer
@@ -236,9 +227,10 @@ coreos:
       command: start
       content: |
         [Unit]
-        Requires=docker.service etcd2.service flanneld.service kubelet-certs.service
-        After=docker.service etcd2.service flanneld.service kubelet-certs.service
+        Requires=docker.service flanneld.service kubelet-certs.service
+        After=docker.service flanneld.service kubelet-certs.service
 
+        # TAKE THIS AWAY WITH POD MOVE
         After=kube-certs.service controller-certs.service
 
         [Service]
@@ -337,6 +329,12 @@ write_files:
       #!/bin/bash
       set -eo pipefail
 
+      instance_name="${instance_name}"
+      [ "$instance_name" == "controller0" ] && {
+        echo "not first controller, skipping init steps"
+        exit
+      }
+
       [ -f /etc/kubernetes/init-complete ] && {
         echo "init already complete, exiting"
         exit
@@ -346,6 +344,12 @@ write_files:
         --cacert /etc/ssl/controller/ca.pem \
         --cert /etc/ssl/controller/cert.pem \
         --key /etc/ssl/controller/privkey.pem"
+
+      [ ! -f /etc/kubernetes/bootstrap/linked ] && {
+        echo "linking bootstrap components as static pods"
+        ln -s /etc/kubernetes/bootstrap/*.yaml /etc/kubernetes/manifests
+        touch /etc/kubernetes/bootstrap/linked
+      }
 
       until curl $curl_opts https://kubernetes/healthz; do
         echo "waiting for apiserver..."; sleep 5;
@@ -397,13 +401,15 @@ write_files:
         echo "waiting for daemonsets to be scheduled"; sleep 5;
       done
 
-      rm /etc/kubernetes/manifests/bootstrap-apiserver.yaml /etc/kubernetes/manifests/bootstrap-controller-manager.yaml
+      rm /etc/kubernetes/manifests/bootstrap-apiserver.yaml \
+        /etc/kubernetes/manifests/bootstrap-controller-manager.yaml
       touch /etc/kubernetes/init-completed
 
   - path: /opt/bin/kube-service-account.sh
     permissions: 0700
     content: |
       #!/bin/bash
+      #GOES AWAY WITH PODS
       set -eo pipefail
 
       mkdir -p /etc/kubernetes/service-account
@@ -422,6 +428,7 @@ write_files:
     permissions: 0700
     content: |
       #!/bin/bash
+      #GOES AWAY WITH PODS
       set -eo pipefail
 
       mkdir -p /etc/ssl/kube
@@ -444,6 +451,7 @@ write_files:
     permissions: 0700
     content: |
       #!/bin/bash
+      #GOES AWAY WITH PODS
       set -eo pipefail
 
       mkdir -p /etc/ssl/controller
@@ -594,7 +602,7 @@ write_files:
               - --allow-privileged=true
               - --cloud-provider=aws
               - --service-cluster-ip-range=10.0.0.0/16
-              - --runtime-config=extensions/v1beta1=true,extensions/v1beta1/networkpolicies=true,rbac.authorization.k8s.io/v1alpha1=true
+              - --runtime-config=${kube_runtime_config}
               - --advertise-address=$private_ipv4
               - --authorization-mode=RBAC
               - --authorization-rbac-super-user=controller
@@ -790,7 +798,7 @@ write_files:
                     "--cloud-provider=aws",
                     "--service-cluster-ip-range=10.0.0.0/16",
                     "--enable-swagger-ui=true",
-                    "--runtime-config=extensions/v1beta1=true,extensions/v1beta1/networkpolicies=true,rbac.authorization.k8s.io/v1alpha1=true",
+                    "--runtime-config=${kube_runtime_config}",
                     "--advertise-address=$private_ipv4",
                     "--external-hostname=${kube_fqdn}",
                     "--authorization-mode=RBAC",
