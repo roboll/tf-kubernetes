@@ -394,7 +394,7 @@ write_files:
 
       echo "all manifests created"
       until docker ps | grep -q kube-apiserver && docker ps | grep -q kube-controller-manager; do
-        echo "waiting for apiserver to be scheduled"; sleep 5;
+        echo "waiting for daemonsets to be scheduled"; sleep 5;
       done
 
       rm /etc/kubernetes/manifests/bootstrap-apiserver.yaml /etc/kubernetes/manifests/bootstrap-controller-manager.yaml
