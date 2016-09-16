@@ -330,7 +330,7 @@ write_files:
       set -eo pipefail
 
       instance_name="${instance_name}"
-      [ "$instance_name" == "controller0" ] && {
+      [ "$instance_name" != "controller0" ] && {
         echo "not first controller, skipping init steps"
         exit
       }
