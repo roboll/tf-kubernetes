@@ -93,6 +93,10 @@ cat << "FF" > ${path.root}/kube/manifests/metrics.yaml;
 ${data.template_file.metrics.rendered}
 FF
 
+cat << "FF" > ${path.root}/kube/manifests/vault.yaml;
+${data.template_file.vault.rendered}
+FF
+
 cat << "FF" > ${path.root}/kube/scripts/etcd-vault-setup.sh;
 ${data.template_file.etcd_vault_setup.rendered}
 FF
