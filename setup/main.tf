@@ -73,6 +73,10 @@ cat << "FF" > ${path.root}/kube/manifests/kube-scheduler.yaml;
 ${data.template_file.kube_scheduler.rendered}
 FF
 
+cat << "FF" > ${path.root}/kube/manifests/kube-service-account.yaml;
+${data.template_file.kube_service_account.rendered}
+FF
+
 cat << "FF" > ${path.root}/kube/manifests/logging.yaml;
 ${data.template_file.logging.rendered}
 FF
@@ -168,6 +172,10 @@ data template_file kube_scheduler {
         hyperkube = "${var.hyperkube}"
         kube_version = "${var.kube_version}"
     }
+}
+
+data template_file kube_service_account {
+    template = "${file("${path.module}/manifests/kube-service-account.yaml")}"
 }
 
 data template_file logging {
