@@ -1,6 +1,6 @@
 ---
-apiVersion: v1
 kind: Service
+apiVersion: v1
 metadata:
   name: kube-controller-manager
   namespace: kube-system
@@ -19,8 +19,8 @@ spec:
     protocol: TCP
 
 ---
-apiVersion: v1
 kind: Service
+apiVersion: v1
 metadata:
   name: kube-apiserver
   namespace: kube-system
@@ -39,8 +39,8 @@ spec:
     protocol: TCP
 
 ---
-apiVersion: v1
 kind: Service
+apiVersion: v1
 metadata:
   name: kube-flannel-server
   namespace: kube-system
@@ -59,8 +59,8 @@ spec:
     protocol: TCP
 
 ---
-apiVersion: v1
 kind: Service
+apiVersion: v1
 metadata:
   name: kube-etcd
   namespace: kube-system
@@ -80,8 +80,26 @@ spec:
     protocol: TCP
 
 ---
-apiVersion: extensions/v1beta1
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: kube-etcd-vault-role
+  namespace: kube-system
+data:
+  role_id: ${etcd_vault_role_id}
+
+---
+kind: Secret
+apiVersion: v1
+metadata:
+  name: kube-etcd-vault-secret
+  namespace: kube-system
+data:
+  secret_id: ${etcd_vault_secret_id}
+
+---
 kind: DaemonSet
+apiVersion: extensions/v1beta1
 metadata:
   name: kube-etcd
   namespace: kube-system
@@ -103,18 +121,51 @@ spec:
           image: quay.io/roboll/etcd-metrics-proxy:v0.5
           args:
             - --upstream-server-name=controller
-            - --etcd-ca=/etc/ssl/etcd/ca.pem
-            - --etcd-cert=/etc/ssl/etcd/cert.pem
-            - --etcd-key=/etc/ssl/etcd/privkey.pem
+            - --etcd-ca=/etc/secrets/etcd.ca
+            - --etcd-cert=/etc/secrets/etcd.crt
+            - --etcd-key=/etc/secrets/etcd.key
           resources:
             requests:
               cpu: 5m
               memory: 50Mi
           volumeMounts:
-            - mountPath: /etc/ssl/etcd
-              name: etcd-certs
+            - mountPath: /etc/secrets
+              name: secrets
               readOnly: true
+        - name: vault-sidekick
+          image: quay.io/roboll/vault-sidekick:v0.0.9.4
+          args:
+            - -logtostderr=true
+            - -output=/etc/secrets
+            - -cn=pki:${etcd_pki_backend}:common_name=metrics,fmt=cert,file=etcd
+          env:
+            - name: VAULT_ADDR
+              valueFrom:
+                configMapKeyRef:
+                  name: vault
+                  key: address
+            - name: VAULT_CACERT
+              value: /etc/vault/ca.pem
+            - name: VAULT_SIDEKICK_AUTH
+              value: approle
+            - name: VAULT_SIDEKICK_ROLE_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: kube-etcd-vault-role
+                  key: role_id
+            - name: VAULT_SIDEKICK_SECRET_ID
+              valueFrom:
+                secretKeyRef:
+                  name: kube-etcd-vault-secret
+                  key: secret_id
+          volumeMounts:
+            - mountPath: /etc/secrets
+              name: secrets
+            - mountPath: /etc/vault
+              name: vault
       volumes:
-        - name: etcd-certs
-          hostPath:
-            path: /etc/ssl/etcd
+        - name: secrets
+          emptyDir: {}
+        - name: vault
+          configMap:
+            name: vault

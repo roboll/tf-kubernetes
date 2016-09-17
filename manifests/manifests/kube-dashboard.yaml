@@ -1,6 +1,6 @@
 ---
-apiVersion: extensions/v1beta1
 kind: Ingress
+apiVersion: extensions/v1beta1
 metadata:
   name: kube-dashboard
   namespace: kube-system

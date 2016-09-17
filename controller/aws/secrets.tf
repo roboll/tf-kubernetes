@@ -168,7 +168,6 @@ resource vaultx_secret etcd_role {
     depends_on = [ "vaultx_secret.etcd_pki_init" ]
 }
 
-
 resource vaultx_policy controller {
     name = "${var.env}-kube-controller"
 

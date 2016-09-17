@@ -1,6 +1,6 @@
 ---
-apiVersion: v1
 kind: Service
+apiVersion: v1
 metadata:
   name: logging-es-discovery
   namespace: kube-system
@@ -22,8 +22,8 @@ spec:
     protocol: TCP
 
 ---
-apiVersion: extensions/v1beta1
 kind: Deployment
+apiVersion: extensions/v1beta1
 metadata:
   name: logging-es-master
   namespace: kube-system
@@ -81,8 +81,8 @@ spec:
         emptyDir: {}
 
 ---
-apiVersion: v1
 kind: Service
+apiVersion: v1
 metadata:
   name: logging-elasticsearch
   namespace: kube-system
@@ -104,8 +104,8 @@ spec:
     protocol: TCP
 
 ---
-apiVersion: apps/v1alpha1
 kind: PetSet
+apiVersion: apps/v1alpha1
 metadata:
   name: logging-es-data
   namespace: kube-system
@@ -171,8 +171,8 @@ spec:
             storage: 100Gi
 
 ---
-apiVersion: extensions/v1beta1
 kind: Deployment
+apiVersion: extensions/v1beta1
 metadata:
   name: logging-es-client
   namespace: kube-system
@@ -234,8 +234,8 @@ spec:
         emptyDir: {}
 
 ---
-apiVersion: extensions/v1beta1
 kind: DaemonSet
+apiVersion: extensions/v1beta1
 metadata:
   name: logging-fluentd
   namespace: kube-system
@@ -279,8 +279,8 @@ spec:
             path: /var/lib/docker/containers
 
 ---
-apiVersion: extensions/v1beta1
 kind: Ingress
+apiVersion: extensions/v1beta1
 metadata:
   name: logging-kibana
   namespace: kube-system
@@ -303,8 +303,8 @@ spec:
               servicePort: 80
 
 ---
-apiVersion: v1
 kind: Service
+apiVersion: v1
 metadata:
   name: logging-kibana
   namespace: kube-system
@@ -321,8 +321,8 @@ spec:
     component: kibana
 
 ---
-apiVersion: extensions/v1beta1
 kind: Deployment
+apiVersion: extensions/v1beta1
 metadata:
   name: logging-kibana-v1
   namespace: kube-system

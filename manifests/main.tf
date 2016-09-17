@@ -7,12 +7,15 @@ variable kube_fqdn {}
 variable hyperkube {}
 variable kube_version {}
 
+variable etcd_pki_backend {}
+
 variable acme_email {}
 variable acme_url { default = "" }
 
 variable vpn_address {}
 variable vpn_mongo_metrics_address {}
 
+variable vault_ca_pem {}
 variable vault_address {}
 variable vault_metrics_address {}
 
@@ -100,6 +103,12 @@ data template_file kube_addon_manager {
 
 data template_file kube_controller {
     template = "${file("${path.module}/manifests/kube-controller.yaml")}"
+
+    vars {
+        etcd_pki_backend = "${var.etcd_pki_backend}"
+        etcd_vault_role_id = "${data.vaultx_secret.etcd_role_id.role_id}"
+        etcd_vault_secret_id = "${vaultx_secret.etcd_secret_id.data.secret_id}"
+    }
 }
 
 data template_file kube_dashboard {
@@ -177,5 +186,14 @@ data template_file metrics {
 
     vars {
         fqdn = "${var.fqdn}"
+    }
+}
+
+data template_file vault {
+    template = "${file("${path.module}/manifests/vault.yaml")}"
+
+    vars {
+        vault_address = "${var.vault_address}"
+        vault_ca_pem = "${var.vault_ca_pem}"
     }
 }
