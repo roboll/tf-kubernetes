@@ -5,8 +5,8 @@ metadata:
   name: kube-controller-manager
   namespace: kube-system
   annotations:
-    prometheus.io/scrape: 'true'
-    prometheus.io/port: '10252'
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "10252"
   labels:
     name: kube-controller-manager
 spec:
@@ -25,8 +25,8 @@ metadata:
   name: kube-apiserver
   namespace: kube-system
   annotations:
-    prometheus.io/scrape: 'true'
-    prometheus.io/scheme: 'https'
+    prometheus.io/scrape: "true"
+    prometheus.io/scheme: "https"
   labels:
     name: kube-apiserver
 spec:
@@ -45,8 +45,8 @@ metadata:
   name: kube-flannel-server
   namespace: kube-system
   annotations:
-    prometheus.io/probe: 'true'
-    prometheus.io/port: '10259'
+    prometheus.io/probe: "true"
+    prometheus.io/port: "10259"
   labels:
     name: kube-flannel-server
 spec:
@@ -65,8 +65,8 @@ metadata:
   name: kube-etcd
   namespace: kube-system
   annotations:
-    prometheus.io/scrape: 'true'
-    prometheus.io/port: '2381'
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "2381"
   labels:
     app: kubernetes
     component: etcd
@@ -84,6 +84,7 @@ apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
   name: kube-etcd
+  namespace: kube-system
   labels:
     app: kubernetes
     component: etcd

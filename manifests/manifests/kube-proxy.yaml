@@ -16,7 +16,6 @@ data:
       - name: local
         cluster:
           certificate-authority: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-          server: https://${kube_fqdn}
     contexts:
       - context:
           cluster: local
@@ -29,6 +28,7 @@ apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
   name: kube-proxy
+  namespace: kube-system
   labels:
     app: kubernetes
     component: proxy
@@ -43,26 +43,21 @@ spec:
       containers:
         - name: kube-proxy
           image: ${hyperkube}:${kube_version}
+          securityContext:
+            privileged: true
           command:
             - /bin/bash
             - -c
             - "sed -i /etc/kubeconfig/kubeconfig \
                 -e s,{{token}},$(cat /var/run/secrets/kubernetes.io/serviceaccount/token),g && \
-                /hyperkube proxy \
+                exec /hyperkube proxy \
                   --master=https://${kube_fqdn} \
                   --kubeconfig=/etc/kubeconfig/kubeconfig \
                   --proxy-mode=iptables"
           volumeMounts:
             - name: kubeconfig
               mountPath: /etc/kubeconfig
-            - name: env
-              mountPath: /etc/environment
-          securityContext:
-            privileged: true
       volumes:
-        - name: env
-          hostPath:
-            path: /etc/environment
         - name: kubeconfig
           configMap:
             name: kube-proxy-config

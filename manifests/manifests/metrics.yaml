@@ -23,6 +23,7 @@ apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
   name: metrics-node-exporter
+  namespace: kube-system
 spec:
   template:
     metadata:
@@ -89,6 +90,7 @@ apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   name: metrics-alertmanager
+  namespace: kube-system
   annotations:
     kubernetes.io/tls-acme: "true"
     kubernetes.io/ingress.class: "nginx"
@@ -111,6 +113,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: metrics-alertmanager
+  namespace: kube-system
   labels:
     name: metrics-alertmanager
   annotations:
@@ -130,6 +133,7 @@ apiVersion: apps/v1alpha1
 kind: PetSet
 metadata:
   name: metrics-alertmanager
+  namespace: kube-system
   labels:
     app: metrics
     component: alertmanager
@@ -180,6 +184,7 @@ apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   name: metrics-prometheus
+  namespace: kube-system
   annotations:
     kubernetes.io/tls-acme: "true"
     kubernetes.io/ingress.class: "nginx"
@@ -202,6 +207,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: metrics-prometheus
+  namespace: kube-system
   annotations:
     prometheus.io/scrape: "true"
     prometheus.io/path: "/prometheus/metrics"
@@ -221,6 +227,7 @@ apiVersion: apps/v1alpha1
 kind: PetSet
 metadata:
   name: metrics-prometheus
+  namespace: kube-system
   labels:
     app: metrics
     component: prometheus
@@ -273,6 +280,7 @@ apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   name: metrics-grafana
+  namespace: kube-system
   annotations:
     ingress.kubernetes.io/rewrite-target: /
     kubernetes.io/tls-acme: "true"

@@ -9,8 +9,8 @@ metadata:
     component: elasticsearch
     role: master
   annotations:
-    prometheus.io/scrape: 'true'
-    prometheus.io/port: '9108'
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9108"
 spec:
   selector:
     app: logging
@@ -91,8 +91,8 @@ metadata:
     component: elasticsearch
     role: client
   annotations:
-    prometheus.io/scrape: 'true'
-    prometheus.io/port: '9108'
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9108"
 spec:
   selector:
     app: logging
@@ -119,7 +119,7 @@ spec:
   template:
     metadata:
       annotations:
-        pod.alpha.kubernetes.io/initialized: 'true'
+        pod.alpha.kubernetes.io/initialized: "true"
       labels:
         app: logging
         component: elasticsearch
@@ -128,6 +128,7 @@ spec:
       containers:
       - name: es-data
         securityContext:
+          privileged: true
           capabilities:
             add:
               - IPC_LOCK
@@ -254,9 +255,9 @@ spec:
           image: quay.io/roboll/fluentd-es-systemd:v0.3
           env:
             - name: ELASTICSEARCH_HOST
-              value: 'logging-elasticsearch'
+              value: "logging-elasticsearch"
             - name: ELASTICSEARCH_PORT
-              value: '9200'
+              value: "9200"
           resources:
             limits:
               memory: 200Mi
@@ -282,6 +283,7 @@ apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   name: logging-kibana
+  namespace: kube-system
   annotations:
     ingress.kubernetes.io/rewrite-target: /
     kubernetes.io/tls-acme: "true"

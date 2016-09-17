@@ -5,8 +5,8 @@ metadata:
   name: kube-scheduler
   namespace: kube-system
   annotations:
-    prometheus.io/scrape: 'true'
-    prometheus.io/port: '10251'
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "10251"
   labels:
     name: kube-scheduler
 spec:
@@ -23,6 +23,7 @@ apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
   name: kube-scheduler
+  namespace: kube-system
   labels:
     app: kubernetes
     component: scheduler

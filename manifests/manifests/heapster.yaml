@@ -17,11 +17,11 @@ spec:
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
+  name: heapster-v1.1.0
+  namespace: kube-system
   labels:
     k8s-app: heapster
     version: v1.1.0
-  name: heapster-v1.1.0
-  namespace: kube-system
 spec:
   replicas: 1
   selector:
