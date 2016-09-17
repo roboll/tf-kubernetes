@@ -1,7 +1,5 @@
 #! /usr/bin/env bash
 
-#TODO check for vault and kubectl binaries
-
 role="${approle}"
 namespace="${namespace}"
 
