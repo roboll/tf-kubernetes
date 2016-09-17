@@ -106,7 +106,7 @@ data template_file kube_controller {
 
     vars {
         etcd_pki_backend = "${var.etcd_pki_backend}"
-        etcd_vault_role_id = "${data.vaultx_secret.etcd_role_id.role_id}"
+        etcd_vault_role_id = "${vaultx_secret.etcd_role_id.data.role_id}"
         etcd_vault_secret_id = "${vaultx_secret.etcd_secret_id.data.secret_id}"
     }
 }

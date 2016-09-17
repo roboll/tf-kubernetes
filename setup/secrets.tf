@@ -34,7 +34,7 @@ resource vaultx_secret etcd_approle {
     }
 }
 
-data vaultx_secret etcd_role_id {
+resource vaultx_secret etcd_role_id {
     path = "auth/approle/role/${var.env}-kube-etcd-metrics/role-id"
 
     depends_on = [ "vaultx_secret.etcd_approle" ]
