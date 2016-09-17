@@ -1,5 +1,5 @@
 resource vaultx_secret etcd_role {
-    path = "${var.etcd_metrics_backend}/roles/metrics"
+    path = "${var.etcd_pki_backend}/roles/metrics"
     ignore_read = true
 
     data {
@@ -18,7 +18,7 @@ resource vaultx_policy etcd_metrics_policy {
     name = "${var.env}-kube-etcd-metrics"
 
     rules = <<EOF
-path "${var.etcd_metrics_backend}/issue/metrics" {
+path "${var.etcd_pki_backend}/issue/metrics" {
     capabilities = [ "create", "read", "update", "list" ]
 }
 EOF
