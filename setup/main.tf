@@ -15,8 +15,8 @@ variable acme_url { default = "" }
 variable vpn_address {}
 variable vpn_mongo_metrics_address {}
 
-variable vault_ca_pem {}
 variable vault_address {}
+variable vault_ca_cert_pem {}
 variable vault_metrics_address {}
 
 provider aws {
@@ -194,6 +194,6 @@ data template_file vault {
 
     vars {
         vault_address = "${var.vault_address}"
-        vault_ca_pem = "${var.vault_ca_pem}"
+        vault_ca_cert_pem = "${var.vault_ca_cert_pem}"
     }
 }

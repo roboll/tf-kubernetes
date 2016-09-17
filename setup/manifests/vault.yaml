@@ -7,4 +7,4 @@ metadata:
 data:
   address: ${vault_address}
   ca.pem: |-
-    ${vault_ca_pem}
+    ${vault_ca_cert_pem}
