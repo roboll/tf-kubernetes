@@ -1,4 +1,4 @@
-resource vaultx_secret etcd_role {
+resource vaultx_secret etcd_pki_role {
     path = "${var.etcd_pki_backend}/roles/metrics"
     ignore_read = true
 
@@ -24,7 +24,7 @@ path "${var.etcd_pki_backend}/issue/metrics" {
 EOF
 }
 
-resource vaultx_secret etcd_role {
+resource vaultx_secret etcd_approle {
     path = "auth/approle/role/${var.env}-kube-etcd-metrics"
 
     data {
@@ -37,7 +37,7 @@ resource vaultx_secret etcd_role {
 data vaultx_secret etcd_role_id {
     path = "auth/approle/role/${var.env}-kube-etcd-metrics/role-id"
 
-    depends_on = [ "vaultx_secret.etcd_role" ]
+    depends_on = [ "vaultx_secret.etcd_approle" ]
 }
 
 resource vaultx_secret etcd_secret_id {
