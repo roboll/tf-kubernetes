@@ -1,0 +1,59 @@
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: kube-controller-manager
+  namespace: kube-system
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "10252"
+  labels:
+    name: kube-controller-manager
+spec:
+  selector:
+    app: kubernetes
+    component: controller-manager
+  ports:
+  - name: metrics
+    port: 10252
+    protocol: TCP
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: kube-apiserver
+  namespace: kube-system
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/scheme: "https"
+  labels:
+    name: kube-apiserver
+spec:
+  selector:
+    app: kubernetes
+    component: apiserver
+  ports:
+  - name: metrics
+    port: 443
+    protocol: TCP
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: kube-flannel-server
+  namespace: kube-system
+  annotations:
+    prometheus.io/probe: "true"
+    prometheus.io/port: "10259"
+  labels:
+    name: kube-flannel-server
+spec:
+  selector:
+    app: kubernetes
+    component: flannel-server
+  ports:
+  - name: metrics
+    port: 10259
+    protocol: TCP

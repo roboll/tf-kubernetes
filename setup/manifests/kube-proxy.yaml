@@ -1,29 +1,4 @@
 ---
-kind: ConfigMap
-apiVersion: v1
-metadata:
-  name: kube-proxy-config
-  namespace: kube-system
-data:
-  kubeconfig: |-
-    apiVersion: v1
-    kind: Config
-    users:
-      - name: kube-proxy
-        user:
-          token: {{token}}
-    clusters:
-      - name: local
-        cluster:
-          certificate-authority: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-    contexts:
-      - context:
-          cluster: local
-          user: kube-proxy
-        name: service-account-context
-    current-context: service-account-context
-
----
 kind: DaemonSet
 apiVersion: extensions/v1beta1
 metadata:
@@ -48,16 +23,22 @@ spec:
           command:
             - /bin/bash
             - -c
-            - "sed -i /etc/kubeconfig/kubeconfig \
+            - "sed -i /etc/kubeconfig/kubeconfig.yaml \
                 -e s,{{token}},$(cat /var/run/secrets/kubernetes.io/serviceaccount/token),g && \
                 exec /hyperkube proxy \
                   --master=https://${kube_fqdn} \
-                  --kubeconfig=/etc/kubeconfig/kubeconfig \
+                  --kubeconfig=/etc/kubeconfig/kubeconfig.yaml \
                   --proxy-mode=iptables"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 10249
+            initialDelaySeconds: 15
+            timeoutSeconds: 1
           volumeMounts:
             - name: kubeconfig
               mountPath: /etc/kubeconfig
       volumes:
         - name: kubeconfig
           configMap:
-            name: kube-proxy-config
+            name: service-account-kubeconfig

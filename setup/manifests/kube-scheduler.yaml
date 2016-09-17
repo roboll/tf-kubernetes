@@ -36,40 +36,28 @@ spec:
     spec:
       nodeSelector:
         role: controller
-      hostNetwork: true
       containers:
         - name: kube-scheduler
           image: ${hyperkube}:${kube_version}
           command:
-            - /hyperkube
-            - scheduler
-            - --master=https://${kube_fqdn}
-            - --kubeconfig=/etc/kubernetes/controller/kubeconfig.yaml
-            - --leader-elect=true
+            - /bin/bash
+            - -c
+            - "sed -i /etc/kubeconfig/kubeconfig.yaml \
+                -e s,{{token}},$(cat /var/run/secrets/kubernetes.io/serviceaccount/token),g && \
+                exec /hyperkube scheduler \
+                  --master=https://${kube_fqdn} \
+                  --kubeconfig=/etc/kubeconfig/kubeconfig.yaml \
+                  --leader-elect=true"
           livenessProbe:
             httpGet:
-              host: 127.0.0.1
               path: /healthz
               port: 10251
             initialDelaySeconds: 15
             timeoutSeconds: 1
           volumeMounts:
-            - mountPath: /etc/ssl/kube/ca.pem
-              name: kube-ca
-              readOnly: true
-            - mountPath: /etc/ssl/controller
-              name: controller-certs
-              readOnly: true
-            - mountPath: /etc/kubernetes/controller/kubeconfig.yaml
-              name: kubeconfig
-              readOnly: true
+            - name: kubeconfig
+              mountPath: /etc/kubeconfig
       volumes:
-        - hostPath:
-            path: /etc/ssl/kube/ca.pem
-          name: kube-ca
-        - hostPath:
-            path: /etc/ssl/controller
-          name: controller-certs
-        - hostPath:
-            path: /etc/kubernetes/controller/kubeconfig.yaml
-          name: kubeconfig
+        - name: kubeconfig
+          configMap:
+            name: service-account-kubeconfig

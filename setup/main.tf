@@ -41,12 +41,16 @@ cat << "FF" > ${path.root}/kube/manifests/kube-addon-manager.yaml;
 ${data.template_file.kube_addon_manager.rendered}
 FF
 
-cat << "FF" > ${path.root}/kube/manifests/kube-controller.yaml;
-${data.template_file.kube_controller.rendered}
+cat << "FF" > ${path.root}/kube/manifests/kube-controller-metrics.yaml;
+${data.template_file.kube_controller_metrics.rendered}
 FF
 
 cat << "FF" > ${path.root}/kube/manifests/kube-dashboard.yaml;
 ${data.template_file.kube_dashboard.rendered}
+FF
+
+cat << "FF" > ${path.root}/kube/manifests/kube-etcd-metrics.yaml;
+${data.template_file.kube_etcd_metrics.rendered}
 FF
 
 cat << "FF" > ${path.root}/kube/manifests/kube-ingress-acme.yaml;
@@ -107,12 +111,8 @@ data template_file kube_addon_manager {
     }
 }
 
-data template_file kube_controller {
-    template = "${file("${path.module}/manifests/kube-controller.yaml")}"
-
-    vars {
-        etcd_pki_backend = "${var.etcd_pki_backend}"
-    }
+data template_file kube_controller_metrics {
+    template = "${file("${path.module}/manifests/kube-controller-metrics.yaml")}"
 }
 
 data template_file kube_dashboard {
@@ -122,6 +122,15 @@ data template_file kube_dashboard {
         fqdn = "${var.fqdn}"
     }
 }
+
+data template_file kube_etcd_metrics {
+    template = "${file("${path.module}/manifests/kube-etcd-metrics.yaml")}"
+
+    vars {
+        etcd_pki_backend = "${var.etcd_pki_backend}"
+    }
+}
+
 
 data template_file kube_ingress_acme {
     template = "${file("${path.module}/manifests/kube-ingress-acme.yaml")}"
