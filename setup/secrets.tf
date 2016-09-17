@@ -26,6 +26,7 @@ EOF
 
 resource vaultx_secret etcd_approle {
     path = "auth/approle/role/${var.env}-kube-etcd-metrics"
+    ignore_read = true
 
     data {
         role_name = "${var.env}-kube-etcd-metrics"
