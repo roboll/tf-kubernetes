@@ -30,59 +30,65 @@ provider ecr {
 resource null_resource render {
     provisioner local-exec {
         command = <<EOF
-mkdir -p ${path.root}/manifests;
+mkdir -p ${path.root}/kube/manifests;
+mkdir -p ${path.root}/kube/scripts;
 
-cat << "FF" > ${path.root}/manifests/heapster.yaml;
+cat << "FF" > ${path.root}/kube/manifests/heapster.yaml;
 ${data.template_file.heapster.rendered}
 FF
 
-cat << "FF" > ${path.root}/manifests/kube-addon-manager.yaml;
+cat << "FF" > ${path.root}/kube/manifests/kube-addon-manager.yaml;
 ${data.template_file.kube_addon_manager.rendered}
 FF
 
-cat << "FF" > ${path.root}/manifests/kube-controller.yaml;
+cat << "FF" > ${path.root}/kube/manifests/kube-controller.yaml;
 ${data.template_file.kube_controller.rendered}
 FF
 
-cat << "FF" > ${path.root}/manifests/kube-dashboard.yaml;
+cat << "FF" > ${path.root}/kube/manifests/kube-dashboard.yaml;
 ${data.template_file.kube_dashboard.rendered}
 FF
 
-cat << "FF" > ${path.root}/manifests/kube-ingress-acme.yaml;
+cat << "FF" > ${path.root}/kube/manifests/kube-ingress-acme.yaml;
 ${data.template_file.kube_ingress_acme.rendered}
 FF
 
-cat << "FF" > ${path.root}/manifests/kube-ingress-dns.yaml;
+cat << "FF" > ${path.root}/kube/manifests/kube-ingress-dns.yaml;
 ${data.template_file.kube_ingress_dns.rendered}
 FF
 
-cat << "FF" > ${path.root}/manifests/kube-ingress.yaml;
+cat << "FF" > ${path.root}/kube/manifests/kube-ingress.yaml;
 ${data.template_file.kube_ingress.rendered}
 FF
 
-cat << "FF" > ${path.root}/manifests/kube-proxy.yaml;
+cat << "FF" > ${path.root}/kube/manifests/kube-proxy.yaml;
 ${data.template_file.kube_proxy.rendered}
 FF
 
-cat << "FF" > ${path.root}/manifests/kube-scheduler.yaml;
+cat << "FF" > ${path.root}/kube/manifests/kube-scheduler.yaml;
 ${data.template_file.kube_scheduler.rendered}
 FF
 
-cat << "FF" > ${path.root}/manifests/logging.yaml;
+cat << "FF" > ${path.root}/kube/manifests/logging.yaml;
 ${data.template_file.logging.rendered}
 FF
 
-cat << "FF" > ${path.root}/manifests/metrics-alerts-config.yaml;
+cat << "FF" > ${path.root}/kube/manifests/metrics-alerts-config.yaml;
 ${data.template_file.alerts_config.rendered}
 FF
 
-cat << "FF" > ${path.root}/manifests/metrics-config.yaml;
+cat << "FF" > ${path.root}/kube/manifests/metrics-config.yaml;
 ${data.template_file.metrics_config.rendered}
 FF
 
-cat << "FF" > ${path.root}/manifests/metrics.yaml;
+cat << "FF" > ${path.root}/kube/manifests/metrics.yaml;
 ${data.template_file.metrics.rendered}
 FF
+
+cat << "FF" > ${path.root}/kube/scripts/etcd-vault-setup.sh;
+${data.template_file.etcd_vault_setup.rendered}
+FF
+chmod +x ${path.root}/kube/scripts/etcd-vault-setup.sh
 
 EOF
     }
@@ -106,8 +112,6 @@ data template_file kube_controller {
 
     vars {
         etcd_pki_backend = "${var.etcd_pki_backend}"
-        //etcd_vault_role_id = "${data.vaultx_secret.etcd_role_id.data.role_id}"
-        //etcd_vault_secret_id = "${vaultx_secret.etcd_secret_id.data.secret_id}"
     }
 }
 
@@ -195,5 +199,14 @@ data template_file vault {
     vars {
         vault_address = "${var.vault_address}"
         vault_ca_cert_pem = "${var.vault_ca_cert_pem}"
+    }
+}
+
+data template_file etcd_vault_setup {
+    template = "${file("${path.module}/scripts/vault-setup.sh")}"
+
+    vars {
+        approle = "${var.env}-kube-etcd-metrics"
+        namespace = "kube-system"
     }
 }

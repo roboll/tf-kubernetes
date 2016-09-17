@@ -80,38 +80,20 @@ spec:
     protocol: TCP
 
 ---
-kind: ConfigMap
-apiVersion: v1
-metadata:
-  name: kube-etcd-vault-role
-  namespace: kube-system
-data:
-  role_id: ${etcd_vault_role_id}
-
----
-kind: Secret
-apiVersion: v1
-metadata:
-  name: kube-etcd-vault-secret
-  namespace: kube-system
-data:
-  secret_id: ${etcd_vault_secret_id}
-
----
 kind: DaemonSet
 apiVersion: extensions/v1beta1
 metadata:
-  name: kube-etcd
+  name: kube-etcd-metrics
   namespace: kube-system
   labels:
     app: kubernetes
-    component: etcd
+    component: etcd-metrics
 spec:
   template:
     metadata:
       labels:
         app: kubernetes
-        component: etcd
+        component: etcd-metrics
     spec:
       nodeSelector:
         role: controller
@@ -151,12 +133,12 @@ spec:
             - name: VAULT_SIDEKICK_ROLE_ID
               valueFrom:
                 configMapKeyRef:
-                  name: kube-etcd-vault-role
+                  name: kube-etcd-metrics-vault-role
                   key: role_id
             - name: VAULT_SIDEKICK_SECRET_ID
               valueFrom:
                 secretKeyRef:
-                  name: kube-etcd-vault-secret
+                  name: kube-etcd-metrics-vault-secret
                   key: secret_id
           volumeMounts:
             - mountPath: /etc/secrets

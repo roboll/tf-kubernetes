@@ -33,20 +33,3 @@ resource vaultx_secret etcd_approle {
         period = "6h"
     }
 }
-
-data vaultx_secret etcd_role_id {
-    path = "auth/approle/role/${var.env}-kube-etcd-metrics/role-id"
-
-    depends_on = [ "vaultx_secret.etcd_approle" ]
-}
-
-resource vaultx_secret etcd_secret_id {
-    path = "auth/approle/role/${var.env}-kube-etcd-metrics/secret-id"
-
-    ignore_read = true
-    ignore_delete = true
-
-    data {
-        force = "write"
-    }
-}
