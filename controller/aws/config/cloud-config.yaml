@@ -242,7 +242,7 @@ write_files:
     permissions: 0644
     encoding: base64
     content: |
-      ${vault_ca_cert_pem}
+      ${vault_ca_cert_pem_b64}
 
   - path: /opt/bin/install-ssh-helper.sh
     permissions: 0700
@@ -668,8 +668,8 @@ write_files:
         },
         "type": "Opaque",
         "data": {
-          "address": "${vault_address}",
-          "ca.pem": "${vault_ca_cert_pem}"
+          "address": "${vault_address_b64}",
+          "ca.pem": "${vault_ca_cert_pem_b64}"
         }
       }
 

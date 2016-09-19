@@ -192,7 +192,8 @@ resource coreos_cloudconfig cloud_config {
         vault_address = "${var.vault_address}"
         vault_instance_role = "${vaultx_policy.controller_instance.name}"
 
-        vault_ca_cert_pem = "${base64encode(var.vault_ca_cert_pem)}"
+        vault_address_b64 = "${base64encode(var.vault_address)}"
+        vault_ca_cert_pem_b64 = "${base64encode(var.vault_ca_cert_pem)}"
         vault_curl_opts = "${var.vault_curl_opts}"
 
         kube_pki_mount = "${null_resource.pki_mount.triggers.kube_path}"
