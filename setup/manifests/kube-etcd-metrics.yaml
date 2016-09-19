@@ -63,7 +63,7 @@ spec:
           env:
             - name: VAULT_ADDR
               valueFrom:
-                configMapKeyRef:
+                secretKeyRef:
                   name: vault
                   key: address
             - name: VAULT_CACERT
@@ -89,5 +89,5 @@ spec:
         - name: secrets
           emptyDir: {}
         - name: vault
-          configMap:
-            name: vault
+          secret:
+            secretName: vault
