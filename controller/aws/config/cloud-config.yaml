@@ -545,7 +545,6 @@ write_files:
               - --service-cluster-ip-range=10.0.0.0/16
               - --runtime-config=${kube_runtime_config}
               - --advertise-address=$private_ipv4
-              - --token-auth-file=/etc/kubernetes/bootstrap/tokens.csv
               - --authorization-mode=RBAC
               - --authorization-rbac-super-user=bootstrap
               - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,ResourceQuota,DenyEscalatingExec,ServiceAccount
