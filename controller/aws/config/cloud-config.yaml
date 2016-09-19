@@ -412,7 +412,7 @@ write_files:
         touch /etc/kubernetes/bootstrap/linked
       }
 
-      until curl $curl_opts -H "Authorization: Bearer ${bootstrap_token}" https://kubernetes/healthz; do
+      until curl $curl_opts https://kubernetes/healthz; do
         echo "waiting for apiserver..."; sleep 5;
       done
       echo "apiserver ready"
