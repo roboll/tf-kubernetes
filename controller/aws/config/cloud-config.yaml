@@ -386,11 +386,6 @@ write_files:
         exit
       }
 
-      curl_opts="-sSf --resolve kubernetes:443:127.0.0.1 \
-        --cacert /etc/ssl/kube/ca.pem \
-        --cert /etc/kubernetes/bootstrap/cert.pem \
-        --key /etc/kubernetes/bootstrap/privkey.pem"
-
       [ ! -f /etc/kubernetes/bootstrap/certs ] && {
         token="$(cat /etc/vault/token)"
         json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
@@ -405,10 +400,14 @@ write_files:
         touch /etc/kubernetes/bootstrap/certs
       }
 
+      curl_opts="-sSf --resolve kubernetes:443:127.0.0.1 \
+        --cacert /etc/ssl/kube/ca.pem \
+        --cert /etc/kubernetes/bootstrap/cert.pem \
+        --key /etc/kubernetes/bootstrap/privkey.pem"
+
       [ ! -f /etc/kubernetes/bootstrap/linked ] && {
         echo "linking bootstrap components as static pods"
-        ln -sf /etc/kubernetes/bootstrap/apiserver.yaml /etc/kubernetes/manifests/bootstrap-apiserver.yaml
-        ln -sf /etc/kubernetes/bootstrap/controller-manager.yaml /etc/kubernetes/manifests/bootstrap-controller-manager.yaml
+        ln -sf /etc/kubernetes/bootstrap/*.yaml /etc/kubernetes/manifests
         touch /etc/kubernetes/bootstrap/linked
       }
 
@@ -417,60 +416,45 @@ write_files:
       done
       echo "apiserver ready"
 
-      [ ! -f /etc/kubernetes/system/vault.json.created ] && {
-        echo "creating from /etc/kubernetes/system/vault.json"
+      [ ! -f /etc/kubernetes/init/role.json.created ] && {
+        echo "creating from /etc/kubernetes/init/role.json"
         curl $curl_opts -H "Content-Type: application/json" -XPOST \
-          -d @/etc/kubernetes/system/vault.json \
-          https://kubernetes/api/v1/namespaces/kube-system/secrets
-        touch /etc/kubernetes/system/vault,json.created
-      }
-
-      [ ! -f /etc/kubernetes/system/kube-apiserver.json.created ] && {
-        echo "creating from /etc/kubernetes/system/kube-apiserver.json"
-        curl $curl_opts -H "Content-Type: application/json" -XPOST \
-          -d @/etc/kubernetes/system/kube-apiserver.json \
-          https://kubernetes/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
-        touch /etc/kubernetes/system/kube-apiserver.json.created
-      }
-
-      [ ! -f /etc/kubernetes/system/kube-controller-kubeconfig.json.created ] && {
-        echo "creating from /etc/kubernetes/system/kube-controller-kubeconfig.json"
-        curl $curl_opts -H "Content-Type: application/json" -XPOST \
-          -d @/etc/kubernetes/system/kube-controller-kubeconfig.json \
-          https://kubernetes/api/v1/namespaces/kube-system/configmaps
-        touch /etc/kubernetes/system/kube-controller-kubeconfig.json.created
-      }
-
-      [ ! -f /etc/kubernetes/system/kube-controller-manager.json.created ] && {
-        echo "creating from /etc/kubernetes/system/kube-controller-manager.json"
-        curl $curl_opts -H "Content-Type: application/json" -XPOST \
-          -d @/etc/kubernetes/system/kube-controller-manager.json \
-          https://kubernetes/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
-        touch /etc/kubernetes/system/kube-controller-manager.json.created
-      }
-
-      [ ! -f /etc/kubernetes/system/kube-flannel-server.json.created ] && {
-        echo "creating from /etc/kubernetes/system/kube-flannel-server.json"
-        curl $curl_opts -H "Content-Type: application/json" -XPOST \
-          -d @/etc/kubernetes/system/kube-flannel-server.json \
-          https://kubernetes/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
-        touch /etc/kubernetes/system/kube-flannel-server.json.created
-      }
-
-      [ ! -f /etc/kubernetes/system/role.json.created ] && {
-        echo "creating from /etc/kubernetes/system/role.json"
-        curl $curl_opts -H "Content-Type: application/json" -XPOST \
-          -d @/etc/kubernetes/system/role.json \
+          -d @/etc/kubernetes/init/role.json \
           https://kubernetes/apis/rbac.authorization.k8s.io/v1alpha1/clusterroles
-        touch /etc/kubernetes/system/role.json.created
+        touch /etc/kubernetes/init/role.json.created
       }
 
-      [ ! -f /etc/kubernetes/system/role-binding.json.created ] && {
-        echo "creating from /etc/kubernetes/system/role-binding.json"
+      [ ! -f /etc/kubernetes/init/role-binding.json.created ] && {
+        echo "creating from /etc/kubernetes/init/role-binding.json"
         curl $curl_opts -H "Content-Type: application/json" -XPOST \
-          -d @/etc/kubernetes/system/role-binding.json \
+          -d @/etc/kubernetes/init/role-binding.json \
           https://kubernetes/apis/rbac.authorization.k8s.io/v1alpha1/clusterrolebindings
-        touch /etc/kubernetes/system/role-binding.json.created
+        touch /etc/kubernetes/init/role-binding.json.created
+      }
+
+      [ ! -f /etc/kubernetes/init/vault.json.created ] && {
+        echo "creating from /etc/kubernetes/init/vault.json"
+        curl $curl_opts -H "Content-Type: application/json" -XPOST \
+          -d @/etc/kubernetes/init/vault.json \
+          https://kubernetes/api/v1/namespaces/kube-system/secrets
+        touch /etc/kubernetes/init/vault,json.created
+      }
+
+      [ ! -f /etc/kubernetes/init/kube-controller-kubeconfig.json.created ] && {
+        echo "creating from /etc/kubernetes/init/kube-controller-kubeconfig.json"
+        curl $curl_opts -H "Content-Type: application/json" -XPOST \
+          -d @/etc/kubernetes/init/kube-controller-kubeconfig.json \
+          https://kubernetes/api/v1/namespaces/kube-system/configmaps
+        touch /etc/kubernetes/init/kube-controller-kubeconfig.json.created
+      }
+
+      [ ! -f /etc/kubernetes/init/daemonsets.created ] && {
+        for ds in /etc/kubernetes/init/*-ds.json; do
+          echo "creating from $ds"
+          curl $curl_opts -H "Content-Type: application/json" -XPOST \
+            -d @$ds https://kubernetes/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
+        done
+        touch /etc/kubernetes/init/daemonsets.created
       }
 
       echo "all manifests created"
@@ -478,9 +462,28 @@ write_files:
         echo "waiting for daemonsets to be scheduled"; sleep 5;
       done
 
-      rm -f /etc/kubernetes/manifests/bootstrap-*.yaml
-      rm -f /etc/kubernetes/bootstrap/*.pem
+      rm -f /etc/kubernetes/manifests/*.yaml /etc/kubernetes/bootstrap/*.pem
       touch /etc/kubernetes/init-completed
+
+  - path: /etc/kubernetes/bootstrap/kubeconfig.yaml
+    content: |
+      apiVersion: v1
+      kind: Config
+      current-context: controller
+      clusters:
+        - name: kubernetes
+          cluster:
+            certificate-authority: /etc/secrets/kube.ca
+      contexts:
+        - name: controller
+          context:
+            cluster: kubernetes
+            user: controller
+      users:
+        - name: controller
+          user:
+            client-certificate: /etc/secrets/kube.crt
+            client-key: /etc/secrets/kube.key
 
   - path: /etc/kubernetes/bootstrap/apiserver.yaml
     content: |
@@ -567,26 +570,6 @@ write_files:
             hostPath:
               path: /etc/kubernetes/bootstrap/tokens.csv
 
-  - path: /etc/kubernetes/bootstrap/kubeconfig.yaml
-    content: |
-      apiVersion: v1
-      kind: Config
-      current-context: controller
-      clusters:
-        - name: kubernetes
-          cluster:
-            certificate-authority: /etc/secrets/kube.ca
-      contexts:
-        - name: controller
-          context:
-            cluster: kubernetes
-            user: controller
-      users:
-        - name: controller
-          user:
-            client-certificate: /etc/secrets/kube.crt
-            client-key: /etc/secrets/kube.key
-
   - path: /etc/kubernetes/bootstrap/controller-manager.yaml
     content: |
       apiVersion: v1
@@ -657,7 +640,7 @@ write_files:
             hostPath:
               path: /etc/kubernetes/bootstrap/kubeconfig.yaml
 
-  - path: /etc/kubernetes/system/vault.json
+  - path: /etc/kubernetes/init/vault.json
     permissions: 0644
     content: |
       {
@@ -673,7 +656,7 @@ write_files:
         }
       }
 
-  - path: /etc/kubernetes/system/role.json
+  - path: /etc/kubernetes/init/role.json
     permissions: 0644
     content: |
       {
@@ -692,7 +675,7 @@ write_files:
         ]
       }
 
-  - path: /etc/kubernetes/system/role-binding.json
+  - path: /etc/kubernetes/init/role-binding.json
     permissions: 0644
     content: |
       {
@@ -727,7 +710,21 @@ write_files:
         }
       }
 
-  - path: /etc/kubernetes/system/kube-apiserver.json
+  - path: /etc/kubernetes/init/kube-controller-kubeconfig.json
+    content: |
+      {
+        "kind": "ConfigMap",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "kube-controller-kubeconfig",
+          "namespace": "kube-system"
+        },
+        "data": {
+          "kubeconfig.yaml": "kind: Config\napiVersion: v1\ncurrent-context: controller\nclusters:\n  - name: kubernetes\n    cluster:\n       certificate-authority: /etc/secrets/kube.ca\ncontexts:\n  - name: controller\n    context:\n      cluster: kubernetes\n      user: controller\nusers:\n  - name: controller\n    user:\n      client-certificate: /etc/secrets/kube.crt\n      client-key: /etc/secrets/kube.key\n"
+        }
+      }
+
+  - path: /etc/kubernetes/init/kube-apiserver-ds.json
     content: |
       {
         "kind": "DaemonSet",
@@ -868,21 +865,7 @@ write_files:
         }
       }
 
-  - path: /etc/kubernetes/system/kube-controller-kubeconfig.json
-    content: |
-      {
-        "kind": "ConfigMap",
-        "apiVersion": "v1",
-        "metadata": {
-          "name": "kube-controller-kubeconfig",
-          "namespace": "kube-system"
-        },
-        "data": {
-          "kubeconfig.yaml": "kind: Config\napiVersion: v1\ncurrent-context: controller\nclusters:\n  - name: kubernetes\n    cluster:\n       certificate-authority: /etc/secrets/kube.ca\ncontexts:\n  - name: controller\n    context:\n      cluster: kubernetes\n      user: controller\nusers:\n  - name: controller\n    user:\n      client-certificate: /etc/secrets/kube.crt\n      client-key: /etc/secrets/kube.key\n"
-        }
-      }
-
-  - path: /etc/kubernetes/system/kube-controller-manager.json
+  - path: /etc/kubernetes/init/kube-controller-manager-ds.json
     content: |
       {
         "kind": "DaemonSet",
@@ -1018,7 +1001,7 @@ write_files:
         }
       }
 
-  - path: /etc/kubernetes/system/kube-flannel-server.json
+  - path: /etc/kubernetes/init/kube-flannel-server-ds.json
     content: |
       {
         "kind": "DaemonSet",
