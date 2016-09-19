@@ -25,13 +25,6 @@ resource vaultx_secret_backend kube_pki {
     max_lease_ttl = "43800h"
 }
 
-resource vaultx_secret_backend kubelet_pki {
-    type = "pki"
-    path = "${var.env}-kube-kubelet"
-    default_lease_ttl = "24h"
-    max_lease_ttl = "43800h"
-}
-
 resource vaultx_secret_backend etcd_pki {
     type = "pki"
     path = "${var.env}-kube-etcd"
@@ -51,20 +44,6 @@ resource vaultx_secret kube_pki_config {
     }
 
     depends_on = [ "vaultx_secret_backend.kube_pki" ]
-}
-
-resource vaultx_secret kubelet_pki_config {
-    path = "${var.env}-kube-kubelet/config/urls"
-    ignore_read = true
-    ignore_delete = true
-
-    data {
-        issuing_certificates = "${replace(var.vault_address, "/^https://(.*)$/", "$1")}/v1/${var.env}-kube-kublet/ca"
-        crl_distribution_points = "${replace(var.vault_address, "/^https://(.*)$/", "$1")}/v1/${var.env}-kube-kubelet/crl"
-        ocsp_servers = ""
-    }
-
-    depends_on = [ "vaultx_secret_backend.kubelet_pki" ]
 }
 
 resource vaultx_secret etcd_pki_config {
@@ -98,23 +77,6 @@ resource vaultx_secret kube_pki_init {
     lifecycle { ignore_changes = [ "data" ] }
 }
 
-resource vaultx_secret kubelet_pki_init {
-    path = "${var.env}-kube-kubelet/root/generate/internal"
-    ignore_read = true
-    ignore_delete = true
-
-    data {
-        common_name = "Kubernetes CA - Kubelet ${var.env}"
-        key_type = "ec"
-        key_bits = "521"
-        ttl = "43800h"
-        csr = ""
-    }
-
-    depends_on = [ "vaultx_secret.kubelet_pki_config" ]
-    lifecycle { ignore_changes = [ "data" ] }
-}
-
 resource vaultx_secret etcd_pki_init {
     path = "${var.env}-kube-etcd/root/generate/internal"
     ignore_read = true
@@ -135,13 +97,11 @@ resource vaultx_secret etcd_pki_init {
 resource null_resource pki_mount {
     triggers {
         kube_path = "${vaultx_secret_backend.kube_pki.path}"
-        kubelet_path = "${vaultx_secret_backend.kubelet_pki.path}"
         etcd_path = "${vaultx_secret_backend.etcd_pki.path}"
     }
 
     depends_on = [
         "vaultx_secret.kube_pki_init",
-        "vaultx_secret.kubelet_pki_init",
         "vaultx_secret.etcd_pki_init"
     ]
 }
@@ -216,26 +176,8 @@ resource vaultx_secret kube_bootstrap_role {
     depends_on = [ "vaultx_secret.kube_pki_init" ]
 }
 
-resource vaultx_secret kubelet_apiserver_role {
-    path = "${var.env}-kube-kubelet/roles/apiserver"
-    ignore_read = true
-
-    data {
-        allowed_domains = "kubernetes"
-        allow_bare_domains = true
-        allow_subdomains = true
-        allow_any_name = true
-        allow_localhost = false
-        key_type = "ec"
-        key_bits = "256"
-        max_ttl = "48h"
-    }
-
-    depends_on = [ "vaultx_secret.kubelet_pki_init" ]
-}
-
-resource vaultx_secret kubelet_role {
-    path = "${var.env}-kube-kubelet/roles/kubelet"
+resource vaultx_secret kube_kubelet_role {
+    path = "${var.env}-kube/roles/kubelet"
     ignore_read = true
 
     data {
@@ -299,15 +241,10 @@ path "${var.env}-kube/issue/flannel" {
 path "${var.env}-kube/issue/controller" {
     capabilities = [ "create", "read", "update", "list" ]
 }
+path "${var.env}-kube/issue/kubelet" {
+    capabilities = [ "create", "read", "update", "list" ]
+}
 path "${var.env}-kube/issue/bootstrap" {
-    capabilities = [ "create", "read", "update", "list" ]
-}
-
-
-path "${var.env}-kube-kubelet/issue/kubelet" {
-    capabilities = [ "create", "read", "update", "list" ]
-}
-path "${var.env}-kube-kubelet/issue/apiserver" {
     capabilities = [ "create", "read", "update", "list" ]
 }
 
@@ -328,7 +265,6 @@ EOF
 
     depends_on = [
         "vaultx_secret.kube_pki_init",
-        "vaultx_secret.kubelet_pki_init",
         "vaultx_secret.etcd_pki_init"
     ]
 }

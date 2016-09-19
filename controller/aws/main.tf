@@ -201,7 +201,6 @@ resource coreos_cloudconfig cloud_config {
 
         kube_pki_mount = "${null_resource.pki_mount.triggers.kube_path}"
         etcd_pki_mount = "${null_resource.pki_mount.triggers.etcd_path}"
-        kubelet_pki_mount = "${null_resource.pki_mount.triggers.kubelet_path}"
 
         service_account_privkey = "${vaultx_secret.service_account_privkey.path}"
         service_account_pubkey = "${vaultx_secret.service_account_pubkey.path}"

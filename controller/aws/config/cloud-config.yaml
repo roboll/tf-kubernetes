@@ -420,16 +420,11 @@ write_files:
       #!/bin/bash
       set -eo pipefail
 
-      mkdir -p /etc/ssl/kubelet
-      curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
-        -o /etc/ssl/kubelet/ca.pem -z /etc/ssl/kubelet/ca.pem \
-        ${vault_address}/v1/${kubelet_pki_mount}/ca/pem
-
       token="$(cat /etc/vault/token)"
       json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
         -X POST -H "X-Vault-Token: $token" \
         -d "{\"common_name\":\"kubelet\",\"alt_names\":\"$(hostname)\",\"ip_sans\":\"$private_ipv4\"}" \
-        ${vault_address}/v1/${kubelet_pki_mount}/issue/kubelet)
+        ${vault_address}/v1/${kube_pki_mount}/issue/kubelet)
 
       sed -re 's/.*"certificate":"([^"]*)".*/\1/g' \
         -e 's/\\n/\n/g' > /etc/ssl/kubelet/cert.pem <<< $json
@@ -504,7 +499,6 @@ write_files:
               - -cn=secret:${service_account_pubkey}:file=service-account-pubkey.pem,fmt=txt
               - -cn=pki:${kube_pki_mount}/issue/apiserver:common_name=${kube_fqdn},alt_names=kubernetes|kubernetes.default.svc|kubernetes.default.svc.cluster.local,ip_sans=10.0.0.1|$private_ipv4,fmt=cert,file=kube
               - -cn=pki:${etcd_pki_mount}/issue/apiserver:common_name=controller,fmt=cert,file=etcd
-              - -cn=pki:${kubelet_pki_mount}/issue/apiserver:common_name=kubernetes,fmt=cert,file=kubelet
             env:
               - name: VAULT_ADDR
                 value: ${vault_address}
@@ -537,9 +531,9 @@ write_files:
               - --tls-cert-file=/etc/secrets/kube.crt
               - --tls-private-key-file=/etc/secrets/kube.key
               - --service-account-key-file=/etc/secrets/service-account-pubkey.pem
-              - --kubelet-certificate-authority=/etc/secrets/kubelet.ca
-              - --kubelet-client-certificate=/etc/secrets/kubelet.crt
-              - --kubelet-client-key=/etc/secrets/kubelet.key
+              - --kubelet-certificate-authority=/etc/secrets/kube.ca
+              - --kubelet-client-certificate=/etc/secrets/kube.crt
+              - --kubelet-client-key=/etc/secrets/kube.key
               - --allow-privileged=true
               - --cloud-provider=aws
               - --service-cluster-ip-range=10.0.0.0/16
@@ -749,7 +743,6 @@ write_files:
                     "-cn=secret:${service_account_pubkey}:file=service-account-pubkey.pem,fmt=txt",
                     "-cn=pki:${kube_pki_mount}/issue/apiserver:common_name=${kube_fqdn},alt_names=kubernetes|kubernetes.default.svc|kubernetes.default.svc.cluster.local,ip_sans=10.0.0.1,fmt=cert,file=kube",
                     "-cn=pki:${etcd_pki_mount}/issue/apiserver:common_name=controller,fmt=cert,file=etcd",
-                    "-cn=pki:${kubelet_pki_mount}/issue/apiserver:common_name=kubernetes,fmt=cert,file=kubelet"
                   ],
                   "env": [
                     {
@@ -800,9 +793,9 @@ write_files:
                     "--tls-cert-file=/etc/secrets/kube.crt",
                     "--tls-private-key-file=/etc/ssl/kube.key",
                     "--service-account-key-file=/etc/secrets/service-account-pubkey.pem",
-                    "--kubelet-certificate-authority=/etc/secrets/kubelet.ca",
-                    "--kubelet-client-certificate=/etc/secrets/kubelet.crt",
-                    "--kubelet-client-key=/etc/secrets/kubelet.key",
+                    "--kubelet-certificate-authority=/etc/secrets/kube.ca",
+                    "--kubelet-client-certificate=/etc/secrets/kube.crt",
+                    "--kubelet-client-key=/etc/secrets/kube.key",
                     "--allow-privileged=true",
                     "--cloud-provider=aws",
                     "--service-cluster-ip-range=10.0.0.0/16",
