@@ -1071,8 +1071,7 @@ write_files:
                   "volumeMounts": [
                     {
                       "mountPath": "/etc/secrets",
-                      "name": "secrets",
-                      "readOnly": true
+                      "name": "secrets"
                     },
                     {
                       "mountPath": "/etc/ssl/vault/ca.pem",
