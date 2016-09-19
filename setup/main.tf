@@ -101,7 +101,7 @@ ${data.template_file.logging.rendered}
 FF
 
 cat << "FF" > ${path.root}/kube/manifests/metrics-alerts-config.yaml;
-${data.template_file.alerts_config.rendered}
+${data.template_file.metrics_alerts_config.rendered}
 FF
 
 cat << "FF" > ${path.root}/kube/manifests/metrics-config.yaml;
@@ -209,7 +209,7 @@ data template_file logging {
     }
 }
 
-data template_file alerts_config {
+data template_file metrics_alerts_config {
     template = "${file("${path.module}/manifests/metrics-alerts-config.yaml")}"
 }
 
