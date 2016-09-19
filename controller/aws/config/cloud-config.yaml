@@ -262,6 +262,14 @@ write_files:
       CMD="docker run -i --rm --net=host -e PAM_USER=$PAM_USER ${ssh_helper}"
       eval $CMD $*
 
+  - path: /opt/bin/host-rkt
+    permissions: 0755
+    owner: root:root
+    content: |
+      #!/bin/sh
+      # https://github.com/coreos/rkt/issues/2878
+      exec nsenter -m -u -i -n -p -t 1 -- /usr/bin/rkt "$@"
+
   - path: /opt/bin/vault-login.sh
     permissions: 0700
     content: |
@@ -406,7 +414,7 @@ write_files:
       json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
         -X POST -H "X-Vault-Token: $token" \
         -d "{\"common_name\":\"kubelet\",\"alt_names\":\"$(hostname)\",\"ip_sans\":\"$private_ipv4\"}" \
-        ${vault_address}/v1/${kubelet_pki_mount}/issue/${kubelet_pki_role})
+        ${vault_address}/v1/${kubelet_pki_mount}/issue/kubelet)
 
       sed -re 's/.*"certificate":"([^"]*)".*/\1/g' \
         -e 's/\\n/\n/g' > /etc/ssl/kubelet/cert.pem <<< $json
@@ -428,20 +436,12 @@ write_files:
       json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
         -X POST -H "X-Vault-Token: $token" \
         -d '{"common_name":"controller","alt_names":"localhost","ip_sans":"$private_ipv4"}' \
-        ${vault_address}/v1/${etcd_pki_mount}/issue/${etcd_pki_role})
+        ${vault_address}/v1/${etcd_pki_mount}/issue/etcd)
 
       sed -re 's/.*"certificate":"([^"]*)".*/\1/g' \
         -e 's/\\n/\n/g' > /etc/ssl/etcd/cert.pem <<< $json
       sed -re 's/.*"private_key":"([^"]*)".*/\1/g' \
         -e 's/\\n/\n/g' > /etc/ssl/etcd/privkey.pem <<< $json
-
-  - path: /opt/bin/host-rkt
-    permissions: 0755
-    owner: root:root
-    content: |
-      #!/bin/sh
-      # https://github.com/coreos/rkt/issues/2878
-      exec nsenter -m -u -i -n -p -t 1 -- /usr/bin/rkt "$@"
 
   - path: /etc/kubernetes/kubelet/kubeconfig.yaml
     content: |
@@ -463,26 +463,6 @@ write_files:
             client-certificate: /etc/ssl/kubelet/cert.pem
             client-key: /etc/ssl/kubelet/privkey.pem
 
-  - path: /etc/kubernetes/controller/kubeconfig.yaml
-    content: |
-      apiVersion: v1
-      kind: Config
-      current-context: controller
-      clusters:
-        - name: kubernetes
-          cluster:
-            certificate-authority: /etc/secrets/kube-ca.pem
-      contexts:
-        - name: controller
-          context:
-            cluster: kubernetes
-            user: controller
-      users:
-        - name: controller
-          user:
-            client-certificate: /etc/secrets/controller.crt
-            client-key: /etc/secrets/controller.key
-
   - path: /etc/kubernetes/bootstrap/apiserver.yaml
     content: |
       apiVersion: v1
@@ -496,6 +476,31 @@ write_files:
       spec:
         hostNetwork: true
         containers:
+          - name: vault-sidekick
+            image: quay.io/roboll/vault-sidekick:v0.0.9.6
+            args:
+              - -logtostderr=true
+              - -output=/etc/secrets
+              - -cn=secret:${service_account_pubkey}:file=service-account-pubkey.pem,fmt=txt
+              - -cn=pki:${kube_pki_mount}/issue/apiserver:common_name=${kube_fqdn},alt_names=kubernetes,kubernetes.default.svc,kubernetes.default.svc.cluster.local,ip_sans=10.0.0.1,fmt=cert,file=kube
+              - -cn=${etcd_pki_mount}/issue/apiserver,common_name=controller,fmt=cert,file=etcd
+              - -cn=${kubelet_pki_mount}/issue/apiserver,common_name=kubernetes,fmt=cert,file=kubelet
+            env:
+              - name: VAULT_ADDR
+                value: ${vault_address}
+              - name: VAULT_CACERT
+                value: /etc/vault/ca.pem
+              - name: VAULT_SIDEKICK_TOKEN_FILE
+                value: /etc/vault/token
+            volumeMounts:
+              - mountPath: /etc/secrets
+                name: secrets
+              - mountPath: /etc/vault/ca.pem
+                name: vault-ca
+                readOnly: true
+              - mountPath: /etc/vault/token
+                name: vault-token
+                readOnly: true
           - name: apiserver
             image: ${hyperkube}:${kube_version}
             command:
@@ -522,37 +527,38 @@ write_files:
               - --authorization-rbac-super-user=controller
               - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,ResourceQuota,DenyEscalatingExec,ServiceAccount
             volumeMounts:
-              - mountPath: /etc/kubernetes/service-account/pubkey.pem
-                name: service-account
-                readOnly: true
-              - mountPath: /etc/ssl/kube/
-                name: kube-certs
-                readOnly: true
-              - mountPath: /etc/ssl/kubelet/
-                name: kubelet-certs
-                readOnly: true
-              - mountPath: /etc/ssl/etcd/
-                name: etcd-certs
-                readOnly: true
-              - mountPath: /etc/ssl/certs
-                name: ssl-certs-host
+              - mountPath: /etc/secrets
+                name: secrets
                 readOnly: true
         volumes:
-          - hostPath:
-              path: /etc/kubernetes/service-account/pubkey.pem
-            name: service-account
-          - hostPath:
-              path: /etc/ssl/kube/
-            name: kube-certs
-          - hostPath:
-              path: /etc/ssl/kubelet/
-            name: kubelet-certs
-          - hostPath:
-              path: /etc/ssl/etcd/
-            name: etcd-certs
-          - hostPath:
-              path: /usr/share/ca-certificates
-            name: ssl-certs-host
+          - name: secrets
+            emptyDir: {}
+          - name: vault-ca
+            hostPath:
+              path: /etc/vault/ca.pem
+          - name: vault-token
+            hostPath:
+              path: /etc/vault/token
+
+  - path: /etc/kubernetes/bootstrap/kubeconfig.yaml
+    content: |
+      apiVersion: v1
+      kind: Config
+      current-context: controller
+      clusters:
+        - name: kubernetes
+          cluster:
+            certificate-authority: /etc/secrets/kube.ca
+      contexts:
+        - name: controller
+          context:
+            cluster: kubernetes
+            user: controller
+      users:
+        - name: controller
+          user:
+            client-certificate: /etc/secrets/kube.crt
+            client-key: /etc/secrets/kube.key
 
   - path: /etc/kubernetes/bootstrap/controller-manager.yaml
     content: |
@@ -605,6 +611,9 @@ write_files:
               - mountPath: /etc/secrets
                 name: secrets
                 readOnly: true
+              - mountPath: /etc/kubernetes/bootstrap/kubeconfig.yaml
+                name: kubeconfig
+                readOnly: true
         volumes:
           - name: secrets
             emptyDir: {}
@@ -614,6 +623,10 @@ write_files:
           - name: vault-token
             hostPath:
               path: /etc/vault/token
+          - name: kubeconfig
+            hostPath:
+              path: /etc/kubernetes/bootstrap/kubeconfig.yaml
+
 
   - path: /etc/kubernetes/system/role.json
     permissions: 0644
@@ -703,9 +716,9 @@ write_files:
                     "-logtostderr=true",
                     "-output=/etc/secrets",
                     "-cn=secret:${service_account_pubkey}:file=service-account-pubkey.pem,fmt=txt",
-                    "-cn=pki:${kube_pki_mount}/issue/apiserver:common_name=${kube_fqdn},alt_names=kubernetes,kubernetes.default.svc,kubernetes.default.svc.cluster.local,ip_sans=10.0.0.1,fmt=cert,file=kube"
+                    "-cn=pki:${kube_pki_mount}/issue/apiserver:common_name=${kube_fqdn},alt_names=kubernetes,kubernetes.default.svc,kubernetes.default.svc.cluster.local,ip_sans=10.0.0.1,fmt=cert,file=kube",
                     "-cn=${etcd_pki_mount}/issue/apiserver,common_name=controller,fmt=cert,file=etcd",
-                    "-cn=${kubelet_pki_mount}/issue/apiserver,common_name=apiserver,fmt=cert,file=kubelet"
+                    "-cn=${kubelet_pki_mount}/issue/apiserver,common_name=kubernetes,fmt=cert,file=kubelet"
                   ],
                   "env": [
                     {
