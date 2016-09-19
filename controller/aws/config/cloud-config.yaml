@@ -490,6 +490,8 @@ write_files:
                 value: ${vault_address}
               - name: VAULT_CACERT
                 value: /etc/vault/ca.pem
+              - name: VAULT_SIDEKICK_AUTH_PLUGIN
+                value: token
               - name: VAULT_SIDEKICK_TOKEN_FILE
                 value: /etc/vault/token
             volumeMounts:
@@ -585,6 +587,8 @@ write_files:
                 value: ${vault_address}
               - name: VAULT_CACERT
                 value: /etc/vault/ca.pem
+              - name: VAULT_SIDEKICK_AUTH_PLUGIN
+                value: token
               - name: VAULT_SIDEKICK_TOKEN_FILE
                 value: /etc/vault/token
             volumeMounts:
@@ -728,6 +732,10 @@ write_files:
                     {
                       "name": "VAULT_CACERT",
                       "value": "/etc/vault/ca.pem"
+                    },
+                    {
+                      "name": "VAULT_SIDEKICK_AUTH_PLUGIN",
+                      "value": "token"
                     },
                     {
                       "name": "VAULT_SIDEKICK_TOKEN_FILE",
@@ -879,6 +887,10 @@ write_files:
                       "value": "/etc/vault/ca.pem"
                     },
                     {
+                      "name": "VAULT_SIDEKICK_AUTH_PLUGIN",
+                      "value": "token"
+                    },
+                    {
                       "name": "VAULT_SIDEKICK_TOKEN_FILE",
                       "value": "/etc/vault/token"
                     }
@@ -1022,6 +1034,10 @@ write_files:
                     {
                       "name": "VAULT_CACERT",
                       "value": "/etc/vault/ca.pem"
+                    },
+                    {
+                      "name": "VAULT_SIDEKICK_AUTH_PLUGIN",
+                      "value": "token"
                     },
                     {
                       "name": "VAULT_SIDEKICK_TOKEN_FILE",
