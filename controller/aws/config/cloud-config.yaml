@@ -945,7 +945,7 @@ write_files:
                     {
                       "mountPath": "/etc/kubernetes/kubeconfig.yaml",
                       "name": "kubeconfig",
-                      "readOnly": true,
+                      "readOnly": true
                     }
                   ]
                 }
@@ -1022,7 +1022,7 @@ write_files:
                 },
                 {
                   "name": "vault-sidekick",
-                  "image": "quay.io/roboll/vault-sidekick:v0.0.9.8"
+                  "image": "quay.io/roboll/vault-sidekick:v0.0.9.8",
                   "args": [
                     "-logtostderr=true",
                     "-output=/etc/secrets",
@@ -1094,7 +1094,7 @@ write_files:
               "volumes": [
                 {
                   "name": "secrets",
-                  "emptyDir": {},
+                  "emptyDir": {}
                 },
                 {
                   "name": "vault-ca",
