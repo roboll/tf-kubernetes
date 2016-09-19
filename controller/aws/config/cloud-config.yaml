@@ -315,7 +315,8 @@ write_files:
         exit
       }
 
-      curl_opts="-sSf --resolve kubernetes:8080:127.0.0.1"
+      curl_opts="-sSf --resolve kubernetes:443:127.0.0.1 \
+        --cacert /etc/ssl/kube/ca.pem"
 
       [ ! -f /etc/kubernetes/bootstrap/linked ] && {
         echo "linking bootstrap components as static pods"
@@ -324,7 +325,7 @@ write_files:
         touch /etc/kubernetes/bootstrap/linked
       }
 
-      until curl $curl_opts http://kubernetes:8080/healthz; do
+      until curl $curl_opts -H "Authorization: Bearer ${bootstrap_token}" https://kubernetes/healthz; do
         echo "waiting for apiserver..."; sleep 5;
       done
       echo "apiserver ready"
@@ -332,32 +333,36 @@ write_files:
       [ ! -f /etc/kubernetes/system/kube-apiserver.json.created ] && {
         echo "creating from /etc/kubernetes/system/kube-apiserver.json"
         curl $curl_opts -H "Content-Type: application/json" -XPOST \
+          -H "Authorization: Bearer ${bootstrap_token}" \
           -d @/etc/kubernetes/system/kube-apiserver.json \
-          http://kubernetes:8080/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
+          https://kubernetes/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
         touch /etc/kubernetes/system/kube-apiserver.json.created
       }
 
       [ ! -f /etc/kubernetes/system/kube-controller-kubeconfig.json.created ] && {
         echo "creating from /etc/kubernetes/system/kube-controller-kubeconfig.json"
         curl $curl_opts -H "Content-Type: application/json" -XPOST \
+          -H "Authorization: Bearer ${bootstrap_token}" \
           -d @/etc/kubernetes/system/kube-controller-kubeconfig.json \
-          http://kubernetes:8080/api/v1/namespaces/kube-system/configmaps
+          https://kubernetes/api/v1/namespaces/kube-system/configmaps
         touch /etc/kubernetes/system/kube-controller-kubeconfig.json.created
       }
 
       [ ! -f /etc/kubernetes/system/kube-controller-manager.json.created ] && {
         echo "creating from /etc/kubernetes/system/kube-controller-manager.json"
         curl $curl_opts -H "Content-Type: application/json" -XPOST \
+          -H "Authorization: Bearer ${bootstrap_token}" \
           -d @/etc/kubernetes/system/kube-controller-manager.json \
-          http://kubernetes:8080/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
+          https://kubernetes/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
         touch /etc/kubernetes/system/kube-controller-manager.json.created
       }
 
       [ ! -f /etc/kubernetes/system/kube-flannel-server.json.created ] && {
         echo "creating from /etc/kubernetes/system/kube-flannel-server.json"
         curl $curl_opts -H "Content-Type: application/json" -XPOST \
+          -H "Authorization: Bearer ${bootstrap_token}" \
           -d @/etc/kubernetes/system/kube-flannel-server.json \
-          http://kubernetes:8080/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
+          https://kubernetes/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
         touch /etc/kubernetes/system/kube-flannel-server.json.created
       }
 
@@ -366,7 +371,7 @@ write_files:
         curl $curl_opts -H "Content-Type: application/json" -XPOST \
           -H "Authorization: Bearer ${bootstrap_token}" \
           -d @/etc/kubernetes/system/role.json \
-          http://kubernetes:8080/apis/rbac.authorization.k8s.io/v1alpha1/clusterroles
+          https://kubernetes/apis/rbac.authorization.k8s.io/v1alpha1/clusterroles
         touch /etc/kubernetes/system/role.json.created
       }
 
@@ -375,7 +380,7 @@ write_files:
         curl $curl_opts -H "Content-Type: application/json" -XPOST \
           -H "Authorization: Bearer ${bootstrap_token}" \
           -d @/etc/kubernetes/system/role-binding.json \
-          http://kubernetes:8080/apis/rbac.authorization.k8s.io/v1alpha1/clusterrolebindings
+          https://kubernetes/apis/rbac.authorization.k8s.io/v1alpha1/clusterrolebindings
         touch /etc/kubernetes/system/role-binding.json.created
       }
 
