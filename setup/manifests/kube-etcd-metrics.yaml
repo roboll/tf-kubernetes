@@ -55,7 +55,7 @@ spec:
               name: secrets
               readOnly: true
         - name: vault-sidekick
-          image: quay.io/roboll/vault-sidekick:v0.0.9.4
+          image: quay.io/roboll/vault-sidekick:v0.0.9.7
           args:
             - -logtostderr=true
             - -output=/etc/secrets

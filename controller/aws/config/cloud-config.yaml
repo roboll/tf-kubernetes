@@ -477,7 +477,7 @@ write_files:
         hostNetwork: true
         containers:
           - name: vault-sidekick
-            image: quay.io/roboll/vault-sidekick:v0.0.9.6
+            image: quay.io/roboll/vault-sidekick:v0.0.9.7
             args:
               - -logtostderr=true
               - -output=/etc/secrets
@@ -574,7 +574,7 @@ write_files:
         hostNetwork: true
         containers:
           - name: vault-sidekick
-            image: quay.io/roboll/vault-sidekick:v0.0.9.6
+            image: quay.io/roboll/vault-sidekick:v0.0.9.7
             args:
               - -logtostderr=true
               - -output=/etc/secrets
@@ -711,7 +711,7 @@ write_files:
               "containers": [
                 {
                   "name": "vault-sidekick",
-                  "image": "quay.io/roboll/vault-sidekick:v0.0.9.6",
+                  "image": "quay.io/roboll/vault-sidekick:v0.0.9.7",
                   "args": [
                     "-logtostderr=true",
                     "-output=/etc/secrets",
@@ -862,7 +862,7 @@ write_files:
               "containers": [
                 {
                   "name": "vault-sidekick",
-                  "image": "quay.io/roboll/vault-sidekick:v0.0.9.6",
+                  "image": "quay.io/roboll/vault-sidekick:v0.0.9.7",
                   "args": [
                     "-logtostderr=true",
                     "-output=/etc/secrets",
@@ -1007,7 +1007,7 @@ write_files:
                 },
                 {
                   "name": "vault-sidekick",
-                  "image": "quay.io/roboll/vault-sidekick:v0.0.9.6"
+                  "image": "quay.io/roboll/vault-sidekick:v0.0.9.7"
                   "args": [
                     "-logtostderr=true",
                     "-output=/etc/secrets",
