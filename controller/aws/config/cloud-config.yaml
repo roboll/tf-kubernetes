@@ -1016,7 +1016,7 @@ write_files:
                   "livenessProbe": {
                     "httpGet": {
                       "path": "/healthz",
-                      "port": "10259"
+                      "port": 10259
                     }
                   }
                 },
