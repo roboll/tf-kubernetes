@@ -489,7 +489,7 @@ write_files:
               - name: VAULT_ADDR
                 value: ${vault_address}
               - name: VAULT_CACERT
-                value: /etc/vault/ca.pem
+                value: /etc/ssl/vault/ca.pem
               - name: VAULT_SIDEKICK_AUTH_PLUGIN
                 value: token
               - name: VAULT_SIDEKICK_TOKEN_FILE
@@ -497,7 +497,7 @@ write_files:
             volumeMounts:
               - mountPath: /etc/secrets
                 name: secrets
-              - mountPath: /etc/vault/ca.pem
+              - mountPath: /etc/ssl/vault/ca.pem
                 name: vault-ca
                 readOnly: true
               - mountPath: /etc/vault/token
@@ -537,7 +537,7 @@ write_files:
             emptyDir: {}
           - name: vault-ca
             hostPath:
-              path: /etc/vault/ca.pem
+              path: /etc/ssl/vault/ca.pem
           - name: vault-token
             hostPath:
               path: /etc/vault/token
@@ -586,7 +586,7 @@ write_files:
               - name: VAULT_ADDR
                 value: ${vault_address}
               - name: VAULT_CACERT
-                value: /etc/vault/ca.pem
+                value: /etc/ssl/vault/ca.pem
               - name: VAULT_SIDEKICK_AUTH_PLUGIN
                 value: token
               - name: VAULT_SIDEKICK_TOKEN_FILE
@@ -594,7 +594,7 @@ write_files:
             volumeMounts:
               - mountPath: /etc/secrets
                 name: secrets
-              - mountPath: /etc/vault/ca.pem
+              - mountPath: /etc/ssl/vault/ca.pem
                 name: vault-ca
                 readOnly: true
               - mountPath: /etc/vault/token
@@ -623,7 +623,7 @@ write_files:
             emptyDir: {}
           - name: vault-ca
             hostPath:
-              path: /etc/vault/ca.pem
+              path: /etc/ssl/vault/ca.pem
           - name: vault-token
             hostPath:
               path: /etc/vault/token
@@ -731,7 +731,7 @@ write_files:
                     },
                     {
                       "name": "VAULT_CACERT",
-                      "value": "/etc/vault/ca.pem"
+                      "value": "/etc/ssl/vault/ca.pem"
                     },
                     {
                       "name": "VAULT_SIDEKICK_AUTH_PLUGIN",
@@ -748,7 +748,7 @@ write_files:
                       "name": "secrets"
                     },
                     {
-                      "mountPath": "/etc/vault/ca.pem",
+                      "mountPath": "/etc/ssl/vault/ca.pem",
                       "name": "vault-ca",
                       "readOnly": true
                     },
@@ -812,7 +812,7 @@ write_files:
                 {
                   "name": "vault-ca",
                   "hostPath": {
-                    "path": "/etc/vault/ca.pem"
+                    "path": "/etc/ssl/vault/ca.pem"
                   }
                 },
                 {
@@ -884,7 +884,7 @@ write_files:
                     },
                     {
                       "name": "VAULT_CACERT",
-                      "value": "/etc/vault/ca.pem"
+                      "value": "/etc/ssl/vault/ca.pem"
                     },
                     {
                       "name": "VAULT_SIDEKICK_AUTH_PLUGIN",
@@ -901,7 +901,7 @@ write_files:
                       "name": "secrets"
                     },
                     {
-                      "mountPath": "/etc/vault/ca.pem",
+                      "mountPath": "/etc/ssl/vault/ca.pem",
                       "name": "vault-ca",
                       "readOnly": true
                     },
@@ -955,7 +955,7 @@ write_files:
                 {
                   "name": "vault-ca",
                   "hostPath": {
-                    "path": "/etc/vault/ca.pem"
+                    "path": "/etc/ssl/vault/ca.pem"
                   }
                 },
                 {
@@ -1033,7 +1033,7 @@ write_files:
                     },
                     {
                       "name": "VAULT_CACERT",
-                      "value": "/etc/vault/ca.pem"
+                      "value": "/etc/ssl/vault/ca.pem"
                     },
                     {
                       "name": "VAULT_SIDEKICK_AUTH_PLUGIN",
@@ -1051,7 +1051,7 @@ write_files:
                       "readOnly": true
                     },
                     {
-                      "mountPath": "/etc/vault/ca.pem",
+                      "mountPath": "/etc/ssl/vault/ca.pem",
                       "name": "vault-ca",
                       "readOnly": true
                     },
@@ -1096,7 +1096,7 @@ write_files:
                 {
                   "name": "vault-ca",
                   "hostPath": {
-                    "path": "/etc/vault/ca.pem"
+                    "path": "/etc/ssl/vault/ca.pem"
                   }
                 },
                 {
