@@ -420,6 +420,7 @@ write_files:
       #!/bin/bash
       set -eo pipefail
 
+      mkdir -p /etc/ssl/kubelet
       token="$(cat /etc/vault/token)"
       json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
         -X POST -H "X-Vault-Token: $token" \
