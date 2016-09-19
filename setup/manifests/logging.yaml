@@ -252,7 +252,7 @@ spec:
     spec:
       containers:
         - name: fluentd-elasticsearch
-          image: quay.io/roboll/fluentd-kube:v0.4
+          image: quay.io/roboll/fluentd-kube:v0.5
           env:
             - name: ELASTICSEARCH_HOST
               value: "logging-elasticsearch"
