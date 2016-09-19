@@ -97,13 +97,13 @@ metadata:
 spec:
   tls:
     - hosts:
-      - tools.${fqdn}
+      - alerts.${fqdn}
       secretName: metrics-alertmanager-acme-tls
   rules:
-  - host: tools.${fqdn}
+  - host: alerts.${fqdn}
     http:
       paths:
-        - path: /alerts/
+        - path: /
           backend:
             serviceName: metrics-alertmanager
             servicePort: 80
@@ -118,7 +118,6 @@ metadata:
     name: metrics-alertmanager
   annotations:
     prometheus.io/scrape: "true"
-    prometheus.io/path: "/alerts/metrics"
 spec:
   selector:
     app: metrics
@@ -154,7 +153,7 @@ spec:
           image: prom/alertmanager:v0.3.0
           args:
             - -config.file=/etc/alertmanager/alertmanager.yaml
-            - -web.external-url=https://tools.${fqdn}/alerts/
+            - -web.external-url=https://alerts.${fqdn}/
             - -storage.path=/data
           ports:
             - containerPort: 9093
@@ -191,13 +190,13 @@ metadata:
 spec:
   tls:
     - hosts:
-      - tools.${fqdn}
+      - prometheus.${fqdn}
       secretName: metrics-prometheus-acme-tls
   rules:
-  - host: tools.${fqdn}
+  - host: prometheus.${fqdn}
     http:
       paths:
-        - path: /prometheus/
+        - path: /
           backend:
             serviceName: metrics-prometheus
             servicePort: 80
@@ -250,7 +249,7 @@ spec:
             - -storage.local.path=/data
             - -storage.local.retention=43200h
             - -alertmanager.url=http://prometheus-alertmanager
-            - -web.external-url=https://tools.${fqdn}/prometheus
+            - -web.external-url=https://prometheus.${fqdn}
             - -config.file=/etc/prometheus/prometheus.yml
           ports:
             - name: web
@@ -288,13 +287,13 @@ metadata:
 spec:
   tls:
     - hosts:
-      - tools.${fqdn}
+      - grafana.${fqdn}
       secretName: metrics-grafana-acme-tls
   rules:
-  - host: tools.${fqdn}
+  - host: grafana.${fqdn}
     http:
       paths:
-        - path: /grafana/
+        - path: /
           backend:
             serviceName: metrics-grafana
             servicePort: 80
@@ -348,8 +347,6 @@ spec:
               value: Admin
             - name: GF_AUTH_PROXY_HEADER_NAME
               value: X-Forwarded-User
-            - name: GF_SERVER_ROOT_URL
-              value: /grafana/
             - name: GF_AUTH_ANONYMOUS_ENABLED
               value: "true"
             - name: GF_AUTH_ANONYMOUS_ORG_ROLE

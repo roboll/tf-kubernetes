@@ -291,13 +291,13 @@ metadata:
 spec:
   tls:
     - hosts:
-      - tools.${fqdn}
+      - kibana.${fqdn}
       secretName: logging-kibana-acme-tls
   rules:
-    - host: tools.${fqdn}
+    - host: kibana.${fqdn}
       http:
         paths:
-          - path: /kibana/
+          - path: /
             backend:
               serviceName: logging-kibana
               servicePort: 80
@@ -342,7 +342,6 @@ spec:
           image: kibana:4.6
           args:
             - --elasticsearch=http://logging-elasticsearch:9200
-            - --server.basePath=/kibana
           ports:
             - containerPort: 5601
               name: ui
