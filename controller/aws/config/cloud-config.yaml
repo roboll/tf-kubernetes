@@ -346,14 +346,12 @@ write_files:
       done
       echo "apiserver ready"
 
-      [ ! -f /etc/kubernetes/system/vault-secret.created ] && {
+      [ ! -f /etc/kubernetes/system/vault.json.created ] && {
         echo "creating from /etc/kubernetes/system/vault.json"
-        ca=$(cat /etc/ssl/vault/ca.pem | tr '\n' '|' | sed -e "s,|,\\\n,g")
-        sed -i /etc/kubernetes/system/vault.json -e "s,{{ca}},$ca,g"
         curl $curl_opts -H "Content-Type: application/json" -XPOST \
           -d @/etc/kubernetes/system/vault.json \
           https://kubernetes/api/v1/namespaces/kube-system/secrets
-        touch /etc/kubernetes/system/vault-secret.created
+        touch /etc/kubernetes/system/vault,json.created
       }
 
       [ ! -f /etc/kubernetes/system/kube-apiserver.json.created ] && {
@@ -672,11 +670,11 @@ write_files:
         "metadata": {
           "name": "vault"
         },
+        "type": "Opaque",
         "data": {
           "address": "${vault_address}",
-          "ca.pem": "{{ca}}"
-        },
-        "type": "Opaque"
+          "ca.pem": "${vault_ca_cert_pem}"
+        }
       }
 
   - path: /etc/kubernetes/system/role.json
