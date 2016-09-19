@@ -298,6 +298,77 @@ write_files:
         -X POST -H "X-Vault-Token: $token" \
         ${vault_address}/v1/auth/token/renew-self > /dev/null
 
+  - path: /opt/bin/kube-ca.sh
+    permissions: 0700
+    content: |
+      #!/bin/bash
+      set -eo pipefail
+
+      mkdir -p /etc/ssl/kube
+      curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
+        -o /etc/ssl/kube/ca.pem -z /etc/ssl/kube/ca.pem \
+        ${vault_address}/v1/${kube_pki_mount}/ca/pem
+
+  - path: /opt/bin/kubelet-certs.sh
+    permissions: 0700
+    content: |
+      #!/bin/bash
+      set -eo pipefail
+
+      mkdir -p /etc/ssl/kubelet
+      token="$(cat /etc/vault/token)"
+      json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
+        -X POST -H "X-Vault-Token: $token" \
+        -d "{\"common_name\":\"kubelet\",\"alt_names\":\"$(hostname)\",\"ip_sans\":\"$private_ipv4\"}" \
+        ${vault_address}/v1/${kube_pki_mount}/issue/kubelet)
+
+      sed -re 's/.*"certificate":"([^"]*)".*/\1/g' \
+        -e 's/\\n/\n/g' > /etc/ssl/kubelet/cert.pem <<< $json
+      sed -re 's/.*"private_key":"([^"]*)".*/\1/g' \
+        -e 's/\\n/\n/g' > /etc/ssl/kubelet/privkey.pem <<< $json
+
+  - path: /etc/kubernetes/kubelet/kubeconfig.yaml
+    content: |
+      apiVersion: v1
+      kind: Config
+      current-context: kubelet
+      clusters:
+        - name: kubernetes
+          cluster:
+            certificate-authority: /etc/ssl/kube/ca.pem
+      contexts:
+        - name: kubelet
+          context:
+            cluster: kubernetes
+            user: kubelet
+      users:
+        - name: kubelet
+          user:
+            client-certificate: /etc/ssl/kubelet/cert.pem
+            client-key: /etc/ssl/kubelet/privkey.pem
+
+  - path: /opt/bin/etcd-certs.sh
+    permissions: 0700
+    content: |
+      #!/bin/bash
+      set -eo pipefail
+
+      mkdir -p /etc/ssl/etcd
+      curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
+        -o /etc/ssl/etcd/ca.pem -z /etc/ssl/etcd/ca.pem \
+        ${vault_address}/v1/${etcd_pki_mount}/ca/pem
+
+      token="$(cat /etc/vault/token)"
+      json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
+        -X POST -H "X-Vault-Token: $token" \
+        -d '{"common_name":"controller","alt_names":"localhost","ip_sans":"$private_ipv4"}' \
+        ${vault_address}/v1/${etcd_pki_mount}/issue/etcd)
+
+      sed -re 's/.*"certificate":"([^"]*)".*/\1/g' \
+        -e 's/\\n/\n/g' > /etc/ssl/etcd/cert.pem <<< $json
+      sed -re 's/.*"private_key":"([^"]*)".*/\1/g' \
+        -e 's/\\n/\n/g' > /etc/ssl/etcd/privkey.pem <<< $json
+
   - path: /opt/bin/init-kube-system.sh
     permissions: 0700
     content: |
@@ -410,81 +481,6 @@ write_files:
       rm -f /etc/kubernetes/manifests/bootstrap-*.yaml
       rm -f /etc/kubernetes/bootstrap/*.pem
       touch /etc/kubernetes/init-completed
-
-  - path: /opt/bin/kube-ca.sh
-    permissions: 0700
-    content: |
-      #!/bin/bash
-      set -eo pipefail
-
-      mkdir -p /etc/ssl/kube
-      curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
-        -o /etc/ssl/kube/ca.pem -z /etc/ssl/kube/ca.pem \
-        ${vault_address}/v1/${kube_pki_mount}/ca/pem
-
-  - path: /opt/bin/kubelet-certs.sh
-    permissions: 0700
-    content: |
-      #!/bin/bash
-      set -eo pipefail
-
-      mkdir -p /etc/ssl/kubelet
-      token="$(cat /etc/vault/token)"
-      json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
-        -X POST -H "X-Vault-Token: $token" \
-        -d "{\"common_name\":\"kubelet\",\"alt_names\":\"$(hostname)\",\"ip_sans\":\"$private_ipv4\"}" \
-        ${vault_address}/v1/${kube_pki_mount}/issue/kubelet)
-
-      sed -re 's/.*"certificate":"([^"]*)".*/\1/g' \
-        -e 's/\\n/\n/g' > /etc/ssl/kubelet/cert.pem <<< $json
-      sed -re 's/.*"private_key":"([^"]*)".*/\1/g' \
-        -e 's/\\n/\n/g' > /etc/ssl/kubelet/privkey.pem <<< $json
-
-  - path: /opt/bin/etcd-certs.sh
-    permissions: 0700
-    content: |
-      #!/bin/bash
-      set -eo pipefail
-
-      mkdir -p /etc/ssl/etcd
-      curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
-        -o /etc/ssl/etcd/ca.pem -z /etc/ssl/etcd/ca.pem \
-        ${vault_address}/v1/${etcd_pki_mount}/ca/pem
-
-      token="$(cat /etc/vault/token)"
-      json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
-        -X POST -H "X-Vault-Token: $token" \
-        -d '{"common_name":"controller","alt_names":"localhost","ip_sans":"$private_ipv4"}' \
-        ${vault_address}/v1/${etcd_pki_mount}/issue/etcd)
-
-      sed -re 's/.*"certificate":"([^"]*)".*/\1/g' \
-        -e 's/\\n/\n/g' > /etc/ssl/etcd/cert.pem <<< $json
-      sed -re 's/.*"private_key":"([^"]*)".*/\1/g' \
-        -e 's/\\n/\n/g' > /etc/ssl/etcd/privkey.pem <<< $json
-
-  - path: /etc/kubernetes/kubelet/kubeconfig.yaml
-    content: |
-      apiVersion: v1
-      kind: Config
-      current-context: kubelet
-      clusters:
-        - name: kubernetes
-          cluster:
-            certificate-authority: /etc/ssl/kube/ca.pem
-      contexts:
-        - name: kubelet
-          context:
-            cluster: kubernetes
-            user: kubelet
-      users:
-        - name: kubelet
-          user:
-            client-certificate: /etc/ssl/kubelet/cert.pem
-            client-key: /etc/ssl/kubelet/privkey.pem
-
-  - path: /etc/kubernetes/bootstrap/tokens.csv
-    content: |
-      ${bootstrap_token},bootstrap,bootstrap
 
   - path: /etc/kubernetes/bootstrap/apiserver.yaml
     content: |
@@ -776,7 +772,7 @@ write_files:
                     },
                     {
                       "name": "VAULT_CACERT",
-                      "value": "/etc/ssl/vault/ca.pem"
+                      "value": "/etc/vault/ca.pem"
                     },
                     {
                       "name": "VAULT_SIDEKICK_AUTH_PLUGIN",
@@ -784,7 +780,7 @@ write_files:
                     },
                     {
                       "name": "VAULT_SIDEKICK_TOKEN_FILE",
-                      "value": "/etc/vault/token"
+                      "value": "/etc/vault-token"
                     }
                   ],
                   "volumeMounts": [
@@ -793,12 +789,12 @@ write_files:
                       "name": "secrets"
                     },
                     {
-                      "mountPath": "/etc/ssl/vault/ca.pem",
-                      "name": "vault-ca",
+                      "mountPath": "/etc/vault",
+                      "name": "vault",
                       "readOnly": true
                     },
                     {
-                      "mountPath": "/etc/vault/token",
+                      "mountPath": "/etc/vault-token",
                       "name": "vault-token",
                       "readOnly": true
                     }
@@ -855,9 +851,9 @@ write_files:
                   "emptyDir": {}
                 },
                 {
-                  "name": "vault-ca",
-                  "hostPath": {
-                    "path": "/etc/ssl/vault/ca.pem"
+                  "name": "vault",
+                  "secret": {
+                    "secretName": "vault"
                   }
                 },
                 {
@@ -930,7 +926,7 @@ write_files:
                     },
                     {
                       "name": "VAULT_CACERT",
-                      "value": "/etc/ssl/vault/ca.pem"
+                      "value": "/etc/vault/ca.pem"
                     },
                     {
                       "name": "VAULT_SIDEKICK_AUTH_PLUGIN",
@@ -938,7 +934,7 @@ write_files:
                     },
                     {
                       "name": "VAULT_SIDEKICK_TOKEN_FILE",
-                      "value": "/etc/vault/token"
+                      "value": "/etc/vault-token"
                     }
                   ],
                   "volumeMounts": [
@@ -947,12 +943,12 @@ write_files:
                       "name": "secrets"
                     },
                     {
-                      "mountPath": "/etc/ssl/vault/ca.pem",
-                      "name": "vault-ca",
+                      "mountPath": "/etc/vault",
+                      "name": "vault",
                       "readOnly": true
                     },
                     {
-                      "mountPath": "/etc/vault/token",
+                      "mountPath": "/etc/vault-token",
                       "name": "vault-token",
                       "readOnly": true
                     }
@@ -999,9 +995,9 @@ write_files:
                   "emptyDir": {}
                 },
                 {
-                  "name": "vault-ca",
-                  "hostPath": {
-                    "path": "/etc/ssl/vault/ca.pem"
+                  "name": "vault",
+                  "secret": {
+                    "secretName": "vault"
                   }
                 },
                 {
@@ -1080,7 +1076,7 @@ write_files:
                     },
                     {
                       "name": "VAULT_CACERT",
-                      "value": "/etc/ssl/vault/ca.pem"
+                      "value": "/etc/vault/ca.pem"
                     },
                     {
                       "name": "VAULT_SIDEKICK_AUTH_PLUGIN",
@@ -1097,12 +1093,12 @@ write_files:
                       "name": "secrets"
                     },
                     {
-                      "mountPath": "/etc/ssl/vault/ca.pem",
-                      "name": "vault-ca",
+                      "mountPath": "/etc/vault",
+                      "name": "vault",
                       "readOnly": true
                     },
                     {
-                      "mountPath": "/etc/vault/token",
+                      "mountPath": "/etc/vault-token",
                       "name": "vault-token",
                       "readOnly": true
                     }
@@ -1140,9 +1136,9 @@ write_files:
                   "emptyDir": {}
                 },
                 {
-                  "name": "vault-ca",
-                  "hostPath": {
-                    "path": "/etc/ssl/vault/ca.pem"
+                  "name": "vault",
+                  "secret": {
+                    "secretName": "vault"
                   }
                 },
                 {
