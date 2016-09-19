@@ -191,7 +191,7 @@ resource vaultx_secret kube_kubelet_role {
         max_ttl = "48h"
     }
 
-    depends_on = [ "vaultx_secret.kubelet_pki_init" ]
+    depends_on = [ "vaultx_secret.kube_pki_init" ]
 }
 
 resource vaultx_secret etcd_apiserver_role {
