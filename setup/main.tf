@@ -16,7 +16,6 @@ variable vpn_address {}
 variable vpn_mongo_metrics_address {}
 
 variable vault_address {}
-variable vault_ca_cert_pem {}
 variable vault_metrics_address {}
 
 provider aws {
@@ -44,7 +43,6 @@ resource null_resource render {
         metrics_alerts_config = "${data.template_file.metrics_alerts_config.rendered}"
         metrics_config = "${data.template_file.metrics_config.rendered}"
         metrics = "${data.template_file.metrics.rendered}"
-        vault = "${data.template_file.vault.rendered}"
     }
 
     provisioner local-exec {
@@ -110,10 +108,6 @@ FF
 
 cat << "FF" > ${path.root}/kube/manifests/metrics.yaml;
 ${data.template_file.metrics.rendered}
-FF
-
-cat << "FF" > ${path.root}/kube/manifests/vault.yaml;
-${data.template_file.vault.rendered}
 FF
 
 cat << "FF" > ${path.root}/kube/scripts/etcd-vault-setup.sh;
@@ -230,15 +224,6 @@ data template_file metrics {
 
     vars {
         fqdn = "${var.fqdn}"
-    }
-}
-
-data template_file vault {
-    template = "${file("${path.module}/manifests/vault.yaml")}"
-
-    vars {
-        vault_address = "${var.vault_address}"
-        vault_ca_cert_pem = "${var.vault_ca_cert_pem}"
     }
 }
 
