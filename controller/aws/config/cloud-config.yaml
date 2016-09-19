@@ -1084,7 +1084,7 @@ write_files:
                     },
                     {
                       "name": "VAULT_SIDEKICK_TOKEN_FILE",
-                      "value": "/etc/vault/token"
+                      "value": "/etc/vault-token"
                     }
                   ],
                   "volumeMounts": [
