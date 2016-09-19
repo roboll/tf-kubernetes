@@ -228,6 +228,8 @@ data template_file etcd_vault_setup {
 
     vars {
         approle = "${var.env}-kube-etcd-metrics"
+
+        name = "kube-etcd-metrics"
         namespace = "kube-system"
     }
 }

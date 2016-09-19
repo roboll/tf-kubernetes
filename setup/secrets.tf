@@ -29,8 +29,7 @@ resource vaultx_secret etcd_approle {
     ignore_read = true
 
     data {
-        role_name = "${var.env}-kube-etcd-metrics"
         policies = "${var.env}-kube-etcd-metrics"
-        period = "6h"
+        period = "12h"
     }
 }

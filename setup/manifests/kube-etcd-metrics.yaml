@@ -73,12 +73,12 @@ spec:
             - name: VAULT_SIDEKICK_ROLE_ID
               valueFrom:
                 configMapKeyRef:
-                  name: kube-etcd-metrics-vault-role
+                  name: vault-role-kube-etcd-metrics
                   key: role-id
             - name: VAULT_SIDEKICK_SECRET_ID
               valueFrom:
                 secretKeyRef:
-                  name: kube-etcd-metrics-vault-secret
+                  name: vault-secret-kube-etcd-metrics
                   key: secret-id
           volumeMounts:
             - mountPath: /etc/secrets
