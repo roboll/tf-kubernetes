@@ -306,7 +306,7 @@ EOF
 }
 
 resource vaultx_secret role {
-    path = "auth/aws-ec2/role/${vaultx_policy.controller.name}"
+    path = "auth/aws-ec2/role/${vaultx_policy.controller_instance.name}"
     ignore_read = true
 
     data {

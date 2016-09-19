@@ -251,7 +251,8 @@ resource aws_instance controller {
     depends_on = [
         "vaultx_secret.role",
         "vaultx_policy.controller_instance",
-        "vaultx_secret.service_account",
+        "vaultx_secret.service_account_privkey",
+        "vaultx_secret.service_account_pubkey",
         "vaultx_secret.kube_pki_init",
         "vaultx_secret.kubelet_pki_init",
         "vaultx_secret.etcd_pki_init"
