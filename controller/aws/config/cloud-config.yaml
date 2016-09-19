@@ -315,10 +315,8 @@ write_files:
         exit
       }
 
-      curl_opts="-sSf --resolve kubernetes:443:127.0.0.1 \
-        --cacert /etc/ssl/controller/ca.pem \
-        --cert /etc/ssl/controller/cert.pem \
-        --key /etc/ssl/controller/privkey.pem"
+      curl_opts="-sSf --resolve kubernetes:8080:127.0.0.1 \
+        -H 'Authorization: Bearer ${bootstrap_token}'"
 
       [ ! -f /etc/kubernetes/bootstrap/linked ] && {
         echo "linking bootstrap components as static pods"
@@ -336,7 +334,7 @@ write_files:
         echo "creating from /etc/kubernetes/system/kube-apiserver.json"
         curl $curl_opts -H "Content-Type: application/json" -XPOST \
           -d @/etc/kubernetes/system/kube-apiserver.json \
-          https://kubernetes/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
+          http://kubernetes:8080/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
         touch /etc/kubernetes/system/kube-apiserver.json.created
       }
 
@@ -344,7 +342,7 @@ write_files:
         echo "creating from /etc/kubernetes/system/kube-controller-kubeconfig.json"
         curl $curl_opts -H "Content-Type: application/json" -XPOST \
           -d @/etc/kubernetes/system/kube-controller-kubeconfig.json \
-          https://kubernetes/api/v1/namespaces/kube-system/configmaps
+          http://kubernetes:8080/api/v1/namespaces/kube-system/configmaps
         touch /etc/kubernetes/system/kube-controller-kubeconfig.json.created
       }
 
@@ -352,7 +350,7 @@ write_files:
         echo "creating from /etc/kubernetes/system/kube-controller-manager.json"
         curl $curl_opts -H "Content-Type: application/json" -XPOST \
           -d @/etc/kubernetes/system/kube-controller-manager.json \
-          https://kubernetes/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
+          http://kubernetes:8080/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
         touch /etc/kubernetes/system/kube-controller-manager.json.created
       }
 
@@ -360,7 +358,7 @@ write_files:
         echo "creating from /etc/kubernetes/system/kube-flannel-server.json"
         curl $curl_opts -H "Content-Type: application/json" -XPOST \
           -d @/etc/kubernetes/system/kube-flannel-server.json \
-          https://kubernetes/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
+          http://kubernetes:8080/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
         touch /etc/kubernetes/system/kube-flannel-server.json.created
       }
 
@@ -368,7 +366,7 @@ write_files:
         echo "creating from /etc/kubernetes/system/role.json"
         curl $curl_opts -H "Content-Type: application/json" -XPOST \
           -d @/etc/kubernetes/system/role.json \
-          https://kubernetes/apis/rbac.authorization.k8s.io/v1alpha1/clusterroles
+          http://kubernetes:8080/apis/rbac.authorization.k8s.io/v1alpha1/clusterroles
         touch /etc/kubernetes/system/role.json.created
       }
 
@@ -376,7 +374,7 @@ write_files:
         echo "creating from /etc/kubernetes/system/role-binding.json"
         curl $curl_opts -H "Content-Type: application/json" -XPOST \
           -d @/etc/kubernetes/system/role-binding.json \
-          https://kubernetes/apis/rbac.authorization.k8s.io/v1alpha1/clusterrolebindings
+          http://kubernetes:8080/apis/rbac.authorization.k8s.io/v1alpha1/clusterrolebindings
         touch /etc/kubernetes/system/role-binding.json.created
       }
 
@@ -464,6 +462,10 @@ write_files:
             client-certificate: /etc/ssl/kubelet/cert.pem
             client-key: /etc/ssl/kubelet/privkey.pem
 
+  - path: /etc/kubernetes/bootstrap/tokens.csv
+    content: |
+      ${bootstrap_token},bootstrap,bootstrap
+
   - path: /etc/kubernetes/bootstrap/apiserver.yaml
     content: |
       apiVersion: v1
@@ -527,12 +529,16 @@ write_files:
               - --service-cluster-ip-range=10.0.0.0/16
               - --runtime-config=${kube_runtime_config}
               - --advertise-address=$private_ipv4
+              - --token-auth-file=/etc/kubernetes/bootstrap/tokens.csv
               - --authorization-mode=RBAC
-              - --authorization-rbac-super-user=controller
+              - --authorization-rbac-super-user=bootstrap
               - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,ResourceQuota,DenyEscalatingExec,ServiceAccount
             volumeMounts:
               - mountPath: /etc/secrets
                 name: secrets
+                readOnly: true
+              - mountPath: /etc/kubernetes/bootstrap/tokens.csv
+                name: kube-tokens
                 readOnly: true
         volumes:
           - name: secrets
@@ -543,6 +549,9 @@ write_files:
           - name: vault-token
             hostPath:
               path: /etc/vault/token
+          - name: kube-tokens
+            hostPath:
+              path: /etc/kubernetes/bootstrap/tokens.csv
 
   - path: /etc/kubernetes/bootstrap/kubeconfig.yaml
     content: |

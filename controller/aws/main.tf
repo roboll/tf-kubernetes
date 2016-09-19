@@ -172,6 +172,10 @@ resource null_resource etcd {
     count = "${var.replicas}"
 }
 
+resource random_id bootstrap_token {
+    byte_length = 32
+}
+
 resource coreos_cloudconfig cloud_config {
     gzip = true
     template = "${file("${path.module}/config/cloud-config.yaml")}"
@@ -201,6 +205,8 @@ resource coreos_cloudconfig cloud_config {
 
         service_account_privkey = "${vaultx_secret.service_account_privkey.path}"
         service_account_pubkey = "${vaultx_secret.service_account_pubkey.path}"
+
+        bootstrap_token = "${random_id.bootstrap_token.b64}"
     }
 
     count = "${var.replicas}"
