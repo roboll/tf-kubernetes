@@ -259,7 +259,6 @@ resource aws_instance controller {
         "vaultx_secret.service_account_privkey",
         "vaultx_secret.service_account_pubkey",
         "vaultx_secret.kube_pki_init",
-        "vaultx_secret.kubelet_pki_init",
         "vaultx_secret.etcd_pki_init"
     ]
 }

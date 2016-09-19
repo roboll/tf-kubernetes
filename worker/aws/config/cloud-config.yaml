@@ -201,7 +201,7 @@ write_files:
       json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
         -X POST -H "X-Vault-Token: $token" \
         -d "{\"common_name\":\"kubelet\",\"alt_names\":\"$(hostname)\",\"ip_sans\":\"$private_ipv4\"}" \
-        ${vault_address}/v1/${kubelet_pki_mount}/issue/${kubelet_pki_role})
+        ${vault_address}/v1/${kube_pki_mount}/issue/${kubelet_pki_role})
 
       sed -re 's/.*"certificate":"([^"]*)".*/\1/g' \
         -e 's/\\n/\n/g' > /etc/ssl/kube/kubelet/cert.pem <<< $json
