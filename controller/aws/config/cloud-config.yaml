@@ -331,6 +331,14 @@ write_files:
         touch /etc/kubernetes/system/kube-apiserver.json.created
       }
 
+      [ ! -f /etc/kubernetes/system/kube-controller-kubeconfig.json.created ] && {
+        echo "creating from /etc/kubernetes/system/kube-controller-kubeconfig.json"
+        curl $curl_opts -H "Content-Type: application/json" -XPOST \
+          -d @/etc/kubernetes/system/kube-controller-kubeconfig.json \
+          https://kubernetes/api/v1/namespaces/kube-system/configmaps
+        touch /etc/kubernetes/system/kube-controller-kubeconfig.json.created
+      }
+
       [ ! -f /etc/kubernetes/system/kube-controller-manager.json.created ] && {
         echo "creating from /etc/kubernetes/system/kube-controller-manager.json"
         curl $curl_opts -H "Content-Type: application/json" -XPOST \
