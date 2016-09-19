@@ -227,7 +227,6 @@ resource aws_autoscaling_group worker {
 
     depends_on = [
         "vaultx_secret.role",
-        "vaultx_policy.worker",
-        "vaultx_secret.worker_role"
+        "vaultx_policy.worker"
     ]
 }
