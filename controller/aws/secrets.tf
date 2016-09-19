@@ -281,15 +281,21 @@ path "${var.env}-kube/issue/flannel" {
 path "${var.env}-kube/issue/controller" {
     capabilities = [ "create", "read", "update", "list" ]
 }
+
 path "${var.env}-kube-kubelet/issue/kubelet" {
     capabilities = [ "create", "read", "update", "list" ]
 }
+path "${var.env}-kube-kubelet/issue/apiserver" {
+    capabilities = [ "create", "read", "update", "list" ]
+}
+
 path "${var.env}-kube-etcd/issue/apiserver" {
     capabilities = [ "create", "read", "update", "list" ]
 }
 path "${var.env}-kube-etcd/issue/etcd" {
     capabilities = [ "create", "read", "update", "list" ]
 }
+
 path "${vaultx_secret.service_account_pubkey.path}" {
     capabilities = [ "read" ]
 }
