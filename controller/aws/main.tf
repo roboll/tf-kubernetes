@@ -203,7 +203,8 @@ resource coreos_cloudconfig cloud_config {
         etcd_pki_mount = "${null_resource.pki_mount.triggers.etcd_path}"
         kubelet_pki_mount = "${null_resource.pki_mount.triggers.kube_path}"
 
-        service_account_path = "${vaultx_secret.service_account.path}"
+        service_account_privkey = "${vaultx_secret.service_account_privkey.path}"
+        service_account_pubkey = "${vaultx_secret.service_account_pubkey.path}"
     }
 
     count = "${var.replicas}"

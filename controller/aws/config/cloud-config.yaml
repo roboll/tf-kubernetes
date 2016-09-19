@@ -4,7 +4,7 @@ coreos:
     reboot-strategy: etcd-lock
 
   locksmith:
-    endpoint: https://$private_ipv4:2379
+    endpoint: https://localhost:2379
     etcd_cafile: /etc/ssl/etcd/ca.pem
     etcd_certfile: /etc/ssl/etcd/cert.pem
     etcd_keyfile: /etc/ssl/etcd/privkey.pem
@@ -17,26 +17,26 @@ coreos:
     initial_cluster: ${etcd_peers}
     initial_cluster_state: new
 
-    initial_advertise_peer_urls: https://$private_ipv4:2380
-    listen_peer_urls: https://0.0.0.0:2380
     advertise_client_urls: https://$private_ipv4:2379
     listen_client_urls: https://0.0.0.0:2379
-
-    peer_cert_file: /etc/ssl/etcd/cert.pem
-    peer_key_file: /etc/ssl/etcd/privkey.pem
-    peer_trusted_ca_file: /etc/ssl/etcd/ca.pem
-    peer_client_cert_auth: true
+    initial_advertise_peer_urls: https://$private_ipv4:2380
+    listen_peer_urls: https://0.0.0.0:2380
 
     cert_file: /etc/ssl/etcd/cert.pem
     key_file: /etc/ssl/etcd/privkey.pem
     trusted_ca_file: /etc/ssl/etcd/ca.pem
     client_cert_auth: true
 
+    peer_cert_file: /etc/ssl/etcd/cert.pem
+    peer_key_file: /etc/ssl/etcd/privkey.pem
+    peer_trusted_ca_file: /etc/ssl/etcd/ca.pem
+    peer_client_cert_auth: true
+
   flannel:
     etcd_cafile: /etc/ssl/etcd/ca.pem
     etcd_keyfile: /etc/ssl/etcd/privkey.pem
     etcd_certfile: /etc/ssl/etcd/cert.pem
-    etcd_endpoints: https://$private_ipv4:2379
+    etcd_endpoints: https://localhost:2379
 
   units:
     - name: install-ssh-helper.service
@@ -67,33 +67,12 @@ coreos:
         OnActiveSec=12h
         OnUnitActiveSec=12h
 
-    - name: kubelet-certs.service
-      command: start
-      content: |
-        [Unit]
-        Before=kubelet.service
-
-        Requires=vault-login.service
-        After=vault-login.service
-
-        [Service]
-        Type=simple
-        ExecStart=/opt/bin/kubelet-certs.sh
-        ExecStartPost=/bin/bash -c "systemctl kill -s HUP kubelet.service || true"
-
-    - name: kubelet-certs.timer
-      command: start
-      content: |
-        [Timer]
-        OnUnitActiveSec=12h
-
     - name: etcd-certs.service
       command: start
       content: |
         [Unit]
         Before=etcd2.service
         Before=flanneld.service
-        Before=kubelet.service
 
         Requires=vault-login.service
         After=vault-login.service
@@ -167,7 +146,7 @@ coreos:
 
             [Service]
             ExecStartPre=/usr/bin/etcdctl \
-              --endpoints https://$private_ipv4:2379 \
+              --endpoints https://localhost:2379 \
               --ca-file /etc/ssl/etcd/ca.pem \
               --cert-file /etc/ssl/etcd/cert.pem \
               --key-file /etc/ssl/etcd/privkey.pem \
@@ -186,37 +165,28 @@ coreos:
             [Service]
             MountFlags=shared
 
-    - name: kube-certs.service
+    - name: kube-ca.service
+      command: start
+      content: |
+        [Service]
+        Type=oneshot
+        ExecStart=/opt/bin/kube-ca.sh
+
+    - name: kubelet-certs.service
       command: start
       content: |
         [Unit]
-        Description=MOVE TO POD
+        Before=kubelet.service
+
         Requires=vault-login.service
         After=vault-login.service
 
         [Service]
         Type=simple
-        ExecStart=/opt/bin/kube-certs.sh
+        ExecStart=/opt/bin/kubelet-certs.sh
+        ExecStartPost=/bin/bash -c "systemctl kill -s HUP kubelet.service || true"
 
-    - name: kube-certs.timer
-      command: start
-      content: |
-        [Timer]
-        OnUnitActiveSec=12h
-
-    - name: controller-certs.service
-      command: start
-      content: |
-        [Unit]
-        Description=MOVE TO POD
-        Requires=vault-login.service
-        After=vault-login.service
-
-        [Service]
-        Type=simple
-        ExecStart=/opt/bin/controller-certs.sh
-
-    - name: controller-certs.timer
+    - name: kubelet-certs.timer
       command: start
       content: |
         [Timer]
@@ -226,19 +196,13 @@ coreos:
       command: start
       content: |
         [Unit]
-        Requires=docker.service flanneld.service kubelet-certs.service
-        After=docker.service flanneld.service kubelet-certs.service
-
-        # TAKE THIS AWAY WITH POD MOVE
-        After=kube-certs.service controller-certs.service
+        Requires=docker.service flanneld.service kube-ca.service kubelet-certs.service
+        After=docker.service flanneld.service kube-ca.service kubelet-certs.service
 
         [Service]
         Restart=always
         RestartSec=10
         TimeoutStartSec=300
-
-        # TAKE THIS AWAY WITH POD MOVE
-        ExecStartPre=/opt/bin/kube-service-account.sh
 
         Environment=KUBELET_ACI=${hyperkube}
         Environment=KUBELET_VERSION=${kube_version}
@@ -252,10 +216,10 @@ coreos:
         --mount volume=stage,target=/tmp \
         --volume var-log,kind=host,source=/var/log \
         --mount volume=var-log,target=/var/log \
-        --volume kubelet-ssl,kind=host,source=/etc/ssl/kubelet \
-        --mount volume=kubelet-ssl,target=/etc/ssl/kubelet \
         --volume kube-ca,kind=host,source=/etc/ssl/kube/ca.pem \
-        --mount volume=kube-ca,target=/etc/ssl/kube/ca.pem"
+        --mount volume=kube-ca,target=/etc/ssl/kube/ca.pem \
+        --volume kubelet-ssl,kind=host,source=/etc/ssl/kubelet \
+        --mount volume=kubelet-ssl,target=/etc/ssl/kubelet"
 
         ExecStartPre=/usr/bin/mkdir -p /var/log/containers
         ExecStartPre=/usr/bin/mkdir -p /etc/kubernetes/manifests
@@ -304,6 +268,7 @@ write_files:
       #!/bin/bash
       set -eo pipefail
 
+      mkdir -p /etc/vault
       nonce="$(cat /etc/machine-id | base64)"
       pkcs="$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
         http://169.254.169.254/latest/dynamic/instance-identity/pkcs7 | tr -d '\n')"
@@ -312,7 +277,7 @@ write_files:
         -X POST -H "Content-Type: application/json" \
         -d "{\"pkcs7\":\"$pkcs\",\"role\":\"${vault_instance_role}\",\"nonce\":\"$nonce\"}" \
         ${vault_address}/v1/auth/aws-ec2/login | \
-        sed -re 's/.*"client_token":"([^"]*)".*/\1/g' > /root/.vault-token
+        sed -re 's/.*"client_token":"([^"]*)".*/\1/g' > /etc/vault/token
 
   - path: /opt/bin/vault-renew-token.sh
     permissions: 0700
@@ -320,7 +285,7 @@ write_files:
       #!/bin/bash
       set -eo pipefail
 
-      token="$(cat /root/.vault-token)"
+      token="$(cat /etc/vault/token)"
       curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
         -X POST -H "X-Vault-Token: $token" \
         ${vault_address}/v1/auth/token/renew-self > /dev/null
@@ -407,70 +372,16 @@ write_files:
         /etc/kubernetes/bootstrap/controller-manager.yaml
       touch /etc/kubernetes/init-completed
 
-  - path: /opt/bin/kube-service-account.sh
+  - path: /opt/bin/kube-ca.sh
     permissions: 0700
     content: |
       #!/bin/bash
-      #GOES AWAY WITH PODS
-      set -eo pipefail
-
-      mkdir -p /etc/kubernetes/service-account
-
-      token="$(cat /root/.vault-token)"
-      json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
-        -H "X-Vault-Token: $token" \
-        ${vault_address}/v1/${service_account_path})
-
-      sed -re 's/.*"public_key":"([^"]*)".*/\1/g' \
-        -e 's/\\n/\n/g' > /etc/kubernetes/service-account/pubkey.pem <<< $json
-      sed -re 's/.*"private_key":"([^"]*)".*/\1/g' \
-        -e 's/\\n/\n/g' > /etc/kubernetes/service-account/privkey.pem <<< $json
-
-  - path: /opt/bin/kube-certs.sh
-    permissions: 0700
-    content: |
-      #!/bin/bash
-      #GOES AWAY WITH PODS
       set -eo pipefail
 
       mkdir -p /etc/ssl/kube
       curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
         -o /etc/ssl/kube/ca.pem -z /etc/ssl/kube/ca.pem \
         ${vault_address}/v1/${kube_pki_mount}/ca/pem
-
-      token="$(cat /root/.vault-token)"
-      json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
-        -X POST -H "X-Vault-Token: $token" \
-        -d '{"common_name":"${kube_fqdn}","alt_names":"kubernetes,kubernetes.default.svc,kubernetes.default.svc.cluster.local","ip_sans":"10.0.0.1,$private_ipv4"}' \
-        ${vault_address}/v1/${kube_pki_mount}/issue/${kube_pki_role})
-
-      sed -re 's/.*"certificate":"([^"]*)".*/\1/g' \
-        -e 's/\\n/\n/g' > /etc/ssl/kube/cert.pem <<< $json
-      sed -re 's/.*"private_key":"([^"]*)".*/\1/g' \
-        -e 's/\\n/\n/g' > /etc/ssl/kube/privkey.pem <<< $json
-
-  - path: /opt/bin/controller-certs.sh
-    permissions: 0700
-    content: |
-      #!/bin/bash
-      #GOES AWAY WITH PODS
-      set -eo pipefail
-
-      mkdir -p /etc/ssl/controller
-      curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
-        -o /etc/ssl/controller/ca.pem -z /etc/ssl/controller/ca.pem \
-        ${vault_address}/v1/${kube_pki_mount}/ca/pem
-
-      token="$(cat /root/.vault-token)"
-      json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
-        -X POST -H "X-Vault-Token: $token" \
-        -d '{"common_name": "controller"}' \
-        ${vault_address}/v1/${kube_pki_mount}/issue/${controller_pki_role})
-
-      sed -re 's/.*"certificate":"([^"]*)".*/\1/g' \
-        -e 's/\\n/\n/g' > /etc/ssl/controller/cert.pem <<< $json
-      sed -re 's/.*"private_key":"([^"]*)".*/\1/g' \
-        -e 's/\\n/\n/g' > /etc/ssl/controller/privkey.pem <<< $json
 
   - path: /opt/bin/kubelet-certs.sh
     permissions: 0700
@@ -478,17 +389,12 @@ write_files:
       #!/bin/bash
       set -eo pipefail
 
-      mkdir -p /etc/ssl/kube
-      curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
-        -o /etc/ssl/kube/ca.pem -z /etc/ssl/kube/ca.pem \
-        ${vault_address}/v1/${kube_pki_mount}/ca/pem
-
       mkdir -p /etc/ssl/kubelet
       curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
         -o /etc/ssl/kubelet/ca.pem -z /etc/ssl/kubelet/ca.pem \
         ${vault_address}/v1/${kubelet_pki_mount}/ca/pem
 
-      token="$(cat /root/.vault-token)"
+      token="$(cat /etc/vault/token)"
       json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
         -X POST -H "X-Vault-Token: $token" \
         -d "{\"common_name\":\"kubelet\",\"alt_names\":\"$(hostname)\",\"ip_sans\":\"$private_ipv4\"}" \
@@ -510,7 +416,7 @@ write_files:
         -o /etc/ssl/etcd/ca.pem -z /etc/ssl/etcd/ca.pem \
         ${vault_address}/v1/${etcd_pki_mount}/ca/pem
 
-      token="$(cat /root/.vault-token)"
+      token="$(cat /etc/vault/token)"
       json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
         -X POST -H "X-Vault-Token: $token" \
         -d '{"common_name":"controller","alt_names":"localhost","ip_sans":"$private_ipv4"}' \
@@ -538,7 +444,6 @@ write_files:
         - name: kubernetes
           cluster:
             certificate-authority: /etc/ssl/kube/ca.pem
-            server: https://${kube_fqdn}
       contexts:
         - name: kubelet
           context:
@@ -558,8 +463,7 @@ write_files:
       clusters:
         - name: kubernetes
           cluster:
-            certificate-authority: /etc/ssl/kube/ca.pem
-            server: https://${kube_fqdn}
+            certificate-authority: /etc/secrets/kube-ca.pem
       contexts:
         - name: controller
           context:
@@ -568,8 +472,8 @@ write_files:
       users:
         - name: controller
           user:
-            client-certificate: /etc/ssl/controller/cert.pem
-            client-key: /etc/ssl/controller/privkey.pem
+            client-certificate: /etc/secrets/controller.crt
+            client-key: /etc/secrets/controller.key
 
   - path: /etc/kubernetes/bootstrap/apiserver.yaml
     content: |
@@ -591,16 +495,16 @@ write_files:
               - apiserver
               - --secure-port=443
               - --etcd-servers=https://localhost:2379
-              - --etcd-cafile=/etc/ssl/etcd/ca.pem
-              - --etcd-certfile=/etc/ssl/etcd/cert.pem
-              - --etcd-keyfile=/etc/ssl/etcd/privkey.pem
-              - --tls-cert-file=/etc/ssl/kube/cert.pem
-              - --tls-private-key-file=/etc/ssl/kube/privkey.pem
-              - --service-account-key-file=/etc/kubernetes/service-account/pubkey.pem
-              - --kubelet-certificate-authority=/etc/ssl/kubelet/ca.pem
-              - --kubelet-client-certificate=/etc/ssl/kubelet/cert.pem
-              - --kubelet-client-key=/etc/ssl/kubelet/privkey.pem
-              - --client-ca-file=/etc/ssl/kube/ca.pem
+              - --etcd-cafile=/etc/secrets/etcd.ca
+              - --etcd-certfile=/etc/secrets/etcd.crt
+              - --etcd-keyfile=/etc/secrets/etcd.key
+              - --client-ca-file=/etc/secrets/kube.ca
+              - --tls-cert-file=/etc/secrets/kube.crt
+              - --tls-private-key-file=/etc/secrets/kube.key
+              - --service-account-key-file=/etc/secrets/service-account-pubkey.pem
+              - --kubelet-certificate-authority=/etc/secrets/kubelet.ca
+              - --kubelet-client-certificate=/etc/secrets/kubelet.crt
+              - --kubelet-client-key=/etc/secrets/kubelet.key
               - --allow-privileged=true
               - --cloud-provider=aws
               - --service-cluster-ip-range=10.0.0.0/16
@@ -655,48 +559,53 @@ write_files:
       spec:
         hostNetwork: true
         containers:
+          - name: vault-sidekick
+            image: quay.io/roboll/vault-sidekick:v0.0.9.6
+            args:
+              - -logtostderr=true
+              - -output=/etc/secrets
+              - -cn=secret:${service_account_privkey}:file=service-account-privkey.pem,fmt=txt
+              - -cn=${kube_pki_mount}/issue/controller-manager,common_name=controller,fmt=cert,file=kube
+            env:
+              - name: VAULT_ADDR
+                value: ${vault_address}
+              - name: VAULT_CACERT
+                value: /etc/vault/ca.pem
+              - name: VAULT_SIDEKICK_TOKEN_FILE
+                value: /etc/vault/token
+            volumeMounts:
+              - mountPath: /etc/secrets
+                name: secrets
+              - mountPath: /etc/vault/ca.pem
+                name: vault-ca
+                readOnly: true
+              - mountPath: /etc/vault/token
+                name: vault-token
+                readOnly: true
           - name: controller-manager
             image: ${hyperkube}:${kube_version}
             command:
               - /hyperkube
               - controller-manager
-              - --master=https://$private_ipv4
               - --leader-elect=true
-              - --kubeconfig=/etc/kubernetes/controller/kubeconfig.yaml
-              - --service-account-private-key-file=/etc/kubernetes/service-account/privkey.pem
+              - --master=https://$private_ipv4
+              - --root-ca-file=/etc/secrets/kube.ca
+              - --kubeconfig=/etc/kubernetes/bootstrap/kubeconfig.yaml
+              - --service-account-private-key-file=/etc/secrets/service-account-privkey.pem
               - --cloud-provider=aws
             volumeMounts:
-              - mountPath: /etc/ssl/certs
-                name: ssl-certs-host
-                readOnly: true
-              - mountPath: /etc/ssl/kube
-                name: kube-certs
-                readOnly: true
-              - mountPath: /etc/ssl/controller
-                name: controller-certs
-                readOnly: true
-              - mountPath: /etc/kubernetes/controller/kubeconfig.yaml
-                name: kubeconfig
-                readOnly: true
-              - mountPath: /etc/kubernetes/service-account/privkey.pem
-                name: service-account
+              - mountPath: /etc/secrets
+                name: secrets
                 readOnly: true
         volumes:
-          - hostPath:
-              path: /etc/kubernetes/controller/kubeconfig.yaml
-            name: kubeconfig
-          - hostPath:
-              path: /usr/share/ca-certificates
-            name: ssl-certs-host
-          - hostPath:
-              path: /etc/ssl/controller
-            name: controller-certs
-          - hostPath:
-              path: /etc/ssl/kube
-            name: kube-certs
-          - hostPath:
-              path: /etc/kubernetes/service-account/privkey.pem
-            name: service-account
+          - name: secrets
+            emptyDir: {}
+          - name: vault-ca
+            hostPath:
+              path: /etc/vault/ca.pem
+          - name: vault-token
+            hostPath:
+              path: /etc/vault/token
 
   - path: /etc/kubernetes/system/role.json
     permissions: 0644
@@ -780,22 +689,64 @@ write_files:
               "hostNetwork": true,
               "containers": [
                 {
+                  "name": "vault-sidekick",
+                  "image": "quay.io/roboll/vault-sidekick:v0.0.9.6",
+                  "args": [
+                    "-logtostderr=true",
+                    "-output=/etc/secrets",
+                    "-cn=secret:${service_account_pubkey}:file=service-account-pubkey.pem,fmt=txt",
+                    "-cn=pki:${kube_pki_mount}/issue/apiserver:common_name=${kube_fqdn},alt_names=kubernetes,kubernetes.default.svc,kubernetes.default.svc.cluster.local,ip_sans=10.0.0.1,fmt=cert,file=kube"
+                    "-cn=${etcd_pki_mount}/issue/apiserver,common_name=controller,fmt=cert,file=etcd",
+                    "-cn=${kubelet_pki_mount}/issue/apiserver,common_name=apiserver,fmt=cert,file=kubelet"
+                  ],
+                  "env": [
+                    {
+                      "name": "VAULT_ADDR",
+                      "value": "${vault_address}"
+                    },
+                    {
+                      "name": "VAULT_CACERT",
+                      "value": "/etc/vault/ca.pem"
+                    },
+                    {
+                      "name": "VAULT_SIDEKICK_TOKEN_FILE",
+                      "value": "/etc/vault/token"
+                    }
+                  ],
+                  "volumeMounts": [
+                    {
+                      "mountPath": "/etc/secrets",
+                      "name": "secrets"
+                    },
+                    {
+                      "mountPath": "/etc/vault/ca.pem",
+                      "name": "vault-ca",
+                      "readOnly": true
+                    },
+                    {
+                      "mountPath": "/etc/vault/token",
+                      "name": "vault-token",
+                      "readOnly": true
+                    }
+                  ]
+                },
+                {
                   "name": "apiserver",
                   "image": "${hyperkube}:${kube_version}",
                   "command": [
                     "/hyperkube", "apiserver",
                     "--secure-port=443",
                     "--etcd-servers=https://localhost:2379",
-                    "--etcd-cafile=/etc/ssl/etcd/ca.pem",
-                    "--etcd-certfile=/etc/ssl/etcd/cert.pem",
-                    "--etcd-keyfile=/etc/ssl/etcd/privkey.pem",
-                    "--tls-cert-file=/etc/ssl/kube/cert.pem",
-                    "--tls-private-key-file=/etc/ssl/kube/privkey.pem",
-                    "--service-account-key-file=/etc/kubernetes/service-account/pubkey.pem",
-                    "--kubelet-certificate-authority=/etc/ssl/kubelet/ca.pem",
-                    "--kubelet-client-certificate=/etc/ssl/kubelet/cert.pem",
-                    "--kubelet-client-key=/etc/ssl/kubelet/privkey.pem",
-                    "--client-ca-file=/etc/ssl/kube/ca.pem",
+                    "--etcd-cafile=/etc/secrets/etcd.ca",
+                    "--etcd-certfile=/etc/secrets/etcd.crt",
+                    "--etcd-keyfile=/etc/secrets/etcd.key",
+                    "--client-ca-file=/etc/secrets/kube.ca",
+                    "--tls-cert-file=/etc/secrets/kube.crt",
+                    "--tls-private-key-file=/etc/ssl/kube.key",
+                    "--service-account-key-file=/etc/secrets/service-account-pubkey.pem",
+                    "--kubelet-certificate-authority=/etc/secrets/kubelet.ca",
+                    "--kubelet-client-certificate=/etc/secrets/kubelet.crt",
+                    "--kubelet-client-key=/etc/secrets/kubelet.key",
                     "--allow-privileged=true",
                     "--cloud-provider=aws",
                     "--service-cluster-ip-range=10.0.0.0/16",
@@ -804,7 +755,6 @@ write_files:
                     "--advertise-address=$private_ipv4",
                     "--external-hostname=${kube_fqdn}",
                     "--authorization-mode=RBAC",
-                    "--authorization-rbac-super-user=controller",
                     "--admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,ResourceQuota,DenyEscalatingExec,ServiceAccount"
                   ],
                   "livenessProbe": {
@@ -818,33 +768,8 @@ write_files:
                   },
                   "volumeMounts": [
                     {
-                      "mountPath": "/etc/kubernetes/service-account/pubkey.pem",
-                      "name": "service-account",
-                      "readOnly": true
-                    },
-                    {
-                      "mountPath": "/etc/ssl/kube",
-                      "name": "kube-certs",
-                      "readOnly": true
-                    },
-                    {
-                      "mountPath": "/etc/ssl/etcd",
-                      "name": "etcd-certs",
-                      "readOnly": true
-                    },
-                    {
-                      "mountPath": "/etc/ssl/kubelet",
-                      "name": "kubelet-certs",
-                      "readOnly": true
-                    },
-                    {
-                      "mountPath": "/etc/ssl/controller",
-                      "name": "controller-certs",
-                      "readOnly": true
-                    },
-                    {
-                      "mountPath": "/etc/ssl/certs",
-                      "name": "ssl-certs-host",
+                      "mountPath": "/etc/secrets",
+                      "name": "secrets",
                       "readOnly": true
                     }
                   ]
@@ -852,44 +777,38 @@ write_files:
               ],
               "volumes": [
                 {
-                  "name":"service-account",
+                  "name": "secrets",
+                  "emptyDir": {}
+                },
+                {
+                  "name": "vault-ca",
                   "hostPath": {
-                    "path": "/etc/kubernetes/service-account/pubkey.pem"
+                    "path": "/etc/vault/ca.pem"
                   }
                 },
                 {
-                  "name":"kube-certs",
+                  "name": "vault-token",
                   "hostPath": {
-                    "path": "/etc/ssl/kube"
-                  }
-                },
-                {
-                  "name":"kubelet-certs",
-                  "hostPath": {
-                    "path": "/etc/ssl/kubelet"
-                  }
-                },
-                {
-                  "name":"etcd-certs",
-                  "hostPath": {
-                    "path": "/etc/ssl/etcd"
-                  }
-                },
-                {
-                  "name":"controller-certs",
-                  "hostPath": {
-                    "path": "/etc/ssl/controller"
-                  }
-                },
-                {
-                  "name":"ssl-certs-host",
-                  "hostPath": {
-                    "path": "/usr/share/ca-certificates"
+                    "path": "/etc/vault/token"
                   }
                 }
               ]
             }
           }
+        }
+      }
+
+  - path: /etc/kubernetes/system/kube-controller-kubeconfig.json
+    content: |
+      {
+        "kind": "ConfigMap",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "kube-controller-kubeconfig",
+          "namespace": "kube-system"
+        },
+        "data": {
+          "kubeconfig.yaml": "kind: Config\napiVersion: v1\ncurrent-context: controller\nclusters:\n  - name: kubernetes\n    cluster:\n       certificate-authority: /etc/secrets/kube.ca\ncontexts:\n  - name: controller\n    context:\n      cluster: kubernetes\n      user: controller\nusers:\n  - name: controller\n    user:\n      client-certificate: /etc/secrets/kube.crt\n      client-key: /etc/secrets/kube.key\n"
         }
       }
 
@@ -921,15 +840,55 @@ write_files:
               "hostNetwork": true,
               "containers": [
                 {
+                  "name": "vault-sidekick",
+                  "image": "quay.io/roboll/vault-sidekick:v0.0.9.6",
+                  "args": [
+                    "-logtostderr=true",
+                    "-output=/etc/secrets",
+                    "-cn=secret:${service_account_privkey}:file=service-account-privkey.pem,fmt=txt",
+                    "-cn=${kube_pki_mount}/issue/controller-manager,common_name=controller,fmt=cert,file=kube"
+                  ],
+                  "env": [
+                    {
+                      "name": "VAULT_ADDR",
+                      "value": "${vault_address}"
+                    },
+                    {
+                      "name": "VAULT_CACERT",
+                      "value": "/etc/vault/ca.pem"
+                    },
+                    {
+                      "name": "VAULT_SIDEKICK_TOKEN_FILE",
+                      "value": "/etc/vault/token"
+                    }
+                  ],
+                  "volumeMounts": [
+                    {
+                      "mountPath": "/etc/secrets",
+                      "name": "secrets"
+                    },
+                    {
+                      "mountPath": "/etc/vault/ca.pem",
+                      "name": "vault-ca",
+                      "readOnly": true
+                    },
+                    {
+                      "mountPath": "/etc/vault/token",
+                      "name": "vault-token",
+                      "readOnly": true
+                    }
+                  ]
+                },
+                {
                   "name": "controller-manager",
                   "image": "${hyperkube}:${kube_version}",
                   "command": [
                     "/hyperkube", "controller-manager",
-                    "--master=https://${kube_fqdn}",
-                    "--kubeconfig=/etc/kubernetes/controller/kubeconfig.yaml",
                     "--leader-elect=true",
-                    "--root-ca-file=/etc/ssl/kube/ca.pem",
-                    "--service-account-private-key-file=/etc/kubernetes/service-account/privkey.pem",
+                    "--master=https://${kube_fqdn}",
+                    "--root-ca-file=/etc/secrets/kube.ca",
+                    "--kubeconfig=/etc/kubernetes/kubeconfig.yaml",
+                    "--service-account-private-key-file=/etc/secrets/service-account-privkey.pem",
                     "--cloud-provider=aws"
                   ],
                   "livenessProbe": {
@@ -943,62 +902,39 @@ write_files:
                   },
                   "volumeMounts": [
                     {
-                      "mountPath": "/etc/kubernetes/controller/kubeconfig.yaml",
+                      "mountPath": "/etc/secrets",
+                      "name": "secrets",
+                      "readOnly": true
+                    },
+                    {
+                      "mountPath": "/etc/kubernetes/kubeconfig.yaml",
                       "name": "kubeconfig",
-                      "readOnly": true
-                    },
-                    {
-                      "mountPath": "/etc/ssl/controller",
-                      "name": "controller-certs",
-                      "readOnly": true
-                    },
-                    {
-                      "mountPath": "/etc/ssl/kube/ca.pem",
-                      "name": "kube-ca",
-                      "readOnly": true
-                    },
-                    {
-                      "mountPath": "/etc/ssl/certs",
-                      "name": "ssl-certs-host",
-                      "readOnly": true
-                    },
-                    {
-                      "mountPath": "/etc/kubernetes/service-account/privkey.pem",
-                      "name": "service-account",
-                      "readOnly": true
+                      "readOnly": true,
                     }
                   ]
                 }
               ],
               "volumes": [
                 {
-                  "name":"ssl-certs-host",
+                  "name":"secrets",
+                  "emptyDir": {}
+                },
+                {
+                  "name": "vault-ca",
                   "hostPath": {
-                    "path": "/usr/share/ca-certificates"
+                    "path": "/etc/vault/ca.pem"
                   }
                 },
                 {
-                  "name":"kube-ca",
+                  "name": "vault-token",
                   "hostPath": {
-                    "path": "/etc/ssl/kube/ca.pem"
+                    "path": "/etc/vault/token"
                   }
                 },
                 {
-                  "name":"controller-certs",
-                  "hostPath": {
-                    "path": "/etc/ssl/controller"
-                  }
-                },
-                {
-                  "name":"kubeconfig",
-                  "hostPath": {
-                    "path": "/etc/kubernetes/controller/kubeconfig.yaml"
-                  }
-                },
-                {
-                  "name":"service-account",
-                  "hostPath": {
-                    "path": "/etc/kubernetes/service-account/privkey.pem"
+                  "name": "kubeconfig",
+                  "configMap": {
+                    "name": "kube-controller-kubeconfig"
                   }
                 }
               ]
@@ -1040,6 +976,53 @@ write_files:
                   "args": [
                     "-port=10259",
                     "-cmd=netstat -lnt | awk '$6 == \"LISTEN\" && $4 ~ \".8888\"'"
+                  ],
+                  "livenessProbe": {
+                    "httpGet": {
+                      "path": "/healthz",
+                      "port": "10259"
+                    }
+                  }
+                },
+                {
+                  "name": "vault-sidekick",
+                  "image": "quay.io/roboll/vault-sidekick:v0.0.9.6"
+                  "args": [
+                    "-logtostderr=true",
+                    "-output=/etc/secrets",
+                    "-cn=pki:${etcd_pki_mount}/issue/flannel:common_name=flannel,fmt=cert,file=etcd",
+                    "-cn=pki:${kube_pki_mount}/issue/flannel:common_name=${kube_fqdn},alt_names=kubernetes,kubernetes.default.svc,kubernetes.default.svc.cluster.local,ip_sans=10.0.0.1,fmt=cert,file=kube"
+                  ],
+                  "env": [
+                    {
+                      "name": "VAULT_ADDR",
+                      "value": "${vault_address}"
+                    },
+                    {
+                      "name": "VAULT_CACERT",
+                      "value": "/etc/vault/ca.pem"
+                    },
+                    {
+                      "name": "VAULT_SIDEKICK_TOKEN_FILE",
+                      "value": "/etc/vault/token"
+                    }
+                  ],
+                  "volumeMounts": [
+                    {
+                      "mountPath": "/etc/secrets",
+                      "name": "secrets",
+                      "readOnly": true
+                    },
+                    {
+                      "mountPath": "/etc/vault/ca.pem",
+                      "name": "vault-ca",
+                      "readOnly": true
+                    },
+                    {
+                      "mountPath": "/etc/vault/token",
+                      "name": "vault-token",
+                      "readOnly": true
+                    }
                   ]
                 },
                 {
@@ -1049,35 +1032,20 @@ write_files:
                     "/opt/bin/flanneld",
                     "--listen=0.0.0.0:8888",
                     "--etcd-endpoints=https://localhost:2379",
-                    "--etcd-cafile=/etc/ssl/etcd/ca.pem",
-                    "--etcd-certfile=/etc/ssl/etcd/cert.pem",
-                    "--etcd-keyfile=/etc/ssl/etcd/privkey.pem",
-                    "--remote-cafile=/etc/ssl/kube/ca.pem",
-                    "--remote-certfile=/etc/ssl/kube/cert.pem",
-                    "--remote-keyfile=/etc/ssl/kube/privkey.pem"
+                    "--etcd-cafile=/etc/secrets/etcd.ca",
+                    "--etcd-certfile=/etc/secrets/etcd.crt",
+                    "--etcd-keyfile=/etc/secrets/etcd.key",
+                    "--remote-cafile=/etc/secrets/kube.ca",
+                    "--remote-certfile=/etc/secrets/kube.crt",
+                    "--remote-keyfile=/etc/secrets/kube.key"
                   ],
                   "securityContext": {
                     "privileged": true
                   },
-                  "livenessProbe": {
-                    "tcpSocket": {
-                      "port": 8888
-                    }
-                  },
                   "volumeMounts": [
                     {
-                      "mountPath": "/etc/ssl/kube",
-                      "name": "kube-certs",
-                      "readOnly": true
-                    },
-                    {
-                      "mountPath": "/etc/ssl/etcd",
-                      "name": "etcd-certs",
-                      "readOnly": true
-                    },
-                    {
-                      "mountPath": "/etc/ssl/certs",
-                      "name": "ssl-certs-host",
+                      "mountPath": "/etc/secrets",
+                      "name": "secrets",
                       "readOnly": true
                     }
                   ]
@@ -1085,21 +1053,19 @@ write_files:
               ],
               "volumes": [
                 {
-                  "name":"ssl-certs-host",
+                  "name": "secrets",
+                  "emptyDir": {},
+                },
+                {
+                  "name": "vault-ca",
                   "hostPath": {
-                    "path": "/usr/share/ca-certificates"
+                    "path": "/etc/vault/ca.pem"
                   }
                 },
                 {
-                  "name":"kube-certs",
+                  "name": "vault-token",
                   "hostPath": {
-                    "path": "/etc/ssl/kube"
-                  }
-                },
-                {
-                  "name":"etcd-certs",
-                  "hostPath": {
-                    "path": "/etc/ssl/etcd"
+                    "path": "/etc/vault/token"
                   }
                 }
               ]

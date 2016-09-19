@@ -6,5 +6,5 @@ metadata:
   namespace: kube-system
 data:
   address: ${vault_address}
-  ca.pem: |-
+  ca.pem: |
     ${vault_ca_cert_pem}
