@@ -325,6 +325,5 @@ output hyperkube { value = "${var.hyperkube}" }
 
 output kube_pki_backend { value = "${null_resource.pki_mount.triggers.kube_path}" }
 output etcd_pki_backend { value = "${null_resource.pki_mount.triggers.etcd_path}" }
-output kubelet_pki_backend { value = "${null_resource.pki_mount.triggers.kube_path}" }
 
 output worker_security_group { value = "${aws_security_group.kube_worker.id}" }
