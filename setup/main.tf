@@ -28,6 +28,25 @@ provider ecr {
 }
 
 resource null_resource render {
+    triggers {
+        heapster = "${data.template_file.heapster.rendered}"
+        kube_addon_manager = "${data.template_file.kube_addon_manager.rendered}"
+        kube_controller_metrics = "${data.template_file.kube_controller_metrics.rendered}"
+        kube_dashboard = "${data.template_file.kube_dashboard.rendered}"
+        kube_etcd_metrics = "${data.template_file.kube_etcd_metrics.rendered}"
+        kube_ingress_acme = "${data.template_file.kube_ingress_acme.rendered}"
+        kube_ingress_dns = "${data.template_file.kube_ingress_dns.rendered}"
+        kube_ingress = "${data.template_file.kube_ingress.rendered}"
+        kube_proxy = "${data.template_file.kube_proxy.rendered}"
+        kube_scheduler = "${data.template_file.kube_scheduler.rendered}"
+        kube_service_account = "${data.template_file.kube_service_account.rendered}"
+        logging = "${data.template_file.logging.rendered}"
+        metrics_alerts_config = "${data.template_file.metrics_alerts_config.rendered}"
+        metrics_config = "${data.template_file.metrics_config.rendered}"
+        metrics = "${data.template_file.metrics.rendered}"
+        vault = "${data.template_file.vault.rendered}"
+    }
+
     provisioner local-exec {
         command = <<EOF
 mkdir -p ${path.root}/kube/manifests;
