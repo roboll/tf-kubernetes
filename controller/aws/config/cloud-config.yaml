@@ -482,7 +482,7 @@ write_files:
               - -logtostderr=true
               - -output=/etc/secrets
               - -cn=secret:${service_account_pubkey}:file=service-account-pubkey.pem,fmt=txt
-              - -cn=pki:${kube_pki_mount}/issue/apiserver:common_name=${kube_fqdn},alt_names=kubernetes,kubernetes.default.svc,kubernetes.default.svc.cluster.local,ip_sans=10.0.0.1,fmt=cert,file=kube
+              - -cn=pki:${kube_pki_mount}/issue/apiserver:common_name=${kube_fqdn},alt_names="kubernetes,kubernetes.default.svc,kubernetes.default.svc.cluster.local",ip_sans=10.0.0.1,fmt=cert,file=kube
               - -cn=pki:${etcd_pki_mount}/issue/apiserver,common_name=controller,fmt=cert,file=etcd
               - -cn=pki:${kubelet_pki_mount}/issue/apiserver,common_name=kubernetes,fmt=cert,file=kubelet
             env:
@@ -716,7 +716,7 @@ write_files:
                     "-logtostderr=true",
                     "-output=/etc/secrets",
                     "-cn=secret:${service_account_pubkey}:file=service-account-pubkey.pem,fmt=txt",
-                    "-cn=pki:${kube_pki_mount}/issue/apiserver:common_name=${kube_fqdn},alt_names=kubernetes,kubernetes.default.svc,kubernetes.default.svc.cluster.local,ip_sans=10.0.0.1,fmt=cert,file=kube",
+                    "-cn=pki:${kube_pki_mount}/issue/apiserver:common_name=${kube_fqdn},alt_names=\"kubernetes,kubernetes.default.svc,kubernetes.default.svc.cluster.local\",ip_sans=10.0.0.1,fmt=cert,file=kube",
                     "-cn=pki:${etcd_pki_mount}/issue/apiserver,common_name=controller,fmt=cert,file=etcd",
                     "-cn=pki:${kubelet_pki_mount}/issue/apiserver,common_name=kubernetes,fmt=cert,file=kubelet"
                   ],
@@ -1012,7 +1012,7 @@ write_files:
                     "-logtostderr=true",
                     "-output=/etc/secrets",
                     "-cn=pki:${etcd_pki_mount}/issue/flannel:common_name=flannel,fmt=cert,file=etcd",
-                    "-cn=pki:${kube_pki_mount}/issue/flannel:common_name=${kube_fqdn},alt_names=kubernetes,kubernetes.default.svc,kubernetes.default.svc.cluster.local,ip_sans=10.0.0.1,fmt=cert,file=kube"
+                    "-cn=pki:${kube_pki_mount}/issue/flannel:common_name=${kube_fqdn},alt_names=\"kubernetes,kubernetes.default.svc,kubernetes.default.svc.cluster.local\",ip_sans=10.0.0.1,fmt=cert,file=kube"
                   ],
                   "env": [
                     {
