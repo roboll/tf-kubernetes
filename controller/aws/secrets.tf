@@ -198,6 +198,24 @@ resource vaultx_secret kube_controller_role {
     depends_on = [ "vaultx_secret.kube_pki_init" ]
 }
 
+resource vaultx_secret kube_bootstrap_role {
+    path = "${var.env}-kube/roles/bootstrap"
+    ignore_read = true
+
+    data {
+        allowed_domains = "bootstrap"
+        allow_bare_domains = true
+        allow_subdomains = false
+        allow_localhost = false
+        server_flag = false
+        key_type = "ec"
+        key_bits = "256"
+        max_ttl = "48h"
+    }
+
+    depends_on = [ "vaultx_secret.kube_pki_init" ]
+}
+
 resource vaultx_secret kubelet_apiserver_role {
     path = "${var.env}-kube-kubelet/roles/apiserver"
     ignore_read = true
@@ -281,6 +299,10 @@ path "${var.env}-kube/issue/flannel" {
 path "${var.env}-kube/issue/controller" {
     capabilities = [ "create", "read", "update", "list" ]
 }
+path "${var.env}-kube/issue/bootstrap" {
+    capabilities = [ "create", "read", "update", "list" ]
+}
+
 
 path "${var.env}-kube-kubelet/issue/kubelet" {
     capabilities = [ "create", "read", "update", "list" ]

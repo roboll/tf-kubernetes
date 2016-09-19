@@ -239,7 +239,7 @@ coreos:
 
 write_files:
   - path: /etc/ssl/vault/ca.pem
-    permissions: 0600
+    permissions: 0644
     encoding: base64
     content: |
       ${vault_ca_cert_pem}
@@ -316,12 +316,28 @@ write_files:
       }
 
       curl_opts="-sSf --resolve kubernetes:443:127.0.0.1 \
-        --cacert /etc/ssl/kube/ca.pem"
+        --cacert /etc/ssl/kube/ca.pem \
+        --cert /etc/kubernetes/bootstrap/cert.pem \
+        --key /etc/kubernetes/bootstrap/privkey.pem"
+
+      [ ! -f /etc/kubernetes/bootstrap/certs ] && {
+        token="$(cat /etc/vault/token)"
+        json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
+          -X POST -H "X-Vault-Token: $token" \
+          -d '{"common_name":"bootstrap"}' \
+          ${vault_address}/v1/${kube_pki_mount}/issue/bootstrap)
+
+        sed -re 's/.*"certificate":"([^"]*)".*/\1/g' \
+          -e 's/\\n/\n/g' > /etc/kubernetes/bootstrap/cert.pem <<< $json
+        sed -re 's/.*"private_key":"([^"]*)".*/\1/g' \
+          -e 's/\\n/\n/g' > /etc/kubernetes/bootstrap/privkey.pem <<< $json
+        touch /etc/kubernetes/bootstrap/certs
+      }
 
       [ ! -f /etc/kubernetes/bootstrap/linked ] && {
         echo "linking bootstrap components as static pods"
-        ln -sf /etc/kubernetes/bootstrap/apiserver.yaml /etc/kubernetes/manifests
-        ln -sf /etc/kubernetes/bootstrap/controller-manager.yaml /etc/kubernetes/manifests
+        ln -sf /etc/kubernetes/bootstrap/apiserver.yaml /etc/kubernetes/manifests/bootstrap-apiserver.yaml
+        ln -sf /etc/kubernetes/bootstrap/controller-manager.yaml /etc/kubernetes/manifests/bootstrap-controller-manager.yaml
         touch /etc/kubernetes/bootstrap/linked
       }
 
@@ -333,7 +349,6 @@ write_files:
       [ ! -f /etc/kubernetes/system/kube-apiserver.json.created ] && {
         echo "creating from /etc/kubernetes/system/kube-apiserver.json"
         curl $curl_opts -H "Content-Type: application/json" -XPOST \
-          -H "Authorization: Bearer ${bootstrap_token}" \
           -d @/etc/kubernetes/system/kube-apiserver.json \
           https://kubernetes/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
         touch /etc/kubernetes/system/kube-apiserver.json.created
@@ -342,7 +357,6 @@ write_files:
       [ ! -f /etc/kubernetes/system/kube-controller-kubeconfig.json.created ] && {
         echo "creating from /etc/kubernetes/system/kube-controller-kubeconfig.json"
         curl $curl_opts -H "Content-Type: application/json" -XPOST \
-          -H "Authorization: Bearer ${bootstrap_token}" \
           -d @/etc/kubernetes/system/kube-controller-kubeconfig.json \
           https://kubernetes/api/v1/namespaces/kube-system/configmaps
         touch /etc/kubernetes/system/kube-controller-kubeconfig.json.created
@@ -351,7 +365,6 @@ write_files:
       [ ! -f /etc/kubernetes/system/kube-controller-manager.json.created ] && {
         echo "creating from /etc/kubernetes/system/kube-controller-manager.json"
         curl $curl_opts -H "Content-Type: application/json" -XPOST \
-          -H "Authorization: Bearer ${bootstrap_token}" \
           -d @/etc/kubernetes/system/kube-controller-manager.json \
           https://kubernetes/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
         touch /etc/kubernetes/system/kube-controller-manager.json.created
@@ -360,7 +373,6 @@ write_files:
       [ ! -f /etc/kubernetes/system/kube-flannel-server.json.created ] && {
         echo "creating from /etc/kubernetes/system/kube-flannel-server.json"
         curl $curl_opts -H "Content-Type: application/json" -XPOST \
-          -H "Authorization: Bearer ${bootstrap_token}" \
           -d @/etc/kubernetes/system/kube-flannel-server.json \
           https://kubernetes/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
         touch /etc/kubernetes/system/kube-flannel-server.json.created
@@ -369,7 +381,6 @@ write_files:
       [ ! -f /etc/kubernetes/system/role.json.created ] && {
         echo "creating from /etc/kubernetes/system/role.json"
         curl $curl_opts -H "Content-Type: application/json" -XPOST \
-          -H "Authorization: Bearer ${bootstrap_token}" \
           -d @/etc/kubernetes/system/role.json \
           https://kubernetes/apis/rbac.authorization.k8s.io/v1alpha1/clusterroles
         touch /etc/kubernetes/system/role.json.created
@@ -378,7 +389,6 @@ write_files:
       [ ! -f /etc/kubernetes/system/role-binding.json.created ] && {
         echo "creating from /etc/kubernetes/system/role-binding.json"
         curl $curl_opts -H "Content-Type: application/json" -XPOST \
-          -H "Authorization: Bearer ${bootstrap_token}" \
           -d @/etc/kubernetes/system/role-binding.json \
           https://kubernetes/apis/rbac.authorization.k8s.io/v1alpha1/clusterrolebindings
         touch /etc/kubernetes/system/role-binding.json.created
@@ -389,8 +399,8 @@ write_files:
         echo "waiting for daemonsets to be scheduled"; sleep 5;
       done
 
-      rm /etc/kubernetes/bootstrap/apiserver.yaml \
-        /etc/kubernetes/bootstrap/controller-manager.yaml
+      rm -f /etc/kubernetes/manifests/bootstrap-*.yaml
+      rm -f /etc/kubernetes/bootstrap/*.pem
       touch /etc/kubernetes/init-completed
 
   - path: /opt/bin/kube-ca.sh
