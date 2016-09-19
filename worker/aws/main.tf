@@ -153,7 +153,6 @@ resource coreos_cloudconfig cloud_config {
 
         vault_ca_cert_pem = "${base64encode(var.vault_ca_cert_pem)}"
         vault_curl_opts = "${var.vault_curl_opts}"
-        kubelet_pki_role = "worker-${var.worker_class}"
 
         kube_pki_mount = "${var.kube_pki_backend}"
     }

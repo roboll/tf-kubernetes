@@ -1,24 +1,8 @@
-resource vaultx_secret worker_role {
-    path = "${var.kubelet_pki_backend}/roles/worker-${var.worker_class}"
-    ignore_read = true
-
-    data {
-        allowed_domains = "kubelet"
-        allow_bare_domains = true
-        allow_subdomains = true
-        allow_any_name = true
-        allow_localhost = false
-        key_type = "ec"
-        key_bits = "256"
-        max_ttl = "48h"
-    }
-}
-
 resource vaultx_policy worker {
     name = "${var.env}-kube-worker-${var.worker_class}"
 
     rules = <<EOF
-path "${var.kubelet_pki_backend}/issue/worker-${var.worker_class}" {
+path "${var.kube_pki_backend}/issue/kubelet" {
     capabilities = [ "create", "read", "update", "list" ]
 }
 EOF
