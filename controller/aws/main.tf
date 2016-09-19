@@ -190,18 +190,14 @@ resource coreos_cloudconfig cloud_config {
 
         region = "${var.region}"
         vault_address = "${var.vault_address}"
-        vault_instance_role = "${vaultx_policy.controller.name}"
+        vault_instance_role = "${vaultx_policy.controller_instance.name}"
 
         vault_ca_cert_pem = "${base64encode(var.vault_ca_cert_pem)}"
         vault_curl_opts = "${var.vault_curl_opts}"
-        kube_pki_role = "kube"
-        kubelet_pki_role = "kubelet"
-        controller_pki_role = "controller"
-        etcd_pki_role = "controller"
 
         kube_pki_mount = "${null_resource.pki_mount.triggers.kube_path}"
         etcd_pki_mount = "${null_resource.pki_mount.triggers.etcd_path}"
-        kubelet_pki_mount = "${null_resource.pki_mount.triggers.kube_path}"
+        kubelet_pki_mount = "${null_resource.pki_mount.triggers.kubelet_path}"
 
         service_account_privkey = "${vaultx_secret.service_account_privkey.path}"
         service_account_pubkey = "${vaultx_secret.service_account_pubkey.path}"
@@ -254,9 +250,10 @@ resource aws_instance controller {
 
     depends_on = [
         "vaultx_secret.role",
-        "vaultx_policy.controller",
+        "vaultx_policy.controller_instance",
         "vaultx_secret.service_account",
         "vaultx_secret.kube_pki_init",
+        "vaultx_secret.kubelet_pki_init",
         "vaultx_secret.etcd_pki_init"
     ]
 }
