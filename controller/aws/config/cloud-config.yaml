@@ -793,7 +793,7 @@ write_files:
                     "--etcd-keyfile=/etc/secrets/etcd.key",
                     "--client-ca-file=/etc/secrets/kube.ca",
                     "--tls-cert-file=/etc/secrets/kube.crt",
-                    "--tls-private-key-file=/etc/ssl/kube.key",
+                    "--tls-private-key-file=/etc/secrets/kube.key",
                     "--service-account-key-file=/etc/secrets/service-account-pubkey.pem",
                     "--kubelet-certificate-authority=/etc/secrets/kube.ca",
                     "--kubelet-client-certificate=/etc/secrets/kube.crt",
@@ -963,7 +963,7 @@ write_files:
                       "readOnly": true
                     },
                     {
-                      "mountPath": "/etc/kubernetes/kubeconfig.yaml",
+                      "mountPath": "/etc/kubernetes/",
                       "name": "kubeconfig",
                       "readOnly": true
                     }

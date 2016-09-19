@@ -202,7 +202,26 @@ resource vaultx_secret etcd_apiserver_role {
         allowed_domains = "controller"
         allow_bare_domains = true
         allow_subdomains = false
-        allow_localhost = true
+        allow_localhost = false
+        server_flag = false
+        key_type = "ec"
+        key_bits = "256"
+        max_ttl = "48h"
+    }
+
+    depends_on = [ "vaultx_secret.etcd_pki_init" ]
+}
+
+resource vaultx_secret etcd_flannel_role {
+    path = "${var.env}-kube-etcd/roles/flannel"
+    ignore_read = true
+
+    data {
+        allowed_domains = "flannel"
+        allow_bare_domains = true
+        allow_subdomains = false
+        allow_localhost = false
+        server_flag = false
         key_type = "ec"
         key_bits = "256"
         max_ttl = "48h"
@@ -249,6 +268,9 @@ path "${var.env}-kube/issue/bootstrap" {
 }
 
 path "${var.env}-kube-etcd/issue/apiserver" {
+    capabilities = [ "create", "read", "update", "list" ]
+}
+path "${var.env}-kube-etcd/issue/flannel" {
     capabilities = [ "create", "read", "update", "list" ]
 }
 path "${var.env}-kube-etcd/issue/etcd" {
