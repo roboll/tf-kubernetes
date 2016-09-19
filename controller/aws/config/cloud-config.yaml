@@ -315,8 +315,7 @@ write_files:
         exit
       }
 
-      curl_opts="-sSf --resolve kubernetes:8080:127.0.0.1 \
-        -H 'Authorization: Bearer ${bootstrap_token}'"
+      curl_opts="-sSf --resolve kubernetes:8080:127.0.0.1"
 
       [ ! -f /etc/kubernetes/bootstrap/linked ] && {
         echo "linking bootstrap components as static pods"
@@ -325,7 +324,7 @@ write_files:
         touch /etc/kubernetes/bootstrap/linked
       }
 
-      until curl $curl_opts https://kubernetes/healthz; do
+      until curl $curl_opts http://kubernetes:8080/healthz; do
         echo "waiting for apiserver..."; sleep 5;
       done
       echo "apiserver ready"
@@ -365,6 +364,7 @@ write_files:
       [ ! -f /etc/kubernetes/system/role.json.created ] && {
         echo "creating from /etc/kubernetes/system/role.json"
         curl $curl_opts -H "Content-Type: application/json" -XPOST \
+          -H "Authorization: Bearer ${bootstrap_token}" \
           -d @/etc/kubernetes/system/role.json \
           http://kubernetes:8080/apis/rbac.authorization.k8s.io/v1alpha1/clusterroles
         touch /etc/kubernetes/system/role.json.created
@@ -373,6 +373,7 @@ write_files:
       [ ! -f /etc/kubernetes/system/role-binding.json.created ] && {
         echo "creating from /etc/kubernetes/system/role-binding.json"
         curl $curl_opts -H "Content-Type: application/json" -XPOST \
+          -H "Authorization: Bearer ${bootstrap_token}" \
           -d @/etc/kubernetes/system/role-binding.json \
           http://kubernetes:8080/apis/rbac.authorization.k8s.io/v1alpha1/clusterrolebindings
         touch /etc/kubernetes/system/role-binding.json.created
