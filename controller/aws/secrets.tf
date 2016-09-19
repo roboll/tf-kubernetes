@@ -27,7 +27,7 @@ resource vaultx_secret_backend kube_pki {
 
 resource vaultx_secret_backend kubelet_pki {
     type = "pki"
-    path = "${var.env}-kube"
+    path = "${var.env}-kube-kubelet"
     default_lease_ttl = "24h"
     max_lease_ttl = "43800h"
 }
