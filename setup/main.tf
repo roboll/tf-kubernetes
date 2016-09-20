@@ -153,7 +153,7 @@ data template_file kube_etcd_metrics {
     template = "${file("${path.module}/manifests/kube-etcd-metrics.yaml")}"
 
     vars {
-        etcd_pki_backend = "${var.etcd_pki_backend}"
+        etcd_pki = "${var.etcd_pki_backend}/issue/metrics"
     }
 }
 

@@ -60,7 +60,7 @@ spec:
             - -logtostderr=true
             - -tls-skip-verify=true
             - -output=/etc/secrets
-            - -cn=pki:${etcd_pki_backend}:common_name=metrics,fmt=cert,file=etcd
+            - -cn=pki:${etcd_pki}:common_name=metrics,fmt=cert,file=etcd
           env:
             - name: VAULT_ADDR
               valueFrom:
