@@ -42,3 +42,68 @@
 #        - name: ca-certs
 #          hostPath:
 #            path: /usr/share/ca-certificates
+#
+--
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: kube-ingress-dns
+  namespace: kube-system
+  labels:
+    app: kube-ingress
+    component: dns
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: kube-ingress
+        component: dns
+    spec:
+      containers:
+        - name: vault-sidekick
+          image: quay.io/roboll/vault-sidekick:v0.0.9.9
+          args:
+            - -logtostderr=true
+            - -output=/etc/secrets
+            - -cn=aws:${dns_path}:fmt=awsenv,file=aws
+          env:
+            - name: VAULT_ADDR
+              valueFrom:
+                secretKeyRef:
+                  name: vault
+                  key: address
+            - name: VAULT_CACERT
+              value: /etc/vault/ca.pem
+            - name: VAULT_SIDEKICK_AUTH
+              value: approle
+            - name: VAULT_SIDEKICK_ROLE_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: vault-role-kube-ingress-dns
+                  key: role-id
+            - name: VAULT_SIDEKICK_SECRET_ID
+              valueFrom:
+                secretKeyRef:
+                  name: vault-secret-kube-ingress-dns
+                  key: secret-id
+          volumeMounts:
+            - mountPath: /etc/secrets
+              name: secrets
+              readOnly: true
+        - name: route53-kubernetes
+          image: quay.io/roboll/route53-kubernetes:v1.1.5
+          cmd:
+            - /bin/sh
+            - -c
+            - "source /etc/secrets/aws && exec /opt/app/route53-kubernetes"
+          env:
+            - name: AWS_DEFAULT_REGION
+              value: us-east-1
+          volumeMounts:
+            - mountPath: /etc/secrets
+              name: secrets
+              readOnly: true
+      volumes:
+        - name: secrets
+          emptyDir: {}

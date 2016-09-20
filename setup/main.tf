@@ -115,6 +115,11 @@ ${data.template_file.etcd_vault_setup.rendered}
 FF
 chmod +x ${path.root}/kube/scripts/etcd-vault-setup.sh
 
+cat << "FF" > ${path.root}/kube/scripts/kube-ingress-dns-vault-setup.sh;
+${data.template_file.kube_ingress_dns_vault_setup.rendered}
+FF
+chmod +x ${path.root}/kube/scripts/kube-ingress-dns-vault-setup.sh
+
 EOF
     }
 }
@@ -164,6 +169,10 @@ data template_file kube_ingress_acme {
 
 data template_file kube_ingress_dns {
     template = "${file("${path.module}/manifests/kube-ingress-dns.yaml")}"
+
+    data {
+        dns_path = "${vaultx_secret.ingress_dns_policy.path}"
+    }
 }
 
 data template_file kube_ingress {
@@ -234,6 +243,17 @@ data template_file etcd_vault_setup {
         approle = "${var.env}-kube-etcd-metrics"
 
         name = "kube-etcd-metrics"
+        namespace = "kube-system"
+    }
+}
+
+data template_file kube_ingress_dns_vault_setup {
+    template = "${file("${path.module}/scripts/vault-setup.sh")}"
+
+    vars {
+        approle = "${var.env}-kube-ingress-dns"
+
+        name = "kube-ingress-dns"
         namespace = "kube-system"
     }
 }

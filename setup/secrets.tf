@@ -33,3 +33,53 @@ resource vaultx_secret etcd_approle {
         period = "12h"
     }
 }
+
+resource vaultx_secret ingress_dns_policy {
+    path = "aws/roles/${var.env}-kube-ingress-dns"
+
+    data {
+        policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": "route53:ListHostedZonesByName",
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "elasticloadbalancing:DescribeLoadBalancers",
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "route53:ChangeResourceRecordSets",
+            "Resource": "*"
+        }
+    ]
+}
+EOF
+    }
+}
+
+resource vaultx_policy ingress_dns_policy {
+    name = "${var.env}-kube-ingress-dns"
+
+    rules = <<EOF
+path "aws/roles/${var.env}-kube-ingress-dns" {
+    capabilities = [ "read", "list" ]
+}
+EOF
+}
+
+resource vaultx_secret ingress_dns_approle {
+    path = "auth/approle/role/${var.env}-kube-ingress-dns"
+    ignore_read = true
+
+    data {
+        policies = "${var.env}-kube-ingress-dns"
+        period = "12h"
+    }
+}
+
