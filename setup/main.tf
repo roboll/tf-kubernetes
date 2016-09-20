@@ -170,7 +170,7 @@ data template_file kube_ingress_acme {
 data template_file kube_ingress_dns {
     template = "${file("${path.module}/manifests/kube-ingress-dns.yaml")}"
 
-    data {
+    vars {
         dns_path = "${vaultx_secret.ingress_dns_policy.path}"
     }
 }
