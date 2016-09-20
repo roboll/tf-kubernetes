@@ -20,6 +20,7 @@ spec:
           image: quay.io/roboll/vault-sidekick:v0.0.9.9
           args:
             - -logtostderr=true
+            - -tls-skip-verify=true
             - -output=/etc/secrets
             - -cn=aws:${dns_path}:fmt=awsenv,file=aws
           env:
