@@ -34,8 +34,8 @@ resource null_resource render {
         kube_dashboard = "${data.template_file.kube_dashboard.rendered}"
         kube_etcd_metrics = "${data.template_file.kube_etcd_metrics.rendered}"
         kube_ingress_acme = "${data.template_file.kube_ingress_acme.rendered}"
-        kube_ingress_dns = "${data.template_file.kube_ingress_dns.rendered}"
-        kube_ingress = "${data.template_file.kube_ingress.rendered}"
+        kube_pvt_ingress_dns = "${data.template_file.kube_pvt_ingress_dns.rendered}"
+        kube_pvt_ingress = "${data.template_file.kube_pvt_ingress.rendered}"
         kube_proxy = "${data.template_file.kube_proxy.rendered}"
         kube_scheduler = "${data.template_file.kube_scheduler.rendered}"
         kube_service_account = "${data.template_file.kube_service_account.rendered}"
@@ -74,12 +74,12 @@ cat << "FF" > ${path.root}/kube/manifests/kube-ingress-acme.yaml;
 ${data.template_file.kube_ingress_acme.rendered}
 FF
 
-cat << "FF" > ${path.root}/kube/manifests/kube-ingress-dns.yaml;
-${data.template_file.kube_ingress_dns.rendered}
+cat << "FF" > ${path.root}/kube/manifests/kube-pvt-ingress-dns.yaml;
+${data.template_file.kube_pvt_ingress_dns.rendered}
 FF
 
-cat << "FF" > ${path.root}/kube/manifests/kube-ingress.yaml;
-${data.template_file.kube_ingress.rendered}
+cat << "FF" > ${path.root}/kube/manifests/kube-pvt-ingress.yaml;
+${data.template_file.kube_pvt_ingress.rendered}
 FF
 
 cat << "FF" > ${path.root}/kube/manifests/kube-proxy.yaml;
@@ -167,16 +167,16 @@ data template_file kube_ingress_acme {
     }
 }
 
-data template_file kube_ingress_dns {
-    template = "${file("${path.module}/manifests/kube-ingress-dns.yaml")}"
+data template_file kube_pvt_ingress_dns {
+    template = "${file("${path.module}/manifests/kube-pvt-ingress-dns.yaml")}"
 
     vars {
         dns_path = "${vaultx_secret.ingress_dns_policy.path}"
     }
 }
 
-data template_file kube_ingress {
-    template = "${file("${path.module}/manifests/kube-ingress.yaml")}"
+data template_file kube_pvt_ingress {
+    template = "${file("${path.module}/manifests/kube-pvt-ingress.yaml")}"
 }
 
 data template_file kube_proxy {
