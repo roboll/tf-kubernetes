@@ -251,12 +251,12 @@ write_files:
       set -eo pipefail
 
       log="/var/log/vault-ssh.log"
-      replace="auth\t\tsufficient\tpam_exec.so quiet expose_authtok log=$log /opt/bin/ssh-helper"
+      replace="auth\t\tsufficient\tpam_exec.so quiet expose_authtok log=$log /opt/bin/vault/vault-ssh-helper"
       cp /usr/lib64/pam.d/{sshd,system-remote-login,system-login,system-auth} /etc/pam.d/
       sed -r -i /etc/pam.d/system-auth -e "s,^(auth.*required.*pam_deny.so)$,$replace\\n\1,g"
 
-      /usr/bin/rkt fetch quay.io/roboll/vault-ssh-helper:v0.1.2
-      /usr/bin/rkt image extract --rootfs-only quay.io/roboll/vault-ssh-helper:v0.1.2 /opt/bin
+      rkt fetch --trust-keys-from-https quay.io/roboll/vault-ssh-helper:v0.1.2
+      rkt image extract --rootfs-only quay.io/roboll/vault-ssh-helper:v0.1.2 /opt/bin/vault
 
   - path: /etc/vault/ssh.hcl
     permissions: 0600
