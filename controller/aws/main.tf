@@ -209,7 +209,8 @@ resource coreos_cloudconfig cloud_config {
 }
 
 resource aws_instance controller {
-    ami = "${var.image_id}"
+    //ami = "${var.image_id}"
+    ami = "ami-3795e020"
     instance_type = "${var.instance_type}"
 
     key_name = "${var.ssh_keypair}"
@@ -228,14 +229,14 @@ resource aws_instance controller {
     /*root_block_device {
         volume_type = "${var.root_volume_type}"
         volume_size = "${var.root_volume_size}"
-    }*/
+    }
 
     ebs_block_device {
         device_name = "/dev/sdb"
         volume_type = "${var.etcd_volume_type}"
         volume_size = "${var.etcd_volume_size}"
         delete_on_termination = false
-    }
+    }*/
 
     tags {
         Name = "${var.env}-kube_controller${count.index}"
