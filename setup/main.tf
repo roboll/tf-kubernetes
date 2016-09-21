@@ -171,7 +171,7 @@ data template_file kube_pvt_ingress_dns {
     template = "${file("${path.module}/manifests/kube-pvt-ingress-dns.yaml")}"
 
     vars {
-        dns_path = "${vaultx_secret.ingress_dns_policy.path}"
+        dns_path = "aws/creds/${var.env}-kube-ingress-dns"
     }
 }
 
