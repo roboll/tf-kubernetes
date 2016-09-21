@@ -45,6 +45,7 @@ coreos:
         [Service]
         Type=oneshot
         ExecStart=/opt/bin/install-ssh-helper.sh
+        ExecStartPost=/usr/bin/rkt fetch quay.io/roboll/vault-ssh-helper:v0.1.2
 
     - name: vault-login.service
       command: start
