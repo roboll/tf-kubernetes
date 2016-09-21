@@ -265,7 +265,7 @@ write_files:
       vault_addr = "${vault_address}"
       tls_skip_verify = true
       allowed_roles = "*"
-      ssh_mount = "ssh"
+      ssh_mount_point = "ssh"
       ca_cert = "/etc/ssl/vault/ca.pem"
 
   - path: /opt/bin/host-rkt

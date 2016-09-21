@@ -135,6 +135,8 @@ write_files:
     content: |
       ${vault_ca_cert_pem}
 
+
+
   - path: /opt/bin/install-ssh-helper.sh
     permissions: 0700
     content: |
@@ -142,23 +144,13 @@ write_files:
       set -eo pipefail
 
       log="/var/log/vault-ssh.log"
-      replace="auth\t\tsufficient\tpam_exec.so quiet expose_authtok log=$log /opt/bin/ssh-helper"
+      cmd="/opt/bin/vault/vault-ssh-helper -config /etc/vault/ssh.hcl"
+      replace="auth\t\tsufficient\tpam_exec.so quiet expose_authtok log=$log $cmd"
       cp /usr/lib64/pam.d/{sshd,system-remote-login,system-login,system-auth} /etc/pam.d/
       sed -r -i /etc/pam.d/system-auth -e "s,^(auth.*required.*pam_deny.so)$,$replace\\n\1,g"
 
-  - path: /opt/bin/ssh-helper
-    permissions: 0700
-    content: |
-      #! /bin/bash
-      rkt run --inherit-env \
-        --volume config,kind=host,source=/etc/vault/ssh.hcl \
-        --mount volume=config,target=/etc/vault/ssh.hcl \
-        --volume ca,kind=host,source=/etc/ssl/vault/ca.pem \
-        --mount volume=ca,target=/etc/ssl/vault/ca.pem \
-        --volume resolv,kind=host,source=/etc/resolv.conf \
-        --mount volume=resolv,target=/etc/resolv.conf \
-        quay.io/roboll/vault-ssh-helper:v0.1.2 \
-        -- -config /etc/vault/ssh.hcl $@
+      rkt fetch --trust-keys-from-https quay.io/roboll/vault-ssh-helper:v0.1.2
+      rkt image extract --rootfs-only quay.io/roboll/vault-ssh-helper:v0.1.2 /opt/bin/vault
 
   - path: /etc/vault/ssh.hcl
     permissions: 0600
@@ -166,7 +158,7 @@ write_files:
       vault_addr = "${vault_address}"
       tls_skip_verify = true
       allowed_roles = "*"
-      ssh_mount = "ssh"
+      ssh_mount_point = "ssh"
       ca_cert = "/etc/ssl/vault/ca.pem"
 
   - path: /opt/bin/vault-login.sh
