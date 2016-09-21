@@ -2,7 +2,7 @@
 kind: Service
 apiVersion: v1
 metadata:
-  name: kube-ingress-default
+  name: kube-pvt-ingress-default
   namespace: kube-system
   labels:
     app: kube-ingress
@@ -13,24 +13,24 @@ spec:
     targetPort: 8080
     protocol: TCP
   selector:
-    app: kube-ingress
+    app: kube-pvt-ingress
     component: default-backend
 
 ---
 kind: Deployment
 apiVersion: extensions/v1beta1
 metadata:
-  name: kube-ingress-default
+  name: kube-pvt-ingress-default
   namespace: kube-system
   labels:
-    app: kube-ingress
+    app: kube-pvt-ingress
     component: default-backend
 spec:
   replicas: 1
   template:
     metadata:
       labels:
-        app: kube-ingress
+        app: kube-pvt-ingress
         component: default-backend
     spec:
       containers:
@@ -57,11 +57,13 @@ spec:
 kind: Service
 apiVersion: v1
 metadata:
-  name: kube-ingress-nginx
+  name: kube-pvt-ingress-nginx
   namespace: kube-system
   labels:
     app: kube-ingress
     component: nginx
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-internal: 0.0.0.0/0
 spec:
   type: LoadBalancer
   ports:
@@ -70,14 +72,14 @@ spec:
   - port: 443
     name: https
   selector:
-    app: kube-ingress
+    app: kube-pvt-ingress
     component: nginx
 
 ---
 kind: ConfigMap
 apiVersion: v1
 metadata:
-  name: kube-ingress-nginx
+  name: kube-pvt-ingress-nginx
   namespace: kube-system
 data:
   proxy-connect-timeout: "15"
@@ -90,17 +92,17 @@ data:
 kind: Deployment
 apiVersion: extensions/v1beta1
 metadata:
-  name: kube-ingress-nginx
+  name: kube-pvt-ingress-nginx
   namespace: kube-system
   labels:
-    app: kube-ingress
+    app: kube-pvt-ingress
     component: nginx
 spec:
   replicas: 1
   template:
     metadata:
       labels:
-        app: kube-ingress
+        app: kube-pvt-ingress
         component: nginx
     spec:
       containers:
@@ -127,5 +129,6 @@ spec:
             - containerPort: 443
           args:
             - /nginx-ingress-controller
-            - --default-backend-service=kube-system/kube-ingress-default
+            - --default-backend-service=kube-system/kube-pvt-ingress-default
             - --nginx-configmap=kube-system/kube-ingress-nginx
+            - --watch-namespace=kube-system

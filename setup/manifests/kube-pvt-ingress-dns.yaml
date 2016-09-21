@@ -2,7 +2,7 @@
 kind: Deployment
 apiVersion: extensions/v1beta1
 metadata:
-  name: kube-ingress-dns
+  name: kube-pvt-ingress-dns
   namespace: kube-system
   labels:
     app: kube-ingress
@@ -12,7 +12,7 @@ spec:
   template:
     metadata:
       labels:
-        app: kube-ingress
+        app: kube-pvt-ingress
         component: dns
     spec:
       containers:
@@ -49,12 +49,15 @@ spec:
             - mountPath: /etc/secrets
               name: secrets
               readOnly: true
-        - name: route53-kubernetes
+        - name: dns-controller
           image: quay.io/roboll/kube-dns-controller:latest
           command:
             - /bin/sh
             - -c
-            - "source /etc/secrets/aws.env && export AWS_SECRET_ACCESS_KEY && export AWS_ACCESS_KEY_ID && exec /dns-controller --publish-service=kube-system/kube-ingress-nginx"
+            - source /etc/secrets/aws.env &&
+              export AWS_SECRET_ACCESS_KEY &&
+              export AWS_ACCESS_KEY_ID &&
+              exec /dns-controller --publish-service=kube-system/kube-ingress-nginx
           env:
             - name: AWS_DEFAULT_REGION
               value: us-east-1
