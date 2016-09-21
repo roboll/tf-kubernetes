@@ -44,7 +44,7 @@ resource vaultx_secret ingress_dns_policy {
     "Statement": [
         {
             "Effect": "Allow",
-            "Action": "route53:ListHostedZonesByName",
+            "Action": "route53:List*",
             "Resource": "*"
         },
         {
