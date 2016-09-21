@@ -225,10 +225,10 @@ resource aws_instance controller {
     ]
 
     //ebs_optimized = "${var.ebs_optimized}"
-    root_block_device {
+    /*root_block_device {
         volume_type = "${var.root_volume_type}"
         volume_size = "${var.root_volume_size}"
-    }
+    }*/
 
     ebs_block_device {
         device_name = "/dev/sdb"
