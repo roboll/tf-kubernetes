@@ -224,7 +224,7 @@ resource aws_instance controller {
         "${aws_security_group.kube_controller.id}"
     ]
 
-    ebs_optimized = "${var.ebs_optimized}"
+    //ebs_optimized = "${var.ebs_optimized}"
     root_block_device {
         volume_type = "${var.root_volume_type}"
         volume_size = "${var.root_volume_size}"
