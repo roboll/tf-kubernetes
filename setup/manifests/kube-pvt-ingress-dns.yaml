@@ -48,7 +48,6 @@ spec:
           volumeMounts:
             - mountPath: /etc/secrets
               name: secrets
-              readOnly: true
         - name: dns-controller
           image: quay.io/roboll/kube-dns-controller:latest
           command:
