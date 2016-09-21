@@ -209,8 +209,7 @@ resource coreos_cloudconfig cloud_config {
 }
 
 resource aws_instance controller {
-    //ami = "${var.image_id}"
-    ami = "ami-3795e020"
+    ami = "${var.image_id}"
     instance_type = "${var.instance_type}"
 
     key_name = "${var.ssh_keypair}"
