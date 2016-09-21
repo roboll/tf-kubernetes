@@ -225,8 +225,8 @@ resource aws_instance controller {
         "${aws_security_group.kube_controller.id}"
     ]
 
-    //ebs_optimized = "${var.ebs_optimized}"
-    /*root_block_device {
+    ebs_optimized = "${var.ebs_optimized}"
+    root_block_device {
         volume_type = "${var.root_volume_type}"
         volume_size = "${var.root_volume_size}"
     }
@@ -236,7 +236,7 @@ resource aws_instance controller {
         volume_type = "${var.etcd_volume_type}"
         volume_size = "${var.etcd_volume_size}"
         delete_on_termination = false
-    }*/
+    }
 
     tags {
         Name = "${var.env}-kube_controller${count.index}"
