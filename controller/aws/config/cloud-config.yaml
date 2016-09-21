@@ -45,7 +45,6 @@ coreos:
         [Service]
         Type=oneshot
         ExecStart=/opt/bin/install-ssh-helper.sh
-        ExecStartPost=/usr/bin/rkt fetch quay.io/roboll/vault-ssh-helper:v0.1.2
 
     - name: vault-login.service
       command: start
@@ -256,19 +255,8 @@ write_files:
       cp /usr/lib64/pam.d/{sshd,system-remote-login,system-login,system-auth} /etc/pam.d/
       sed -r -i /etc/pam.d/system-auth -e "s,^(auth.*required.*pam_deny.so)$,$replace\\n\1,g"
 
-  - path: /opt/bin/ssh-helper
-    permissions: 0700
-    content: |
-      #! /bin/bash
-      rkt run --inherit-env \
-        --volume config,kind=host,source=/etc/vault/ssh.hcl \
-        --mount volume=config,target=/etc/vault/ssh.hcl \
-        --volume ca,kind=host,source=/etc/ssl/vault/ca.pem \
-        --mount volume=ca,target=/etc/ssl/vault/ca.pem \
-        --volume resolv,kind=host,source=/etc/resolv.conf \
-        --mount volume=resolv,target=/etc/resolv.conf \
-        quay.io/roboll/vault-ssh-helper:v0.1.2 \
-        -- -config /etc/vault/ssh.hcl $@
+      /usr/bin/rkt fetch quay.io/roboll/vault-ssh-helper:v0.1.2
+      /usr/bin/rkt image extract --rootfs-only quay.io/roboll/vault-ssh-helper:v0.1.2 /opt/bin
 
   - path: /etc/vault/ssh.hcl
     permissions: 0600
