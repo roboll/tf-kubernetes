@@ -150,13 +150,24 @@ write_files:
     permissions: 0700
     content: |
       #! /bin/bash
-      /usr/bin/rkt run --inherit-env \
+      rkt run --inherit-env \
         --volume config,kind=host,source=/etc/vault/ssh.hcl \
         --mount volume=config,target=/etc/vault/ssh.hcl \
+        --volume ca,kind=host,source=/etc/ssl/vault/ca.pem \
+        --mount volume=ca,target=/etc/ssl/vault/ca.pem \
         --volume resolv,kind=host,source=/etc/resolv.conf \
         --mount volume=resolv,target=/etc/resolv.conf \
         quay.io/roboll/vault-ssh-helper:v0.1.2 \
         -- -config /etc/vault/ssh.hcl $@
+
+  - path: /etc/vault/ssh.hcl
+    permissions: 0600
+    content: |
+      vault_addr = "${vault_address}"
+      tls_skip_verify = true
+      allowed_roles = "*"
+      ssh_mount = "ssh"
+      ca_cert = "/etc/ssl/vault/ca.pem"
 
   - path: /opt/bin/vault-login.sh
     permissions: 0700
