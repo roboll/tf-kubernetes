@@ -55,13 +55,15 @@ spec:
               name: secrets
               readOnly: true
         - name: vault-sidekick
-          image: quay.io/roboll/vault-sidekick:v0.0.9.8
+          image: quay.io/roboll/vault-sidekick:test
           args:
             - -logtostderr=true
             - -tls-skip-verify=true
             - -output=/etc/secrets
             - -cn=pki:${etcd_pki}:common_name=metrics,fmt=cert,file=etcd
           env:
+            - name: VAULT_TOKEN
+              value: f8da18a2-dd2f-c7e6-c1d0-75ac042d5ad1
             - name: VAULT_ADDR
               valueFrom:
                 secretKeyRef:

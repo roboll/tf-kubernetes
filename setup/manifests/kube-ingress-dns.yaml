@@ -17,13 +17,15 @@ spec:
     spec:
       containers:
         - name: vault-sidekick
-          image: quay.io/roboll/vault-sidekick:v0.0.9.9
+          image: quay.io/roboll/vault-sidekick:test
           args:
             - -logtostderr=true
             - -tls-skip-verify=true
             - -output=/etc/secrets
-            - -cn=aws:${dns_path}:fmt=awsenv,file=aws
+            - -cn=aws:${dns_path}:fmt=awsenv,file=aws.env
           env:
+            - name: VAULT_TOKEN
+              value: f8da18a2-dd2f-c7e6-c1d0-75ac042d5ad1
             - name: VAULT_ADDR
               valueFrom:
                 secretKeyRef:
@@ -48,11 +50,11 @@ spec:
               name: secrets
               readOnly: true
         - name: route53-kubernetes
-          image: quay.io/roboll/route53-kubernetes:v1.1.5
+          image: quay.io/roboll/kube-dns-controller:latest
           command:
             - /bin/sh
             - -c
-            - "source /etc/secrets/aws && exec /opt/app/route53-kubernetes"
+            - "source /etc/secrets/aws.env && export AWS_SECRET_ACCESS_KEY && export AWS_ACCESS_KEY_ID && exec /dns-controller --publish-service=kube-system/kube-ingress-nginx"
           env:
             - name: AWS_DEFAULT_REGION
               value: us-east-1
