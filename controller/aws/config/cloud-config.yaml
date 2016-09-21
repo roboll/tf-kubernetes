@@ -259,8 +259,13 @@ write_files:
     permissions: 0700
     content: |
       #! /bin/bash
-      CMD="docker run -i --rm --net=host -e PAM_USER=$PAM_USER ${ssh_helper}"
-      eval $CMD $*
+      rkt run --inherit-env \
+        --volume config,kind=host,source=/etc/vault/ssh.hcl \
+        --mount volume=config,target=/etc/vault/ssh.hcl \
+        --volume resolv,kind=host,source=/etc/resolv.conf \
+        --mount volume=resolv,target=/etc/resolv.conf \
+        quay.io/roboll/vault-ssh-helper:v0.1.2 \
+        -- -config /etc/vault/ssh.hcl $@
 
   - path: /opt/bin/host-rkt
     permissions: 0755

@@ -10,7 +10,7 @@ data:
       scrape_interval: 15s
 
     scrape_configs:
-    # apiserver service
+    # apiserver
     - job_name: "kubernetes-apiserver"
       scheme: https
 
@@ -24,7 +24,7 @@ data:
         in_cluster: true
         role: "apiserver"
 
-    # apiserver service
+    # nodes
     - job_name: "kubernetes-nodes"
       scheme: https
 
@@ -220,6 +220,7 @@ data:
 
       tls_config:
         ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        server_name: "kubernetes"
       bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
 
       kubernetes_sd_configs:
