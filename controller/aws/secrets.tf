@@ -83,7 +83,7 @@ resource vaultx_secret etcd_pki_init {
     ignore_delete = true
 
     data {
-        common_name = "Kubernetes CA - etcd ${var.fqdn}"
+        common_name = "Kubernetes CA - etcd ${var.domain}"
         key_type = "ec"
         key_bits = "521"
         ttl = "43800h"
@@ -111,7 +111,7 @@ resource vaultx_secret kube_apiserver_role {
     ignore_read = true
 
     data {
-        allowed_domains = "${var.fqdn},kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster.local"
+        allowed_domains = "kube.${var.domain},kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster.local"
         allow_bare_domains = true
         allow_subdomains = false
         allow_localhost = false
@@ -128,7 +128,7 @@ resource vaultx_secret kube_flannel_role {
     ignore_read = true
 
     data {
-        allowed_domains = "${var.fqdn},kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster.local"
+        allowed_domains = "kube.${var.domain},kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster.local"
         allow_bare_domains = true
         allow_subdomains = false
         allow_localhost = false

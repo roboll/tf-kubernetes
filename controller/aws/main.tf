@@ -11,7 +11,7 @@ variable vault_address {}
 variable vault_ca_cert_pem {}
 variable vault_curl_opts { default = "" }
 
-variable fqdn {}
+variable domain {}
 variable dns_zone_id {}
 variable security_groups { type = "list" }
 variable internal_elb { default = true }
@@ -179,7 +179,7 @@ resource coreos_cloudconfig cloud_config {
         instance_name = "${element(null_resource.etcd.*.triggers.name, count.index)}"
         etcd_peers = "${join(",",formatlist("%s=https://%s:2380", null_resource.etcd.*.triggers.name, null_resource.etcd.*.triggers.ip))}"
 
-        kube_fqdn = "${var.fqdn}"
+        kube_fqdn = "kube.${var.domain}"
         kube_version = "${var.kube_version}"
         hyperkube = "${var.hyperkube}"
 
@@ -299,7 +299,7 @@ resource aws_elb kube_controller {
 
 resource aws_route53_record kube {
     zone_id = "${var.dns_zone_id}"
-    name = "${var.fqdn}"
+    name = "kube.${var.domain}"
     type = "A"
 
     alias {
@@ -307,6 +307,18 @@ resource aws_route53_record kube {
         zone_id = "${aws_elb.kube_controller.zone_id}"
         evaluate_target_health = false
     }
+}
+
+resource aws_route53_record hostnames {
+    zone_id = "${var.dns_zone_id}"
+    name = "controller${count.index}.${var.domain}"
+
+    type = "A"
+    ttl = "60"
+
+    records = [ "${element(aws_instance.controller.*.private_ip, count.index)}" ]
+
+    count = "${var.replicas}"
 }
 
 output fqdn { value = "${aws_route53_record.kube.fqdn}" }
