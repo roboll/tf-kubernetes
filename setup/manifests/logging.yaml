@@ -321,6 +321,16 @@ spec:
     component: kibana
 
 ---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: logging-kibana
+  namespace: kube-system
+data:
+  kibana.yml: |-
+    server.basePath: "/kibana"
+
+---
 kind: Deployment
 apiVersion: extensions/v1beta1
 metadata:
@@ -341,7 +351,16 @@ spec:
         - name: kibana
           image: kibana:4.6
           args:
+            - --config /etc/kibana/kibana.yml
             - --elasticsearch=http://logging-elasticsearch:9200
           ports:
             - containerPort: 5601
               name: ui
+          volumeMounts:
+            - name: config
+              mountPath: /etc/kibana/
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: logging-kibana
