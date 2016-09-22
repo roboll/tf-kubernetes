@@ -281,7 +281,7 @@ data:
       - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
         action: replace
         regex: (.+):(?:\d+);(\d+)
-        replacement: ${1}:${2}
+        replacement: $1:$2
         target_label: __address__
       - action: labelmap
         regex: __meta_kubernetes_pod_label_(.+)
@@ -316,14 +316,17 @@ data:
           - "${vpn_address}"
 
       relabel_configs:
+        - source_labels: [__meta_dns_name]
+          target_label: dns_name
+          replacement: $1
         - source_labels: [__address__]
           regex: (.*)(:80)?
           target_label: __param_target
-          replacement: ${1}
+          replacement: $1
         - source_labels: [__param_target]
           regex: (.*)
           target_label: instance
-          replacement: ${1}
+          replacement: $1
         - target_label: __address__
           replacement: metrics-blackbox
 
@@ -340,14 +343,17 @@ data:
           port: 80
 
       relabel_configs:
+        - source_labels: [__meta_dns_name]
+          target_label: dns_name
+          replacement: $1
         - source_labels: [__address__]
           regex: (.*)(:80)?
           target_label: __param_target
-          replacement: ${1}
+          replacement: $1
         - source_labels: [__param_target]
           regex: (.*)
           target_label: instance
-          replacement: ${1}
+          replacement: $1
         - target_label: __address__
           replacement: metrics-blackbox
 
@@ -363,14 +369,17 @@ data:
           - "${vault_address}/v1/sys/health"
 
       relabel_configs:
+        - source_labels: [__meta_dns_name]
+          target_label: dns_name
+          replacement: $1
         - source_labels: [__address__]
           regex: (.*)(:80)?
           target_label: __param_target
-          replacement: ${1}
+          replacement: $1
         - source_labels: [__param_target]
           regex: (.*)
           target_label: instance
-          replacement: ${1}
+          replacement: $1
         - target_label: __address__
           replacement: metrics-blackbox
 
@@ -381,3 +390,8 @@ data:
         - names: ${vault_hostnames}
           type: "A"
           port: 9102
+
+      relabel_configs:
+        - source_labels: [__meta_dns_name]
+          target_label: dns_name
+          replacement: $1
