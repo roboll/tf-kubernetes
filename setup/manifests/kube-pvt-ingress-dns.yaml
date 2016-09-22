@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: vault-sidekick
-          image: quay.io/roboll/vault-sidekick:test
+          image: quay.io/roboll/vault-sidekick:v0.0.9.11
           args:
             - -logtostderr=true
             - -tls-skip-verify=true
@@ -31,7 +31,7 @@ spec:
                   key: address
             - name: VAULT_CACERT
               value: /etc/vault/ca.pem
-            - name: VAULT_SIDEKICK_AUTH_PLUGIN
+            - name: VAULT_SIDEKICK_AUTH_METHOD
               value: approle
             - name: VAULT_SIDEKICK_ROLE_ID
               valueFrom:
