@@ -13,10 +13,10 @@ variable acme_email {}
 variable acme_url { default = "" }
 
 variable vpn_address {}
-variable vpn_hostnames { type = "list "}
+variable vpn_hostnames { type = "list" }
 
 variable vault_address {}
-variable vault_hostnames { type = "list "}
+variable vault_hostnames { type = "list" }
 
 provider aws {
     region = "${var.region}"
