@@ -67,7 +67,7 @@ resource vaultx_policy ingress_dns_policy {
     name = "${var.env}-kube-ingress-dns"
 
     rules = <<EOF
-path "aws/roles/${var.env}-kube-ingress-dns" {
+path "aws/creds/${var.env}-kube-ingress-dns" {
     capabilities = [ "read", "list" ]
 }
 EOF
