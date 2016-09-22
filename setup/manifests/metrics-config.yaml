@@ -324,9 +324,6 @@ data:
           regex: (.*)
           target_label: instance
           replacement: ${1}
-        - source_labels: [__address__]
-          target_label: job
-          replacement: $1
         - target_label: __address__
           replacement: metrics-blackbox
 
@@ -351,9 +348,6 @@ data:
           regex: (.*)
           target_label: instance
           replacement: ${1}
-        - source_labels: [__address__]
-          target_label: job
-          replacement: $1
         - target_label: __address__
           replacement: metrics-blackbox
 
