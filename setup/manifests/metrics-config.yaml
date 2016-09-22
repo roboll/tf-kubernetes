@@ -303,8 +303,8 @@ data:
         - names: ${vault_hostnames}
         type: "A"
 
-    # vpn mongo metrics
-    - job_name: "vpn-mongo"
+    # vpn metrics
+    - job_name: "vpn"
 
       dns_sd_configs:
         - names: ${vpn_hostnames}
