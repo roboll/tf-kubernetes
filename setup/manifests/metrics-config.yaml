@@ -315,6 +315,28 @@ data:
         - targets:
           - "${vpn_address}"
 
+      relabel_configs:
+        - source_labels: [__address__]
+          regex: (.*)(:80)?
+          target_label: __param_target
+          replacement: ${1}
+        - source_labels: [__param_target]
+          regex: (.*)
+          target_label: instance
+          replacement: ${1}
+        - source_labels: [__address__]
+          target_label: job
+          replacement: $1
+        - target_label: __address__
+          replacement: metrics-blackbox
+
+    - job_name: "vpn-instances"
+
+      metrics_path: /probe
+
+      params:
+        module: [http_2xx]
+
       dns_sd_configs:
         - names: ${vpn_hostnames}
           type: "A"
@@ -359,7 +381,7 @@ data:
           replacement: metrics-blackbox
 
     # vault metrics
-    - job_name: "vault"
+    - job_name: "vault-instances"
 
       dns_sd_configs:
         - names: ${vault_hostnames}
