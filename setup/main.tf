@@ -1,7 +1,7 @@
 variable env {}
 variable region {}
 
-variable fqdn {}
+variable domain {}
 variable kube_fqdn {}
 
 variable hyperkube {}
@@ -145,7 +145,7 @@ data template_file kube_dashboard {
     template = "${file("${path.module}/manifests/kube-dashboard.yaml")}"
 
     vars {
-        fqdn = "${var.fqdn}"
+        domain = "${var.domain}"
     }
 }
 
@@ -208,7 +208,7 @@ data template_file logging {
     template = "${file("${path.module}/manifests/logging.yaml")}"
 
     vars {
-        fqdn = "${var.fqdn}"
+        domain = "${var.domain}"
     }
 }
 
@@ -232,7 +232,7 @@ data template_file metrics {
     template = "${file("${path.module}/manifests/metrics.yaml")}"
 
     vars {
-        fqdn = "${var.fqdn}"
+        domain = "${var.domain}"
     }
 }
 

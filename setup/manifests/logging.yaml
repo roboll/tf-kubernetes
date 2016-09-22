@@ -291,10 +291,10 @@ metadata:
 spec:
   #  tls:
   #  - hosts:
-  #    - kibana.${fqdn}
+  #    - kibana.${domain}
   #    secretName: logging-kibana-acme-tls
   rules:
-    - host: tools.${fqdn}
+    - host: tools.${domain}
       http:
         paths:
           - path: /kibana/
