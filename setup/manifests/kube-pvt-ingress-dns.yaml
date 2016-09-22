@@ -47,7 +47,7 @@ spec:
             - mountPath: /etc/secrets
               name: secrets
         - name: dns-controller
-          image: quay.io/roboll/kube-dns-controller:latest
+          image: quay.io/roboll/kube-dns-controller:v0.0.1
           command:
             - /bin/sh
             - -c
