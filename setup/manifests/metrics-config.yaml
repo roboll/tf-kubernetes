@@ -296,30 +296,15 @@ data:
         target_label: job
         replacement: $1-$2-pod
 
-    # vault metrics
-    - job_name: "vault"
-
-      dns_sd_configs:
-        - names: ${vault_hostnames}
-        type: "A"
-
-    # vpn metrics
-    - job_name: "vpn"
-
-      dns_sd_configs:
-        - names: ${vpn_hostnames}
-        type: "A"
-        port: 9102
-
     # vpn mongo metrics
     - job_name: "vpn-mongo"
 
       dns_sd_configs:
         - names: ${vpn_mongo_hostnames}
-        type: "A"
-        port: 9102
+          type: "A"
+          port: 9001
 
-    - job_name: "blackbox"
+    - job_name: "vpn"
 
       metrics_path: /probe
 
@@ -329,7 +314,11 @@ data:
       static_configs:
         - targets:
           - "${vpn_address}"
-          - "${vault_address}/v1/sys/health"
+
+      dns_sd_configs:
+        - names: ${vpn_hostnames}
+          type: "A"
+          port: 80
 
       relabel_configs:
         - source_labels: [__address__]
@@ -345,3 +334,34 @@ data:
           replacement: $1
         - target_label: __address__
           replacement: metrics-blackbox
+
+    - job_name: "vault"
+
+      metrics_path: /probe
+
+      params:
+        module: [http_2xx]
+
+      static_configs:
+        - targets:
+          - "${vault_address}/v1/sys/health"
+
+      relabel_configs:
+        - source_labels: [__address__]
+          regex: (.*)(:80)?
+          target_label: __param_target
+          replacement: ${1}
+        - source_labels: [__param_target]
+          regex: (.*)
+          target_label: instance
+          replacement: ${1}
+        - target_label: __address__
+          replacement: metrics-blackbox
+
+    # vault metrics
+    - job_name: "vault"
+
+      dns_sd_configs:
+        - names: ${vault_hostnames}
+          type: "A"
+          port: 9102
