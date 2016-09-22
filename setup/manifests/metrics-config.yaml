@@ -316,9 +316,8 @@ data:
           - "${vpn_address}"
 
       relabel_configs:
-        - source_labels: [__meta_dns_name]
-          target_label: dns_name
-          replacement: $1
+        - target_label: dns_name
+          replacement: "${vpn_address}"
         - source_labels: [__address__]
           regex: (.*)(:80)?
           target_label: __param_target
@@ -369,9 +368,8 @@ data:
           - "${vault_address}/v1/sys/health"
 
       relabel_configs:
-        - source_labels: [__meta_dns_name]
-          target_label: dns_name
-          replacement: $1
+        - target_label: dns_name
+          replacement: "${vpn_address}"
         - source_labels: [__address__]
           regex: (.*)(:80)?
           target_label: __param_target
