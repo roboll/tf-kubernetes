@@ -130,5 +130,5 @@ spec:
           args:
             - /nginx-ingress-controller
             - --default-backend-service=kube-system/kube-pvt-ingress-default
-            - --nginx-configmap=kube-system/kube-ingress-nginx
+            - --nginx-configmap=kube-system/kube-pvt-ingress-nginx
             - --watch-namespace=kube-system
