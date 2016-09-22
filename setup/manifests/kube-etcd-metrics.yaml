@@ -62,8 +62,6 @@ spec:
             - -output=/etc/secrets
             - -cn=pki:${etcd_pki}:common_name=metrics,fmt=cert,file=etcd
           env:
-            - name: VAULT_TOKEN
-              value: f8da18a2-dd2f-c7e6-c1d0-75ac042d5ad1
             - name: VAULT_ADDR
               valueFrom:
                 secretKeyRef:
@@ -71,7 +69,7 @@ spec:
                   key: address
             - name: VAULT_CACERT
               value: /etc/vault/ca.pem
-            - name: VAULT_SIDEKICK_AUTH
+            - name: VAULT_SIDEKICK_AUTH_PLUGIN
               value: approle
             - name: VAULT_SIDEKICK_ROLE_ID
               valueFrom:
