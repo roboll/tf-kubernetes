@@ -300,19 +300,13 @@ data:
     - job_name: "vault"
 
       dns_sd_configs:
-        - names:
-          - "${vault_metrics_address}"
-          type: "A"
-          port: 9102
+        - names: ${vault_metrics_addresses}
 
     # vpn mongo metrics
     - job_name: "vpn-mongo"
 
       dns_sd_configs:
-        - names:
-          - "${vpn_mongo_metrics_address}"
-          type: "A"
-          port: 9001
+        - names: ${vpn_mongo_metrics_addresses}
 
     - job_name: "blackbox"
 

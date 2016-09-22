@@ -13,10 +13,10 @@ variable acme_email {}
 variable acme_url { default = "" }
 
 variable vpn_address {}
-variable vpn_mongo_metrics_address {}
+variable vpn_mongo_metrics_addresses { type = "list" }
 
 variable vault_address {}
-variable vault_metrics_address {}
+variable vault_metrics_addresses { type = "list" }
 
 provider aws {
     region = "${var.region}"
@@ -221,10 +221,10 @@ data template_file metrics_config {
 
     vars {
         vpn_address = "${var.vpn_address}"
-        vpn_mongo_metrics_address = "${var.vpn_mongo_metrics_address}"
+        vpn_mongo_metrics_address = "${jsonencode(var.vpn_mongo_metrics_addresses)}"
 
         vault_address = "${var.vault_address}"
-        vault_metrics_address = "${var.vault_metrics_address}"
+        vault_metrics_address = "${jsonencode(var.vault_metrics_addresses)}"
     }
 }
 
