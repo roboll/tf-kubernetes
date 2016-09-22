@@ -14,11 +14,9 @@ variable acme_url { default = "" }
 
 variable vpn_address {}
 variable vpn_hostnames { type = "list "}
-variable vpn_mongo_metrics_dns { type = "list" }
 
 variable vault_address {}
 variable vault_hostnames { type = "list "}
-variable vault_metrics_dns { type = "list" }
 
 provider aws {
     region = "${var.region}"
@@ -224,11 +222,9 @@ data template_file metrics_config {
     vars {
         vpn_address = "${var.vpn_address}"
         vpn_hostnames = "${jsonencode(var.vpn_hostnames)}"
-        vpn_mongo_metrics_address = "${jsonencode(var.vpn_mongo_metrics_addresses)}"
 
         vault_address = "${var.vault_address}"
         vault_hostnames = "${jsonencode(var.vault_hostnames)}"
-        vault_metrics_address = "${jsonencode(var.vault_metrics_addresses)}"
     }
 }
 
