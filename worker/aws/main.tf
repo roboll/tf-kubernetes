@@ -5,7 +5,6 @@ variable vpc {}
 variable subnets { type = "list" }
 
 variable ssh_keypair {}
-variable ssh_helper_image {}
 
 variable vault_address {}
 variable vault_ca_cert_pem {}
@@ -140,8 +139,6 @@ resource coreos_cloudconfig cloud_config {
 
     vars {
         worker_class = "${var.worker_class}"
-
-        ssh_helper = "${var.ssh_helper_image}"
 
         kube_fqdn = "${var.controller_fqdn}"
         kube_version = "${var.kube_version}"

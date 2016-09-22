@@ -6,7 +6,6 @@ variable subnets { type = "list" }
 variable subnet_cidrs { type = "list" }
 
 variable ssh_keypair {}
-variable ssh_helper_image {}
 
 variable vault_address {}
 variable vault_ca_cert_pem {}
@@ -179,8 +178,6 @@ resource coreos_cloudconfig cloud_config {
     vars {
         instance_name = "${element(null_resource.etcd.*.triggers.name, count.index)}"
         etcd_peers = "${join(",",formatlist("%s=https://%s:2380", null_resource.etcd.*.triggers.name, null_resource.etcd.*.triggers.ip))}"
-
-        ssh_helper = "${var.ssh_helper_image}"
 
         kube_fqdn = "${var.fqdn}"
         kube_version = "${var.kube_version}"
