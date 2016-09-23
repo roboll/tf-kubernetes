@@ -176,6 +176,7 @@ resource coreos_cloudconfig cloud_config {
     template = "${file("${path.module}/config/cloud-config.yaml")}"
 
     vars {
+        domain = "${var.domain}"
         instance_name = "${element(null_resource.etcd.*.triggers.name, count.index)}"
         etcd_peers = "${join(",",formatlist("%s=https://%s:2380", null_resource.etcd.*.triggers.name, null_resource.etcd.*.triggers.ip))}"
 
