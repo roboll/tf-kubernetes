@@ -1,5 +1,5 @@
 #cloud-config
-hostname: ${var.instance_name}.${var.domain}
+hostname: ${instance_name}.${domain}
 coreos:
   update:
     reboot-strategy: etcd-lock
