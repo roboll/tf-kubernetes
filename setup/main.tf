@@ -77,19 +77,19 @@ ${data.template_file.kube_ingress_acme.rendered}
 FF
 
 cat << "FF" > ${path.root}/kube/manifests/kube-ingress-nginx-dns.yaml;
-${data.template_file.kube_pvt_ingress_dns.rendered}
+${data.template_file.kube_ingress_nginx_dns.rendered}
 FF
 
 cat << "FF" > ${path.root}/kube/manifests/kube-ingress-nginx.yaml;
-${data.template_file.kube_pvt_ingress.rendered}
+${data.template_file.kube_ingress_nginx.rendered}
 FF
 
 cat << "FF" > ${path.root}/kube/manifests/kube-ingress-traefik-dns.yaml;
-${data.template_file.kube_pvt_ingress_dns.rendered}
+${data.template_file.kube_ingress_traefik_dns.rendered}
 FF
 
 cat << "FF" > ${path.root}/kube/manifests/kube-ingress-traefik.yaml;
-${data.template_file.kube_pvt_ingress.rendered}
+${data.template_file.kube_ingress_traefik.rendered}
 FF
 
 cat << "FF" > ${path.root}/kube/manifests/kube-proxy.yaml;
