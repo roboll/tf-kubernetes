@@ -43,15 +43,20 @@ coreos:
     - name: install-ssh-helper.service
       command: start
       content: |
+        [Unit]
+        ConditionPathExists=!/opt/bin/vault/vault-ssh-helper
+
         [Service]
         Type=oneshot
         ExecStart=/opt/bin/install-ssh-helper.sh
+        ExecStartPost=/usr/bin/rkt fetch quay.io/roboll/vault-ssh-helper:v0.1.2
 
     - name: vault-login.service
       command: start
       content: |
         [Service]
         Type=oneshot
+        FailureAction=reboot
         RemainAfterExit=yes
         ExecStart=/opt/bin/vault-login.sh
 
@@ -59,6 +64,7 @@ coreos:
       content: |
         [Service]
         Type=simple
+        FailureAction=reboot
         ExecStart=/opt/bin/vault-renew-token.sh
 
     - name: vault-renew-token.timer
@@ -80,6 +86,7 @@ coreos:
 
         [Service]
         Type=simple
+        FailureAction=reboot
 
         ExecStart=/opt/bin/etcd-certs.sh
         ExecStartPost=/bin/bash -c "systemctl kill -s HUP etcd2.service || true"
@@ -184,6 +191,8 @@ coreos:
 
         [Service]
         Type=simple
+        FailureAction=reboot
+
         ExecStart=/opt/bin/kubelet-certs.sh
         ExecStartPost=/bin/bash -c "systemctl kill -s HUP kubelet.service || true"
 
@@ -202,6 +211,7 @@ coreos:
 
         [Service]
         Restart=always
+        FailureAction=reboot
         RestartSec=10
         TimeoutStartSec=300
 
@@ -264,9 +274,7 @@ write_files:
     permissions: 0600
     content: |
       vault_addr = "${vault_address}"
-      tls_skip_verify = true
       allowed_roles = "*"
-      ssh_mount_point = "ssh"
       ca_cert = "/etc/ssl/vault/ca.pem"
 
   - path: /opt/bin/host-rkt
