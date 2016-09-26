@@ -233,6 +233,7 @@ coreos:
           --api-servers=https://${kube_fqdn} \
           --tls-cert-file=/etc/ssl/kubelet/cert.pem \
           --tls-private-key-file=/etc/ssl/kubelet/privkey.pem \
+          --cloud-provider='' \
           --kubeconfig=/etc/kubernetes/kubelet/kubeconfig.yaml \
           --config=/etc/kubernetes/manifests \
           --cluster-dns=10.0.0.10 \
