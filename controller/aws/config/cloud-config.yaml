@@ -64,7 +64,6 @@ coreos:
       content: |
         [Service]
         Type=simple
-        FailureAction=reboot
         ExecStart=/opt/bin/vault-renew-token.sh
 
     - name: vault-renew-token.timer
@@ -86,8 +85,6 @@ coreos:
 
         [Service]
         Type=simple
-        FailureAction=reboot
-
         ExecStart=/opt/bin/etcd-certs.sh
         ExecStartPost=/bin/bash -c "systemctl kill -s HUP etcd2.service || true"
         ExecStartPost=/bin/bash -c "systemctl kill -s HUP flanneld.service || true"
@@ -191,8 +188,6 @@ coreos:
 
         [Service]
         Type=simple
-        FailureAction=reboot
-
         ExecStart=/opt/bin/kubelet-certs.sh
         ExecStartPost=/bin/bash -c "systemctl kill -s HUP kubelet.service || true"
 
@@ -311,6 +306,7 @@ write_files:
       token="$(cat /etc/vault/token)"
       curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
         -X POST -H "X-Vault-Token: $token" \
+        -d '{"increment": "24h"}' \
         ${vault_address}/v1/auth/token/renew-self > /dev/null
 
   - path: /opt/bin/kube-ca.sh
