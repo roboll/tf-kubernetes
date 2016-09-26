@@ -177,16 +177,28 @@ data template_file kube_ingress_acme {
     }
 }
 
-data template_file kube_pvt_ingress_dns {
-    template = "${file("${path.module}/manifests/kube-pvt-ingress-dns.yaml")}"
+data template_file kube_ingress_nginx_dns {
+    template = "${file("${path.module}/manifests/kube-ingress-nginx-dns.yaml")}"
 
     vars {
         dns_path = "aws/creds/${var.env}-kube-ingress-dns"
     }
 }
 
-data template_file kube_pvt_ingress {
-    template = "${file("${path.module}/manifests/kube-pvt-ingress.yaml")}"
+data template_file kube_ingress_nginx {
+    template = "${file("${path.module}/manifests/kube-ingress-nginx.yaml")}"
+}
+
+data template_file kube_ingress_traefik_dns {
+    template = "${file("${path.module}/manifests/kube-ingress-traefik-dns.yaml")}"
+
+    vars {
+        dns_path = "aws/creds/${var.env}-kube-ingress-dns"
+    }
+}
+
+data template_file kube_ingress_traefik {
+    template = "${file("${path.module}/manifests/kube-ingress-traefik.yaml")}"
 }
 
 data template_file kube_proxy {
