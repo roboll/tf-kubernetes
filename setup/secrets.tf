@@ -36,6 +36,7 @@ resource vaultx_secret etcd_approle {
 
 resource vaultx_secret ingress_dns_policy {
     path = "aws/roles/${var.env}-kube-ingress-dns"
+    ignore_read = true
 
     data {
         policy = <<EOF
