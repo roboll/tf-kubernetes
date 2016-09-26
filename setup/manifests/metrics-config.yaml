@@ -2,8 +2,8 @@
 kind: ConfigMap
 apiVersion: v1
 metadata:
-  name: metrics-prometheus
-  namespace: kube-system
+  name: prometheus
+  namespace: metrics
 data:
   prometheus.yml: |-
     global:

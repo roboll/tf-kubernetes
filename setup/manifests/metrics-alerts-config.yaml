@@ -2,8 +2,8 @@
 kind: ConfigMap
 apiVersion: v1
 metadata:
-  name: metrics-alertmanager
-  namespace: kube-system
+  name: alertmanager
+  namespace: metrics
 data:
   alertmanager.yaml: |-
     global:

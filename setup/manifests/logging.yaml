@@ -2,8 +2,8 @@
 kind: Service
 apiVersion: v1
 metadata:
-  name: logging-es-discovery
-  namespace: kube-system
+  name: es-discovery
+  namespace: logs
   labels:
     app: logging
     component: elasticsearch
@@ -25,8 +25,8 @@ spec:
 kind: Deployment
 apiVersion: extensions/v1beta1
 metadata:
-  name: logging-es-master
-  namespace: kube-system
+  name: es-master
+  namespace: logs
   labels:
     app: logging
     component: elasticsearch
@@ -56,7 +56,7 @@ spec:
         - name: CLUSTER_NAME
           value: logging
         - name: DISCOVERY_SERVICE
-          value: logging-es-discovery
+          value: es-discovery
         - name: NODE_MASTER
           value: "true"
         - name: NODE_DATA
@@ -84,8 +84,8 @@ spec:
 kind: Service
 apiVersion: v1
 metadata:
-  name: logging-elasticsearch
-  namespace: kube-system
+  name: elasticsearch
+  namespace: logs
   labels:
     app: logging
     component: elasticsearch
@@ -107,15 +107,15 @@ spec:
 kind: PetSet
 apiVersion: apps/v1alpha1
 metadata:
-  name: logging-es-data
-  namespace: kube-system
+  name: es-data
+  namespace: logs
   labels:
     app: logging
     component: elasticsearch
     role: data
 spec:
-  serviceName: logging-es
-  replicas: 2
+  serviceName: es-data
+  replicas: 3
   template:
     metadata:
       annotations:
@@ -141,7 +141,7 @@ spec:
         - name: CLUSTER_NAME
           value: logging
         - name: DISCOVERY_SERVICE
-          value: logging-es-discovery
+          value: es-discovery
         - name: NODE_MASTER
           value: "false"
         - name: HTTP_ENABLE
@@ -174,8 +174,8 @@ spec:
 kind: Deployment
 apiVersion: extensions/v1beta1
 metadata:
-  name: logging-es-client
-  namespace: kube-system
+  name: es-client
+  namespace: logs
   labels:
     app: logging
     component: elasticsearch
@@ -184,7 +184,7 @@ spec:
   replicas: 1
   template:
     metadata:
-      namespace: kube-system
+      namespace: logs
       labels:
         app: logging
         component: elasticsearch
@@ -206,7 +206,7 @@ spec:
         - name: CLUSTER_NAME
           value: logging
         - name: DISCOVERY_SERVICE
-          value: logging-es-discovery
+          value: es-discovery
         - name: NODE_MASTER
           value: "false"
         - name: NODE_DATA
@@ -238,7 +238,7 @@ kind: DaemonSet
 apiVersion: extensions/v1beta1
 metadata:
   name: logging-fluentd
-  namespace: kube-system
+  namespace: logs
   labels:
     app: logging
     component: fluentd
@@ -255,7 +255,7 @@ spec:
           image: quay.io/roboll/fluentd-kube:v0.6
           env:
             - name: ELASTICSEARCH_HOST
-              value: "logging-elasticsearch"
+              value: "elasticsearch"
             - name: ELASTICSEARCH_PORT
               value: "9200"
           resources:
@@ -283,11 +283,11 @@ kind: Ingress
 apiVersion: extensions/v1beta1
 metadata:
   name: logging-kibana
-  namespace: kube-system
+  namespace: logs
   annotations:
     ingress.kubernetes.io/rewrite-target: /
     kubernetes.io/tls-acme: "true"
-    kubernetes.io/ingress.class: "nginx"
+    kubernetes.io/ingress.class: "traefik"
 spec:
   #  tls:
   #  - hosts:
@@ -299,7 +299,7 @@ spec:
         paths:
           - path: /kibana/
             backend:
-              serviceName: logging-kibana
+              serviceName: kibana
               servicePort: 80
 
 ---
@@ -307,7 +307,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: logging-kibana
-  namespace: kube-system
+  namespace: logs
   labels:
     app: logging
     component: kibana
@@ -325,7 +325,7 @@ kind: ConfigMap
 apiVersion: v1
 metadata:
   name: logging-kibana
-  namespace: kube-system
+  namespace: logs
 data:
   kibana.yml: |-
     server.basePath: "/kibana"
@@ -335,7 +335,7 @@ kind: Deployment
 apiVersion: extensions/v1beta1
 metadata:
   name: logging-kibana
-  namespace: kube-system
+  namespace: logs
   labels:
     app: logging
     component: kibana
@@ -352,7 +352,7 @@ spec:
           image: kibana:4.6
           args:
             - --config /etc/kibana/kibana.yml
-            - --elasticsearch=http://logging-elasticsearch:9200
+            - --elasticsearch=http://elasticsearch:9200
           ports:
             - containerPort: 5601
               name: ui

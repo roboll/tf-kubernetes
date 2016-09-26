@@ -2,17 +2,17 @@
 kind: Deployment
 apiVersion: extensions/v1beta1
 metadata:
-  name: kube-pvt-ingress-dns
+  name: kube-ingress-nginx-dns
   namespace: kube-system
   labels:
-    app: kube-pvt-ingress
+    app: kube-ingress-nginx
     component: dns
 spec:
   replicas: 1
   template:
     metadata:
       labels:
-        app: kube-pvt-ingress
+        app: kube-ingress-nginx
         component: dns
     spec:
       containers:
@@ -22,7 +22,7 @@ spec:
             - -logtostderr=true
             - -tls-skip-verify=true
             - -output=/etc/secrets
-            - -cn=aws:${dns_path}:fmt=awsenv,file=aws.env
+            - -cn=aws:${dns_path}:fmt=awsenv,file=aws.env,export=true
           env:
             - name: VAULT_ADDR
               valueFrom:
@@ -51,14 +51,16 @@ spec:
           command:
             - /bin/sh
             - -c
-            - sleep 30 &&
+            - sleep 10 &&
               source /etc/secrets/aws.env &&
-              export AWS_SECRET_ACCESS_KEY &&
-              export AWS_ACCESS_KEY_ID &&
-              exec /dns-controller --publish-service=kube-system/kube-pvt-ingress-nginx
+              exec /dns-controller --publish-service=$(POD_NAMESPACE)/kube-ingress-nginx
           env:
             - name: AWS_REGION
               value: us-east-1
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
           volumeMounts:
             - mountPath: /etc/secrets
               name: secrets
