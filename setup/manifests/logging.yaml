@@ -243,7 +243,7 @@ spec:
 kind: DaemonSet
 apiVersion: extensions/v1beta1
 metadata:
-  name: logging-fluentd
+  name: fluentd
   namespace: logs
   labels:
     app: logging
@@ -251,7 +251,7 @@ metadata:
 spec:
   template:
     metadata:
-      name: logging-fluentd
+      name: fluentd
       labels:
         app: logging
         component: fluentd
@@ -288,7 +288,7 @@ spec:
 kind: Ingress
 apiVersion: extensions/v1beta1
 metadata:
-  name: logging-kibana
+  name: kibana
   namespace: logs
   annotations:
     ingress.kubernetes.io/rewrite-target: /
@@ -312,7 +312,7 @@ spec:
 kind: Service
 apiVersion: v1
 metadata:
-  name: logging-kibana
+  name: kibana
   namespace: logs
   labels:
     app: logging
@@ -330,7 +330,7 @@ spec:
 kind: ConfigMap
 apiVersion: v1
 metadata:
-  name: logging-kibana
+  name: kibana
   namespace: logs
 data:
   kibana.yml: |-
@@ -340,7 +340,7 @@ data:
 kind: Deployment
 apiVersion: extensions/v1beta1
 metadata:
-  name: logging-kibana
+  name: kibana
   namespace: logs
   labels:
     app: logging
@@ -369,4 +369,4 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: logging-kibana
+            name: kibana
