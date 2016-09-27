@@ -13,8 +13,7 @@ rules:
   - apiGroups: ["*"]
     resources: ["*"]
     verbs: ["*"]
-  - nonResourceURLs: ["*"]
-    verbs: ["*"]
+    nonResourceURLs: ["*"]
 
 ---
 kind: ClusterRoleBinding
