@@ -2,7 +2,7 @@
 kind: Service
 apiVersion: v1
 metadata:
-  name: kube-ingress-nginx-default
+  name: kube-ingress-default
   namespace: kube-system
   labels:
     app: kube-ingress
@@ -149,7 +149,7 @@ spec:
             - containerPort: 443
           args:
             - /nginx-ingress-controller
-            - --default-backend-service=$(POD_NAMESPACE)/kube-ingress-nginx-default
+            - --default-backend-service=$(POD_NAMESPACE)/kube-ingress-default
             - --nginx-configmap=$(POD_NAMESPACE)/kube-ingress-public
 
 ---
@@ -193,5 +193,5 @@ spec:
             - containerPort: 443
           args:
             - /nginx-ingress-controller
-            - --default-backend-service=$(POD_NAMESPACE)/kube-ingress-nginx-default
+            - --default-backend-service=$(POD_NAMESPACE)/kube-ingress-default
             - --nginx-configmap=$(POD_NAMESPACE)/kube-ingress-private
