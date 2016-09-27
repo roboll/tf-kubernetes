@@ -1,4 +1,10 @@
 ---
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: metrics
+
+---
 kind: Service
 apiVersion: v1
 metadata:

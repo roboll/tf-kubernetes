@@ -1,4 +1,10 @@
 ---
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: logs
+
+---
 kind: Service
 apiVersion: v1
 metadata:
