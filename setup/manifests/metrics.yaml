@@ -22,9 +22,9 @@ apiVersion: rbac.authorization.k8s.io/v1alpha1
 metadata:
   name: metrics
 subjects:
-  kind: ServiceAccount
-  name: default
-  namespace: metrics
+  - kind: ServiceAccount
+    name: default
+    namespace: metrics
 roleRef:
   kind: ClusterRole
   apiVersion: rbac.authorization.k8s.io/v1alpha1
