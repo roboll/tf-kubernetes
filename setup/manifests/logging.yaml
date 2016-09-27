@@ -5,6 +5,32 @@ metadata:
   name: logs
 
 ---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1alpha1
+metadata:
+  name: logs
+rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
+  - nonResourceURLs: ["*"]
+    verbs: ["*"]
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1alpha1
+metadata:
+  name: logs
+subjects:
+  kind: ServiceAccount
+  name: default
+  namespace: logs
+roleRef:
+  kind: ClusterRole
+  apiVersion: rbac.authorization.k8s.io/v1alpha1
+  name: logs
+
+---
 kind: Service
 apiVersion: v1
 metadata:

@@ -5,6 +5,32 @@ metadata:
   name: metrics
 
 ---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1alpha1
+metadata:
+  name: metrics
+rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
+  - nonResourceURLs: ["*"]
+    verbs: ["*"]
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1alpha1
+metadata:
+  name: metrics
+subjects:
+  kind: ServiceAccount
+  name: default
+  namespace: metrics
+roleRef:
+  kind: ClusterRole
+  apiVersion: rbac.authorization.k8s.io/v1alpha1
+  name: metrics
+
+---
 kind: Service
 apiVersion: v1
 metadata:
