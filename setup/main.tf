@@ -108,11 +108,11 @@ cat << "FF" > ${path.root}/kube/manifests/logging.yaml;
 ${data.template_file.logging.rendered}
 FF
 
-cat << "FF" > ${path.root}/kube/manifests/metrics-alerts-config.yaml;
+cat << "FF" > ${path.root}/kube/manifests/metrics_alerts-config.yaml;
 ${data.template_file.metrics_alerts_config.rendered}
 FF
 
-cat << "FF" > ${path.root}/kube/manifests/metrics-config.yaml;
+cat << "FF" > ${path.root}/kube/manifests/metrics_config.yaml;
 ${data.template_file.metrics_config.rendered}
 FF
 
@@ -235,11 +235,11 @@ data template_file logging {
 }
 
 data template_file metrics_alerts_config {
-    template = "${file("${path.module}/manifests/metrics-alerts-config.yaml")}"
+    template = "${file("${path.module}/manifests/metrics_alerts-config.yaml")}"
 }
 
 data template_file metrics_config {
-    template = "${file("${path.module}/manifests/metrics-config.yaml")}"
+    template = "${file("${path.module}/manifests/metrics_config.yaml")}"
 
     vars {
         vpn_address = "${var.vpn_address}"
