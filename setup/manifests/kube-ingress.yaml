@@ -61,14 +61,14 @@ metadata:
   namespace: kube-system
   labels:
     app: kube-ingress
-    component: nginx-private
+    component: private-nginx
   annotations:
     service.beta.kubernetes.io/aws-load-balancer-internal: 0.0.0.0/0
 spec:
   type: LoadBalancer
   selector:
     app: kube-ingress
-    component: nginx-private
+    component: private-nginx
   ports:
     - port: 80
       name: http
@@ -83,12 +83,12 @@ metadata:
   namespace: kube-system
   labels:
     app: kube-ingress
-    component: nginx-public
+    component: public-nginx
 spec:
   type: LoadBalancer
   selector:
     app: kube-ingress
-    component: nginx-public
+    component: public-nginx
   ports:
     - port: 80
       name: http
@@ -112,18 +112,18 @@ data:
 kind: Deployment
 apiVersion: extensions/v1beta1
 metadata:
-  name: kube-ingress-nginx-public
+  name: kube-ingress-public-nginx
   namespace: kube-system
   labels:
     app: kube-ingress
-    component: nginx-public
+    component: public-nginx
 spec:
   replicas: 1
   template:
     metadata:
       labels:
         app: kube-ingress
-        component: nginx-public
+        component: public-nginx
     spec:
       containers:
         - name: nginx
@@ -149,25 +149,26 @@ spec:
             - containerPort: 443
           args:
             - /nginx-ingress-controller
+            - --ingress-class=public
             - --default-backend-service=$(POD_NAMESPACE)/kube-ingress-default
-            - --nginx-configmap=$(POD_NAMESPACE)/kube-ingress-public
+            - --nginx-configmap=$(POD_NAMESPACE)/kube-ingress-nginx
 
 ---
 kind: Deployment
 apiVersion: extensions/v1beta1
 metadata:
-  name: kube-ingress-nginx-private
+  name: kube-ingress-private-nginx
   namespace: kube-system
   labels:
     app: kube-ingress
-    component: nginx-private
+    component: private-nginx
 spec:
   replicas: 1
   template:
     metadata:
       labels:
         app: kube-ingress
-        component: nginx-private
+        component: private-nginx
     spec:
       containers:
         - name: nginx
@@ -193,5 +194,6 @@ spec:
             - containerPort: 443
           args:
             - /nginx-ingress-controller
+            - --ingress-class=private
             - --default-backend-service=$(POD_NAMESPACE)/kube-ingress-default
-            - --nginx-configmap=$(POD_NAMESPACE)/kube-ingress-private
+            - --nginx-configmap=$(POD_NAMESPACE)/kube-ingress-nginx
