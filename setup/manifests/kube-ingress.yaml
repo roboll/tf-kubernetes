@@ -5,7 +5,7 @@ metadata:
   name: kube-ingress-nginx-default
   namespace: kube-system
   labels:
-    app: kube-ingress-nginx
+    app: kube-ingress
     component: default-backend
 spec:
   ports:
@@ -13,24 +13,24 @@ spec:
     targetPort: 8080
     protocol: TCP
   selector:
-    app: kube-ingress-nginx
+    app: kube-ingress
     component: default-backend
 
 ---
 kind: Deployment
 apiVersion: extensions/v1beta1
 metadata:
-  name: kube-ingress-nginx-default
+  name: kube-ingress-default
   namespace: kube-system
   labels:
-    app: kube-ingress-nginx
+    app: kube-ingress
     component: default-backend
 spec:
   replicas: 1
   template:
     metadata:
       labels:
-        app: kube-ingress-nginx
+        app: kube-ingress
         component: default-backend
     spec:
       containers:
@@ -57,16 +57,38 @@ spec:
 kind: Service
 apiVersion: v1
 metadata:
-  name: kube-ingress-nginx
+  name: kube-ingress-private
   namespace: kube-system
   labels:
-    app: kube-ingress-nginx
-    component: nginx
+    app: kube-ingress
+    component: nginx-private
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-internal: 0.0.0.0/0
 spec:
   type: LoadBalancer
   selector:
-    app: kube-ingress-nginx
-    component: nginx
+    app: kube-ingress
+    component: nginx-private
+  ports:
+    - port: 80
+      name: http
+    - port: 443
+      name: https
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: kube-ingress-public
+  namespace: kube-system
+  labels:
+    app: kube-ingress
+    component: nginx-public
+spec:
+  type: LoadBalancer
+  selector:
+    app: kube-ingress
+    component: nginx-public
   ports:
     - port: 80
       name: http
@@ -90,22 +112,22 @@ data:
 kind: Deployment
 apiVersion: extensions/v1beta1
 metadata:
-  name: kube-ingress-nginx
+  name: kube-ingress-nginx-public
   namespace: kube-system
   labels:
-    app: kube-ingress-nginx
-    component: nginx
+    app: kube-ingress
+    component: nginx-public
 spec:
   replicas: 1
   template:
     metadata:
       labels:
-        app: kube-ingress-nginx
-        component: nginx
+        app: kube-ingress
+        component: nginx-public
     spec:
       containers:
         - name: nginx
-          image: gcr.io/google_containers/nginx-ingress-controller:0.8.3
+          image: quay.io/roboll/nginx-ingress-controller:0.8.4
           env:
             - name: POD_NAME
               valueFrom:
@@ -128,4 +150,48 @@ spec:
           args:
             - /nginx-ingress-controller
             - --default-backend-service=$(POD_NAMESPACE)/kube-ingress-nginx-default
-            - --nginx-configmap=$(POD_NAMESPACE)/kube-ingress-nginx
+            - --nginx-configmap=$(POD_NAMESPACE)/kube-ingress-public
+
+---
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: kube-ingress-nginx-private
+  namespace: kube-system
+  labels:
+    app: kube-ingress
+    component: nginx-private
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: kube-ingress
+        component: nginx-private
+    spec:
+      containers:
+        - name: nginx
+          image: quay.io/roboll/nginx-ingress-controller:0.8.4
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 10254
+              scheme: HTTP
+            initialDelaySeconds: 30
+            timeoutSeconds: 5
+          ports:
+            - containerPort: 80
+            - containerPort: 443
+          args:
+            - /nginx-ingress-controller
+            - --default-backend-service=$(POD_NAMESPACE)/kube-ingress-nginx-default
+            - --nginx-configmap=$(POD_NAMESPACE)/kube-ingress-private

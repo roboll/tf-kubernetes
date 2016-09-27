@@ -36,8 +36,6 @@ resource null_resource render {
         kube_ingress_acme = "${data.template_file.kube_ingress_acme.rendered}"
         kube_ingress_nginx_dns = "${data.template_file.kube_ingress_nginx_dns.rendered}"
         kube_ingress_nginx = "${data.template_file.kube_ingress_nginx.rendered}"
-        kube_ingress_traefik_dns = "${data.template_file.kube_ingress_traefik_dns.rendered}"
-        kube_ingress_traefik = "${data.template_file.kube_ingress_traefik.rendered}"
         kube_proxy = "${data.template_file.kube_proxy.rendered}"
         kube_scheduler = "${data.template_file.kube_scheduler.rendered}"
         kube_service_account = "${data.template_file.kube_service_account.rendered}"
@@ -82,14 +80,6 @@ FF
 
 cat << "FF" > ${path.root}/kube/manifests/kube-ingress-nginx.yaml;
 ${data.template_file.kube_ingress_nginx.rendered}
-FF
-
-cat << "FF" > ${path.root}/kube/manifests/kube-ingress-traefik-dns.yaml;
-${data.template_file.kube_ingress_traefik_dns.rendered}
-FF
-
-cat << "FF" > ${path.root}/kube/manifests/kube-ingress-traefik.yaml;
-${data.template_file.kube_ingress_traefik.rendered}
 FF
 
 cat << "FF" > ${path.root}/kube/manifests/kube-proxy.yaml;
@@ -187,18 +177,6 @@ data template_file kube_ingress_nginx_dns {
 
 data template_file kube_ingress_nginx {
     template = "${file("${path.module}/manifests/kube-ingress-nginx.yaml")}"
-}
-
-data template_file kube_ingress_traefik_dns {
-    template = "${file("${path.module}/manifests/kube-ingress-traefik-dns.yaml")}"
-
-    vars {
-        dns_path = "aws/creds/${var.env}-kube-ingress-dns"
-    }
-}
-
-data template_file kube_ingress_traefik {
-    template = "${file("${path.module}/manifests/kube-ingress-traefik.yaml")}"
 }
 
 data template_file kube_proxy {

@@ -125,7 +125,7 @@ metadata:
   namespace: metrics
   annotations:
     kubernetes.io/tls-acme: "true"
-    kubernetes.io/ingress.class: "traefik"
+    kubernetes.io/ingress.class: "private"
 spec:
   #  tls:
   #  - hosts:
@@ -219,7 +219,7 @@ metadata:
   namespace: metrics
   annotations:
     kubernetes.io/tls-acme: "true"
-    kubernetes.io/ingress.class: "traefik"
+    kubernetes.io/ingress.class: "private"
 spec:
   #  tls:
   #  - hosts:
@@ -316,7 +316,7 @@ metadata:
   annotations:
     ingress.kubernetes.io/rewrite-target: /
     kubernetes.io/tls-acme: "true"
-    kubernetes.io/ingress.class: "traefik"
+    kubernetes.io/ingress.class: "private"
 spec:
   #  tls:
   #  - hosts:
