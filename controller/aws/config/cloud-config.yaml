@@ -680,8 +680,11 @@ write_files:
           {
             "apiGroups": ["*"],
             "resources": ["*"],
-            "verbs": ["*"],
-            "nonResourceURLs": ["*"]
+            "verbs": ["*"]
+          },
+          {
+            "nonResourceURLs": ["*"],
+            "verbs": ["*"]
           }
         ]
       }
