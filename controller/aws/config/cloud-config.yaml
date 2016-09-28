@@ -197,6 +197,7 @@ coreos:
 
         ExecStartPre=/usr/bin/mkdir -p /var/log/containers
         ExecStartPre=/usr/bin/mkdir -p /etc/kubernetes/manifests
+        ExecStartPre=/usr/bin/mkdir -p /etc/cni/net.d
         ExecStart=/usr/lib/coreos/kubelet-wrapper \
           --api-servers=https://${kube_fqdn} \
           --tls-cert-file=/etc/ssl/kubelet/cert.pem \
