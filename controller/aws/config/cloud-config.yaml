@@ -49,7 +49,7 @@ coreos:
       content: |
         [Service]
         Type=oneshot
-        FailureAction=reboot
+        #FailureAction=reboot
         RemainAfterExit=yes
         ExecStart=/opt/bin/vault-login.sh
 
@@ -172,7 +172,7 @@ coreos:
 
         [Service]
         Restart=always
-        FailureAction=reboot
+        #FailureAction=reboot
         RestartSec=10
         TimeoutStartSec=300
 
