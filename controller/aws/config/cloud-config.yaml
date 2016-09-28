@@ -447,6 +447,15 @@ write_files:
       rm -f /etc/kubernetes/manifests/*.yaml
       touch /etc/kubernetes/init-completed
 
+  - path: /opt/bin/recover-kube-master.sh
+    permissions: 0700
+    content: |
+      #!/bin/bash
+      # recovers kube master in case apiserver or controller-manager daemonsets die
+      # run this to re-create the bootstrap components that will allow the master to recover
+      set -eo pipefail
+      rm -f /etc/kubernetes/bootstrap/linked && /opt/bin/init-kube.sh
+
   - path: /etc/kubernetes/bootstrap/kubeconfig.yaml
     content: |
       apiVersion: v1
@@ -589,7 +598,7 @@ write_files:
               - /hyperkube
               - controller-manager
               - --leader-elect=true
-              - --master=https://${kube_fqdn}
+              - --master=https://$private_ipv4
               - --root-ca-file=/etc/secrets/kube.ca
               - --kubeconfig=/etc/kubernetes/bootstrap/kubeconfig.yaml
               - --service-account-private-key-file=/etc/secrets/service-account-privkey.pem
