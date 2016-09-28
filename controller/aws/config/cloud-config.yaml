@@ -106,7 +106,7 @@ coreos:
         [Service]
         Type=simple
         ExecStart=/opt/bin/etcd-certs.sh
-        ExecStartPost=/usr/bin/systemctl restart etcd2.service
+        ExecStartPost=/usr/bin/systemctl try-restart etcd2.service
 
     - name: etcd-certs.timer
       command: start
@@ -155,7 +155,7 @@ coreos:
         [Service]
         Type=simple
         ExecStart=/opt/bin/kubelet-certs.sh
-        ExecStartPost=/usr/bin/systemctl restart kubelet.service
+        ExecStartPost=/usr/bin/systemctl try-restart kubelet.service
 
     - name: kubelet-certs.timer
       command: start
