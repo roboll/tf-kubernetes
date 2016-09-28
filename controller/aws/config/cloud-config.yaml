@@ -213,7 +213,7 @@ coreos:
           --node-labels=role=controller \
           --register-schedulable=false \
           --allow-privileged --v=2 --logtostderr=true
-        ExecStartPost=-/opt/bin/init-kube-system.sh
+        ExecStartPost=-/opt/bin/init-kube.sh
 
 write_files:
   - path: /etc/ssl/vault/ca.pem
@@ -352,7 +352,7 @@ write_files:
       sed -re 's/.*"private_key":"([^"]*)".*/\1/g' \
         -e 's/\\n/\n/g' > /etc/ssl/etcd/privkey.pem <<< $json
 
-  - path: /opt/bin/init-kube-system.sh
+  - path: /opt/bin/init-kube.sh
     permissions: 0700
     content: |
       #!/bin/bash
@@ -420,7 +420,7 @@ write_files:
         curl $curl_opts -H "Content-Type: application/json" -XPOST \
           -d @/etc/kubernetes/init/vault.json \
           https://kubernetes/api/v1/namespaces/kube-system/secrets
-        touch /etc/kubernetes/init/vault,json.created
+        touch /etc/kubernetes/init/vault.json.created
       }
 
       for cm in /etc/kubernetes/init/*-cm.json; do
