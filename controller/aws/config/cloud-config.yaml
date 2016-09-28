@@ -369,19 +369,17 @@ write_files:
         exit
       }
 
-      [ ! -f /etc/kubernetes/bootstrap/certs ] && {
-        token="$(cat /etc/vault/token)"
-        json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
-          -X POST -H "X-Vault-Token: $token" \
-          -d '{"common_name":"bootstrap"}' \
-          ${vault_address}/v1/${kube_pki_mount}/issue/bootstrap)
+      token="$(cat /etc/vault/token)"
+      json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
+        -X POST -H "X-Vault-Token: $token" \
+        -d '{"common_name":"bootstrap"}' \
+        ${vault_address}/v1/${kube_pki_mount}/issue/bootstrap)
 
-        sed -re 's/.*"certificate":"([^"]*)".*/\1/g' \
-          -e 's/\\n/\n/g' > /etc/kubernetes/bootstrap/cert.pem <<< $json
-        sed -re 's/.*"private_key":"([^"]*)".*/\1/g' \
-          -e 's/\\n/\n/g' > /etc/kubernetes/bootstrap/privkey.pem <<< $json
-        touch /etc/kubernetes/bootstrap/certs
-      }
+      sed -re 's/.*"certificate":"([^"]*)".*/\1/g' \
+        -e 's/\\n/\n/g' > /etc/kubernetes/bootstrap/cert.pem <<< $json
+      sed -re 's/.*"private_key":"([^"]*)".*/\1/g' \
+        -e 's/\\n/\n/g' > /etc/kubernetes/bootstrap/privkey.pem <<< $json
+      trap "rm -rf /etc/kubernetes/boostrap/*.pem" EXIT
 
       curl_opts="-sSf --resolve kubernetes:443:127.0.0.1 \
         --cacert /etc/ssl/kube/ca.pem \
@@ -446,7 +444,7 @@ write_files:
         echo "waiting for daemonsets to be scheduled"; sleep 5;
       done
 
-      rm -f /etc/kubernetes/manifests/*.yaml /etc/kubernetes/bootstrap/*.pem
+      rm -f /etc/kubernetes/manifests/*.yaml
       touch /etc/kubernetes/init-completed
 
   - path: /etc/kubernetes/bootstrap/kubeconfig.yaml
@@ -1030,7 +1028,7 @@ write_files:
                     "--kube-subnet-mgr"
                   ],
                   "securityContext": {
-                    "privileged": true,
+                    "privileged": true
                   },
                   "env": [
                     {
@@ -1076,7 +1074,7 @@ write_files:
                     },
                     {
                       "name": "config",
-                      "name": "/etc/kube-flannel"
+                      "mountPath": "/etc/kube-flannel"
                     }
                   ]
                 }
