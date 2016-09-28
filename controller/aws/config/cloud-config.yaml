@@ -490,7 +490,7 @@ write_files:
         hostNetwork: true
         containers:
           - name: vault-sidekick
-            image: quay.io/roboll/vault-sidekick:v0.0.9.11
+            image: quay.io/roboll/vault-sidekick:v0.0.9.12
             args:
               - -logtostderr=true
               - -ca-cert=/etc/ssl/vault/ca.pem
@@ -567,7 +567,7 @@ write_files:
         hostNetwork: true
         containers:
           - name: vault-sidekick
-            image: quay.io/roboll/vault-sidekick:v0.0.9.11
+            image: quay.io/roboll/vault-sidekick:v0.0.9.12
             args:
               - -logtostderr=true
               - -ca-cert=/etc/ssl/vault/ca.pem
@@ -766,7 +766,7 @@ write_files:
               "containers": [
                 {
                   "name": "vault-sidekick",
-                  "image": "quay.io/roboll/vault-sidekick:v0.0.9.11",
+                  "image": "quay.io/roboll/vault-sidekick:v0.0.9.12",
                   "args": [
                     "-logtostderr=true",
                     "-ca-cert=/etc/ssl/vault/ca.pem",
@@ -903,7 +903,7 @@ write_files:
               "containers": [
                 {
                   "name": "vault-sidekick",
-                  "image": "quay.io/roboll/vault-sidekick:v0.0.9.11",
+                  "image": "quay.io/roboll/vault-sidekick:v0.0.9.12",
                   "args": [
                     "-logtostderr=true",
                     "-ca-cert=/etc/ssl/vault/ca.pem",
