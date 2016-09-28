@@ -493,6 +493,7 @@ write_files:
             image: quay.io/roboll/vault-sidekick:v0.0.9.11
             args:
               - -logtostderr=true
+              - -ca-cert=/etc/ssl/vault/ca.pem
               - -output=/etc/secrets
               - -cn=secret:${service_account_pubkey}:file=service-account-pubkey.pem,fmt=txt
               - -cn=pki:${kube_pki_mount}/issue/apiserver:common_name=${kube_fqdn},alt_names=kubernetes|kubernetes.default.svc|kubernetes.default.svc.cluster.local,ip_sans=10.0.0.1|$private_ipv4,fmt=cert,file=kube
@@ -500,8 +501,6 @@ write_files:
             env:
               - name: VAULT_ADDR
                 value: ${vault_address}
-              - name: VAULT_CACERT
-                value: /etc/ssl/vault/ca.pem
               - name: VAULT_SIDEKICK_AUTH_PLUGIN
                 value: token
               - name: VAULT_SIDEKICK_TOKEN_FILE
@@ -571,14 +570,13 @@ write_files:
             image: quay.io/roboll/vault-sidekick:v0.0.9.11
             args:
               - -logtostderr=true
+              - -ca-cert=/etc/ssl/vault/ca.pem
               - -output=/etc/secrets
               - -cn=secret:${service_account_privkey}:file=service-account-privkey.pem,fmt=txt
               - -cn=pki:${kube_pki_mount}/issue/controller:common_name=controller,fmt=cert,file=kube
             env:
               - name: VAULT_ADDR
                 value: ${vault_address}
-              - name: VAULT_CACERT
-                value: /etc/ssl/vault/ca.pem
               - name: VAULT_SIDEKICK_AUTH_PLUGIN
                 value: token
               - name: VAULT_SIDEKICK_TOKEN_FILE
@@ -771,6 +769,7 @@ write_files:
                   "image": "quay.io/roboll/vault-sidekick:v0.0.9.11",
                   "args": [
                     "-logtostderr=true",
+                    "-ca-cert=/etc/ssl/vault/ca.pem",
                     "-output=/etc/secrets",
                     "-cn=secret:${service_account_pubkey}:file=service-account-pubkey.pem,fmt=txt",
                     "-cn=pki:${kube_pki_mount}/issue/apiserver:common_name=${kube_fqdn},alt_names=kubernetes|kubernetes.default.svc|kubernetes.default.svc.cluster.local,ip_sans=10.0.0.1,fmt=cert,file=kube",
@@ -780,10 +779,6 @@ write_files:
                     {
                       "name": "VAULT_ADDR",
                       "value": "${vault_address}"
-                    },
-                    {
-                      "name": "VAULT_CACERT",
-                      "value": "/etc/vault/ca.pem"
                     },
                     {
                       "name": "VAULT_SIDEKICK_AUTH_PLUGIN",
@@ -911,6 +906,7 @@ write_files:
                   "image": "quay.io/roboll/vault-sidekick:v0.0.9.11",
                   "args": [
                     "-logtostderr=true",
+                    "-ca-cert=/etc/ssl/vault/ca.pem",
                     "-output=/etc/secrets",
                     "-cn=secret:${service_account_privkey}:file=service-account-privkey.pem,fmt=txt",
                     "-cn=pki:${kube_pki_mount}/issue/controller:common_name=controller,fmt=cert,file=kube"
@@ -919,10 +915,6 @@ write_files:
                     {
                       "name": "VAULT_ADDR",
                       "value": "${vault_address}"
-                    },
-                    {
-                      "name": "VAULT_CACERT",
-                      "value": "/etc/vault/ca.pem"
                     },
                     {
                       "name": "VAULT_SIDEKICK_AUTH_PLUGIN",
