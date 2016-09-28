@@ -65,31 +65,11 @@ coreos:
         [Timer]
         OnUnitActiveSec=12h
 
-    - name: flanneld.service
-      command: start
-      drop-ins:
-        - name: 99-client.conf
-          content: |
-            [Unit]
-            Requires=kubelet-certs.service
-            After=kubelet-certs.service
-
-            [Service]
-            Environment=ETCD_SSL_DIR=/etc/ssl/kube
-            Environment=FLANNELD_REMOTE=${kube_fqdn}:8888
-            Environment=FLANNELD_REMOTE_CAFILE=/etc/ssl/kube/ca.pem
-            Environment=FLANNELD_REMOTE_CERTFILE=/etc/ssl/kube/kubelet/cert.pem
-            Environment=FLANNELD_REMOTE_KEYFILE=/etc/ssl/kube/kubelet/privkey.pem
-
     - name: docker.service
       command: start
       drop-ins:
         - name: 99-mount-flags.conf
           content: |
-            [Unit]
-            Requires=flanneld.service
-            After=flanneld.service
-
             [Service]
             MountFlags=shared
 
@@ -97,8 +77,8 @@ coreos:
       command: start
       content: |
         [Unit]
-        Requires=docker.service flanneld.service kube-ca.service kubelet-certs.service
-        After=docker.service flanneld.service kube-ca.service kubelet-certs.service
+        Requires=docker.service kube-ca.service kubelet-certs.service
+        After=docker.service kube-ca.service kubelet-certs.service
 
         [Service]
         Restart=always
