@@ -484,7 +484,6 @@ write_files:
             image: quay.io/roboll/vault-sidekick:v0.0.9.11
             args:
               - -logtostderr=true
-              - -tls-skip-verify=true
               - -output=/etc/secrets
               - -cn=secret:${service_account_pubkey}:file=service-account-pubkey.pem,fmt=txt
               - -cn=pki:${kube_pki_mount}/issue/apiserver:common_name=${kube_fqdn},alt_names=kubernetes|kubernetes.default.svc|kubernetes.default.svc.cluster.local,ip_sans=10.0.0.1|$private_ipv4,fmt=cert,file=kube
@@ -563,7 +562,6 @@ write_files:
             image: quay.io/roboll/vault-sidekick:v0.0.9.11
             args:
               - -logtostderr=true
-              - -tls-skip-verify=true
               - -output=/etc/secrets
               - -cn=secret:${service_account_privkey}:file=service-account-privkey.pem,fmt=txt
               - -cn=pki:${kube_pki_mount}/issue/controller:common_name=controller,fmt=cert,file=kube
@@ -764,7 +762,6 @@ write_files:
                   "image": "quay.io/roboll/vault-sidekick:v0.0.9.11",
                   "args": [
                     "-logtostderr=true",
-                    "-tls-skip-verify=true",
                     "-output=/etc/secrets",
                     "-cn=secret:${service_account_pubkey}:file=service-account-pubkey.pem,fmt=txt",
                     "-cn=pki:${kube_pki_mount}/issue/apiserver:common_name=${kube_fqdn},alt_names=kubernetes|kubernetes.default.svc|kubernetes.default.svc.cluster.local,ip_sans=10.0.0.1,fmt=cert,file=kube",
@@ -905,7 +902,6 @@ write_files:
                   "image": "quay.io/roboll/vault-sidekick:v0.0.9.11",
                   "args": [
                     "-logtostderr=true",
-                    "-tls-skip-verify=true",
                     "-output=/etc/secrets",
                     "-cn=secret:${service_account_privkey}:file=service-account-privkey.pem,fmt=txt",
                     "-cn=pki:${kube_pki_mount}/issue/controller:common_name=controller,fmt=cert,file=kube"
