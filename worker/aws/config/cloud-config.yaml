@@ -99,7 +99,9 @@ coreos:
         --volume var-log,kind=host,source=/var/log \
         --mount volume=var-log,target=/var/log \
         --volume kubelet-ssl,kind=host,source=/etc/ssl/kube \
-        --mount volume=kubelet-ssl,target=/etc/ssl/kube"
+        --mount volume=kubelet-ssl,target=/etc/ssl/kube \
+        --volume cni,kind=host,source=/etc/cni/net.d \
+        --mount volume=cni,target=/etc/cni/net.d"
 
         ExecStartPre=/usr/bin/mkdir -p /var/log/containers
         ExecStart=/usr/lib/coreos/kubelet-wrapper \
@@ -110,6 +112,8 @@ coreos:
           --cluster-dns=10.0.0.10 \
           --cluster-domain=cluster.local \
           --hairpin-mode=hairpin-veth \
+          --network-plugin=cni \
+          --network-plugin-dir=/etc/cni/net.d \
           --node-labels=role=worker,class=${worker_class} \
           --cloud-provider=aws \
           --allow-privileged --v=2 --logtostderr=true

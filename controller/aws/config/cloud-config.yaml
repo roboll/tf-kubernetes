@@ -191,7 +191,9 @@ coreos:
         --volume kube-ca,kind=host,source=/etc/ssl/kube/ca.pem \
         --mount volume=kube-ca,target=/etc/ssl/kube/ca.pem \
         --volume kubelet-ssl,kind=host,source=/etc/ssl/kubelet \
-        --mount volume=kubelet-ssl,target=/etc/ssl/kubelet"
+        --mount volume=kubelet-ssl,target=/etc/ssl/kubelet
+        --volume cni,kind=host,source=/etc/cni/net.d \
+        --mount volume=cni,target=/etc/cni/net.d"
 
         ExecStartPre=/usr/bin/mkdir -p /var/log/containers
         ExecStartPre=/usr/bin/mkdir -p /etc/kubernetes/manifests
@@ -205,6 +207,8 @@ coreos:
           --cluster-dns=10.0.0.10 \
           --cluster-domain=cluster.local \
           --hairpin-mode=hairpin-veth \
+          --network-plugin=cni \
+          --network-plugin-dir=/etc/cni/net.d \
           --node-labels=role=controller \
           --register-schedulable=false \
           --allow-privileged --v=2 --logtostderr=true
