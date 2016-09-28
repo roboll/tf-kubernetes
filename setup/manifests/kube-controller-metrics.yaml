@@ -37,23 +37,3 @@ spec:
   - name: metrics
     port: 443
     protocol: TCP
-
----
-kind: Service
-apiVersion: v1
-metadata:
-  name: kube-flannel-server
-  namespace: kube-system
-  annotations:
-    prometheus.io/probe: "true"
-    prometheus.io/port: "10259"
-  labels:
-    name: kube-flannel-server
-spec:
-  selector:
-    app: kubernetes
-    component: flannel-server
-  ports:
-  - name: metrics
-    port: 10259
-    protocol: TCP
