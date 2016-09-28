@@ -955,7 +955,10 @@ write_files:
                     "--root-ca-file=/etc/secrets/kube.ca",
                     "--kubeconfig=/etc/kubernetes/kubeconfig.yaml",
                     "--service-account-private-key-file=/etc/secrets/service-account-privkey.pem",
-                    "--cloud-provider=aws"
+                    "--cloud-provider=aws",
+                    "--allocate-node-cidrs=true",
+                    "--configure-cloud-routes=false",
+                    "--cluster-cidr=10.225.0.0/16"
                   ],
                   "livenessProbe": {
                     "httpGet": {
