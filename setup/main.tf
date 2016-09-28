@@ -36,9 +36,7 @@ resource null_resource render {
         kube_ingress_acme = "${data.template_file.kube_ingress_acme.rendered}"
         kube_ingress_dns = "${data.template_file.kube_ingress_dns.rendered}"
         kube_ingress = "${data.template_file.kube_ingress.rendered}"
-        kube_proxy = "${data.template_file.kube_proxy.rendered}"
         kube_scheduler = "${data.template_file.kube_scheduler.rendered}"
-        kube_service_account = "${data.template_file.kube_service_account.rendered}"
         logging = "${data.template_file.logging.rendered}"
         metrics_alerts_config = "${data.template_file.metrics_alerts_config.rendered}"
         metrics_config = "${data.template_file.metrics_config.rendered}"
@@ -82,16 +80,8 @@ cat << "FF" > ${path.root}/kube/manifests/kube-ingress.yaml;
 ${data.template_file.kube_ingress.rendered}
 FF
 
-cat << "FF" > ${path.root}/kube/manifests/kube-proxy.yaml;
-${data.template_file.kube_proxy.rendered}
-FF
-
 cat << "FF" > ${path.root}/kube/manifests/kube-scheduler.yaml;
 ${data.template_file.kube_scheduler.rendered}
-FF
-
-cat << "FF" > ${path.root}/kube/manifests/kube-service-account.yaml;
-${data.template_file.kube_service_account.rendered}
 FF
 
 cat << "FF" > ${path.root}/kube/manifests/logging.yaml;
@@ -179,16 +169,6 @@ data template_file kube_ingress {
     template = "${file("${path.module}/manifests/kube-ingress.yaml")}"
 }
 
-data template_file kube_proxy {
-    template = "${file("${path.module}/manifests/kube-proxy.yaml")}"
-    vars {
-        kube_fqdn = "${var.kube_fqdn}"
-
-        hyperkube = "${var.hyperkube}"
-        kube_version = "${var.kube_version}"
-    }
-}
-
 data template_file kube_scheduler {
     template = "${file("${path.module}/manifests/kube-scheduler.yaml")}"
 
@@ -198,10 +178,6 @@ data template_file kube_scheduler {
         hyperkube = "${var.hyperkube}"
         kube_version = "${var.kube_version}"
     }
-}
-
-data template_file kube_service_account {
-    template = "${file("${path.module}/manifests/kube-service-account.yaml")}"
 }
 
 data template_file logging {

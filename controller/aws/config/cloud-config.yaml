@@ -49,7 +49,7 @@ coreos:
       content: |
         [Service]
         Type=oneshot
-        #FailureAction=reboot
+        FailureAction=reboot
         RemainAfterExit=yes
         ExecStart=/opt/bin/vault-login.sh
 
@@ -172,7 +172,7 @@ coreos:
 
         [Service]
         Restart=always
-        #FailureAction=reboot
+        FailureAction=reboot
         RestartSec=10
         TimeoutStartSec=300
 
@@ -703,6 +703,20 @@ write_files:
         }
       }
 
+  - path: /etc/kubernetes/init/kube-service-account-kubeconfig-cm.json
+    content: |
+      {
+        "kind": "ConfigMap",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "kube-service-account-kubeconfig",
+          "namespace": "kube-system"
+        },
+        "data": {
+          "kubeconfig.yaml": "kind: Config\napiVersion: v1\ncurrent-context: service-account\nclusters:\n  - name: kubernetes\n    cluster:\n       certificate-authority: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt\ncontexts:\n  - name: service-account\n    context:\n      cluster: kubernetes\n      user: service-account\nusers:\n  - name: service-account\n    user:\n      token: {{token}}\n"
+        }
+      }
+
   - path: /etc/kubernetes/init/kube-flannel-cm.json
     content: |
       {
@@ -987,6 +1001,66 @@ write_files:
                   "name": "kubeconfig",
                   "configMap": {
                     "name": "kube-controller-kubeconfig"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+
+  - path: /etc/kubernetes/init/kube-proxy-ds.json
+    content: |
+      {
+        "kind": "DaemonSet",
+        "apiVersion": "extensions/v1beta1",
+        "metadata": {
+          "name": "kube-proxy",
+          "namespace": "kube-system",
+          "labels": {
+            "app": "kubernetes",
+            "component": "proxy"
+          }
+        },
+        "spec": {
+          "template": {
+            "metadata": {
+              "labels": {
+                "app": "kubernetes",
+                "component": "proxy"
+              }
+            },
+            "spec": {
+              "hostNetwork": true,
+              "containers": [
+                {
+                  "name": "kube-proxy",
+                  "image": "${hyperkube}:${kube_version}",
+                  "command": [
+                    "/bin/bash", "-c", "sed -i /etc/kubeconfig/kubeconfig.yaml -e s,{{token}},$(cat /var/run/secrets/kubernetes.io/serviceaccount/token),g && exec /hyperkube proxy --master=https://${kube_fqdn} --kubeconfig=/etc/kubeconfig/kubeconfig.yaml --proxy-mode=iptables"
+                  ],
+                  "volumeMounts": [
+                    {
+                      "name": "kubeconfig",
+                      "mountPath": "/etc/kubeconfig"
+                    }
+                  ],
+                  "livenessProbe": {
+                    "httpGet": {
+                      "host": "127.0.0.1",
+                      "path": "/healthz",
+                      "port": 10249
+                    },
+                    "initialDelaySeconds": 15,
+                    "timeoutSeconds": 1
+                  }
+                }
+              ],
+              "volumes": [
+                {
+                  "name": "kubeconfig",
+                  "configMap": {
+                    "name": "kube-service-account-kubeconfig"
                   }
                 }
               ]
