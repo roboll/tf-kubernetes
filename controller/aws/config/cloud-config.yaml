@@ -87,7 +87,7 @@ coreos:
         Type=simple
         ExecStart=/opt/bin/etcd-certs.sh
         ExecStartPost=/bin/bash -c "systemctl kill -s HUP etcd2.service || true"
-        ExecStartPost=/bin/bash -c "systemctl kill -s HUP flanneld.service || true"
+        ExecStartPost=/bin/bash -c "sleep 30 && systemctl kill -s HUP flanneld.service || true"
 
     - name: etcd-certs.timer
       command: start
@@ -238,6 +238,7 @@ coreos:
           --config=/etc/kubernetes/manifests \
           --cluster-dns=10.0.0.10 \
           --cluster-domain=cluster.local \
+          --hairpin-mode=hairpin-veth \
           --node-labels=role=controller \
           --register-schedulable=false \
           --allow-privileged --v=2 --logtostderr=true

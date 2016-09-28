@@ -129,6 +129,7 @@ coreos:
           --kubeconfig=/etc/kubernetes/kubelet/kubeconfig.yaml \
           --cluster-dns=10.0.0.10 \
           --cluster-domain=cluster.local \
+          --hairpin-mode=hairpin-veth \
           --node-labels=role=worker,class=${worker_class} \
           --cloud-provider=aws \
           --allow-privileged --v=2 --logtostderr=true
