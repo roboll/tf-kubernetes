@@ -49,7 +49,6 @@ coreos:
         [Service]
         Type=oneshot
         ExecStart=/opt/bin/install-ssh-helper.sh
-        ExecStartPost=/usr/bin/rkt fetch quay.io/roboll/vault-ssh-helper:v0.1.2
 
     - name: vault-login.service
       command: start
@@ -71,28 +70,6 @@ coreos:
       content: |
         [Timer]
         OnActiveSec=12h
-        OnUnitActiveSec=12h
-
-    - name: etcd-certs.service
-      command: start
-      content: |
-        [Unit]
-        Before=etcd2.service
-        Before=flanneld.service
-
-        Requires=vault-login.service
-        After=vault-login.service
-
-        [Service]
-        Type=simple
-        ExecStart=/opt/bin/etcd-certs.sh
-        ExecStartPost=/bin/bash -c "systemctl kill -s HUP etcd2.service || true"
-        ExecStartPost=/bin/bash -c "sleep 30 && systemctl kill -s HUP flanneld.service || true"
-
-    - name: etcd-certs.timer
-      command: start
-      content: |
-        [Timer]
         OnUnitActiveSec=12h
 
     - name: dev-xvdb-format.service
@@ -125,13 +102,30 @@ coreos:
         Where=/var/lib/etcd
         Type=ext4
 
+    - name: etcd-certs.service
+      command: start
+      content: |
+        [Unit]
+        Before=etcd2.service
+        After=vault-login.service
+
+        [Service]
+        Type=simple
+        ExecStart=/opt/bin/etcd-certs.sh
+        ExecStartPost=/usr/bin/systemctl restart etcd2.service
+
+    - name: etcd-certs.timer
+      command: start
+      content: |
+        [Timer]
+        OnUnitActiveSec=12h
+
     - name: etcd2.service
       command: start
       drop-ins:
         - name: 99-options.conf
           content: |
             [Unit]
-            Before=flanneld.service
             Requires=var-lib-etcd.mount
             After=var-lib-etcd.mount etcd-certs.service
 
@@ -139,40 +133,20 @@ coreos:
             Restart=always
             RestartSec=10
 
-    - name: flanneld.service
-      command: start
-      drop-ins:
-        - name: 50-network-config.conf
-          content: |
-            [Unit]
-            Before=docker.service
-            Requires=etcd2.service
-            After=etcd2.service etcd-certs.service
-
-            [Service]
-            ExecStartPre=/usr/bin/etcdctl \
-              --endpoints https://localhost:2379 \
-              --ca-file /etc/ssl/etcd/ca.pem \
-              --cert-file /etc/ssl/etcd/cert.pem \
-              --key-file /etc/ssl/etcd/privkey.pem \
-              set /coreos.com/network/config \
-                '{"Network":"10.10.0.0/16","Backend":{"Type":"vxlan"}}'
-
     - name: docker.service
       command: start
       drop-ins:
         - name: 99-mount-flags.conf
           content: |
-            [Unit]
-            Requires=flanneld.service
-            After=flanneld.service
-
             [Service]
             MountFlags=shared
 
     - name: kube-ca.service
       command: start
       content: |
+        [Unit]
+        ConditionPathExists=!/etc/ssl/kube/ca.pem
+
         [Service]
         Type=oneshot
         ExecStart=/opt/bin/kube-ca.sh
@@ -182,14 +156,12 @@ coreos:
       content: |
         [Unit]
         Before=kubelet.service
-
-        Requires=vault-login.service
         After=vault-login.service
 
         [Service]
         Type=simple
         ExecStart=/opt/bin/kubelet-certs.sh
-        ExecStartPost=/bin/bash -c "systemctl kill -s HUP kubelet.service || true"
+        ExecStartPost=/usr/bin/systemctl restart kubelet.service
 
     - name: kubelet-certs.timer
       command: start
@@ -201,7 +173,7 @@ coreos:
       command: start
       content: |
         [Unit]
-        Requires=docker.service flanneld.service kube-ca.service kubelet-certs.service
+        Requires=kube-ca.service kubelet-certs.service
         After=docker.service flanneld.service kube-ca.service kubelet-certs.service
 
         [Service]
@@ -269,8 +241,8 @@ write_files:
   - path: /etc/vault/ssh.hcl
     permissions: 0600
     content: |
-      vault_addr = "${vault_address}"
       allowed_roles = "*"
+      vault_addr = "${vault_address}"
       ca_cert = "/etc/ssl/vault/ca.pem"
 
   - path: /opt/bin/host-rkt
@@ -511,7 +483,7 @@ write_files:
         hostNetwork: true
         containers:
           - name: vault-sidekick
-            image: quay.io/roboll/vault-sidekick:v0.0.9.8
+            image: quay.io/roboll/vault-sidekick:v0.0.9.11
             args:
               - -logtostderr=true
               - -tls-skip-verify=true
@@ -596,7 +568,7 @@ write_files:
         hostNetwork: true
         containers:
           - name: vault-sidekick
-            image: quay.io/roboll/vault-sidekick:v0.0.9.8
+            image: quay.io/roboll/vault-sidekick:v0.0.9.11
             args:
               - -logtostderr=true
               - -tls-skip-verify=true
@@ -768,7 +740,7 @@ write_files:
               "containers": [
                 {
                   "name": "vault-sidekick",
-                  "image": "quay.io/roboll/vault-sidekick:v0.0.9.8",
+                  "image": "quay.io/roboll/vault-sidekick:v0.0.9.11",
                   "args": [
                     "-logtostderr=true",
                     "-tls-skip-verify=true",
@@ -909,7 +881,7 @@ write_files:
               "containers": [
                 {
                   "name": "vault-sidekick",
-                  "image": "quay.io/roboll/vault-sidekick:v0.0.9.8",
+                  "image": "quay.io/roboll/vault-sidekick:v0.0.9.11",
                   "args": [
                     "-logtostderr=true",
                     "-tls-skip-verify=true",
@@ -1059,7 +1031,7 @@ write_files:
                 },
                 {
                   "name": "vault-sidekick",
-                  "image": "quay.io/roboll/vault-sidekick:v0.0.9.8",
+                  "image": "quay.io/roboll/vault-sidekick:v0.0.9.11",
                   "args": [
                     "-logtostderr=true",
                     "-tls-skip-verify=true",
