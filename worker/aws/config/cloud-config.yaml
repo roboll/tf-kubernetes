@@ -13,7 +13,6 @@ coreos:
         [Service]
         Type=oneshot
         ExecStart=/opt/bin/install-ssh-helper.sh
-        ExecStartPost=/usr/bin/rkt fetch quay.io/roboll/vault-ssh-helper:v0.1.2
 
     - name: vault-login.service
       command: start
@@ -37,9 +36,20 @@ coreos:
         OnActiveSec=12h
         OnUnitActiveSec=12h
 
+    - name: docker.service
+      command: start
+      drop-ins:
+        - name: 99-mount-flags.conf
+          content: |
+            [Service]
+            MountFlags=shared
+
     - name: kube-ca.service
       command: start
       content: |
+        [Unit]
+        ConditionPathExists=!/etc/ssl/kube/ca.pem
+
         [Service]
         Type=oneshot
         RemainAfterExit=yes
@@ -50,14 +60,12 @@ coreos:
       content: |
         [Unit]
         Before=kubelet.service
-
-        Requires=vault-login.service
         After=vault-login.service
 
         [Service]
         Type=simple
         ExecStart=/opt/bin/kubelet-certs.sh
-        ExecStartPost=/bin/bash -c "systemctl kill -s HUP kubelet.service || true"
+        ExecStartPost=/usr/bin/systemctl restart kubelet.service
 
     - name: kubelet-certs.timer
       command: start
@@ -65,19 +73,11 @@ coreos:
         [Timer]
         OnUnitActiveSec=12h
 
-    - name: docker.service
-      command: start
-      drop-ins:
-        - name: 99-mount-flags.conf
-          content: |
-            [Service]
-            MountFlags=shared
-
     - name: kubelet.service
       command: start
       content: |
         [Unit]
-        Requires=docker.service kube-ca.service kubelet-certs.service
+        Requires=kube-ca.service kubelet-certs.service
         After=docker.service kube-ca.service kubelet-certs.service
 
         [Service]
@@ -139,9 +139,17 @@ write_files:
   - path: /etc/vault/ssh.hcl
     permissions: 0600
     content: |
-      vault_addr = "${vault_address}"
       allowed_roles = "*"
+      vault_addr = "${vault_address}"
       ca_cert = "/etc/ssl/vault/ca.pem"
+
+  - path: /opt/bin/host-rkt
+    permissions: 0755
+    owner: root:root
+    content: |
+      #!/bin/sh
+      # https://github.com/coreos/rkt/issues/2878
+      exec nsenter -m -u -i -n -p -t 1 -- /usr/bin/rkt "$@"
 
   - path: /opt/bin/vault-login.sh
     permissions: 0700
@@ -199,14 +207,6 @@ write_files:
         -e 's/\\n/\n/g' > /etc/ssl/kube/kubelet/cert.pem <<< $json
       sed -re 's/.*"private_key":"([^"]*)".*/\1/g' \
         -e 's/\\n/\n/g' > /etc/ssl/kube/kubelet/privkey.pem <<< $json
-
-  - path: /opt/bin/host-rkt
-    permissions: 0755
-    owner: root:root
-    content: |
-      #!/bin/sh
-      # https://github.com/coreos/rkt/issues/2878
-      exec nsenter -m -u -i -n -p -t 1 -- /usr/bin/rkt "$@"
 
   - path: /etc/kubernetes/kubelet/kubeconfig.yaml
     content: |

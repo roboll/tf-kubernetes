@@ -33,12 +33,6 @@ coreos:
     peer_trusted_ca_file: /etc/ssl/etcd/ca.pem
     peer_client_cert_auth: true
 
-  flannel:
-    etcd_cafile: /etc/ssl/etcd/ca.pem
-    etcd_keyfile: /etc/ssl/etcd/privkey.pem
-    etcd_certfile: /etc/ssl/etcd/cert.pem
-    etcd_endpoints: https://localhost:2379
-
   units:
     - name: install-ssh-helper.service
       command: start
@@ -174,7 +168,7 @@ coreos:
       content: |
         [Unit]
         Requires=kube-ca.service kubelet-certs.service
-        After=docker.service flanneld.service kube-ca.service kubelet-certs.service
+        After=docker.service kube-ca.service kubelet-certs.service
 
         [Service]
         Restart=always
