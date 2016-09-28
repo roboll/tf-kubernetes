@@ -390,7 +390,7 @@ write_files:
 
       [ ! -f /etc/kubernetes/bootstrap/linked ] && {
         echo "linking bootstrap components as static pods"
-        ln -sf /etc/kubernetes/bootstrap/*.yaml /etc/kubernetes/manifests
+        ln -sf /etc/kubernetes/bootstrap/manifests/*.yaml /etc/kubernetes/manifests
         touch /etc/kubernetes/bootstrap/linked
       }
 
@@ -423,23 +423,23 @@ write_files:
         touch /etc/kubernetes/init/vault,json.created
       }
 
-      [ ! -f /etc/kubernetes/init/configmaps.created ] && {
-        for cm in /etc/kubernetes/init/*-cm.json; do
+      for cm in /etc/kubernetes/init/*-cm.json; do
+        [ ! -f $cm.created ] && {
           echo "creating from $ds"
           curl $curl_opts -H "Content-Type: application/json" -XPOST \
             -d @$cm https://kubernetes/api/v1/namespaces/kube-system/configmaps
-        done
-        touch /etc/kubernetes/init/configmaps.created
-      }
+          touch $cm.created
+        }
+      done
 
-      [ ! -f /etc/kubernetes/init/daemonsets.created ] && {
-        for ds in /etc/kubernetes/init/*-ds.json; do
+      for ds in /etc/kubernetes/init/*-ds.json; do
+        [ ! -f $ds.created ] && {
           echo "creating from $ds"
           curl $curl_opts -H "Content-Type: application/json" -XPOST \
             -d @$ds https://kubernetes/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
-        done
-        touch /etc/kubernetes/init/daemonsets.created
-      }
+          touch $ds.created
+        }
+      done
 
       echo "all manifests created"
       until docker ps | grep -q kube-apiserver && docker ps | grep -q kube-controller-manager; do
@@ -469,7 +469,7 @@ write_files:
             client-certificate: /etc/secrets/kube.crt
             client-key: /etc/secrets/kube.key
 
-  - path: /etc/kubernetes/bootstrap/apiserver.yaml
+  - path: /etc/kubernetes/bootstrap/manifests/apiserver.yaml
     content: |
       apiVersion: v1
       kind: Pod
@@ -538,9 +538,6 @@ write_files:
               - mountPath: /etc/secrets
                 name: secrets
                 readOnly: true
-              - mountPath: /etc/kubernetes/bootstrap/tokens.csv
-                name: kube-tokens
-                readOnly: true
         volumes:
           - name: secrets
             emptyDir: {}
@@ -550,11 +547,8 @@ write_files:
           - name: vault-token
             hostPath:
               path: /etc/vault/token
-          - name: kube-tokens
-            hostPath:
-              path: /etc/kubernetes/bootstrap/tokens.csv
 
-  - path: /etc/kubernetes/bootstrap/controller-manager.yaml
+  - path: /etc/kubernetes/bootstrap/manifests/controller-manager.yaml
     content: |
       apiVersion: v1
       kind: Pod
@@ -624,22 +618,6 @@ write_files:
             hostPath:
               path: /etc/kubernetes/bootstrap/kubeconfig.yaml
 
-  - path: /etc/kubernetes/init/vault.json
-    permissions: 0644
-    content: |
-      {
-        "kind": "Secret",
-        "apiVersion": "v1",
-        "metadata": {
-          "name": "vault"
-        },
-        "type": "Opaque",
-        "data": {
-          "address": "${vault_address_b64}",
-          "ca.pem": "${vault_ca_cert_pem_b64}"
-        }
-      }
-
   - path: /etc/kubernetes/init/role.json
     permissions: 0644
     content: |
@@ -694,6 +672,22 @@ write_files:
           "kind": "ClusterRole",
           "apiVersion": "rbac.authorization.k8s.io/v1alpha1",
           "name": "admin-access"
+        }
+      }
+
+  - path: /etc/kubernetes/init/vault.json
+    permissions: 0644
+    content: |
+      {
+        "kind": "Secret",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "vault"
+        },
+        "type": "Opaque",
+        "data": {
+          "address": "${vault_address_b64}",
+          "ca.pem": "${vault_ca_cert_pem_b64}"
         }
       }
 
