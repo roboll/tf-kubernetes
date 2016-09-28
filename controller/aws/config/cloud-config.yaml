@@ -1036,6 +1036,9 @@ write_files:
                 {
                   "name": "kube-proxy",
                   "image": "${hyperkube}:${kube_version}",
+                  "securityContext": {
+                    "privileged": true,
+                  },
                   "command": [
                     "/bin/bash", "-c", "sed -i /etc/kubeconfig/kubeconfig.yaml -e s,{{token}},$(cat /var/run/secrets/kubernetes.io/serviceaccount/token),g && exec /hyperkube proxy --master=https://${kube_fqdn} --kubeconfig=/etc/kubeconfig/kubeconfig.yaml --proxy-mode=iptables"
                   ],
