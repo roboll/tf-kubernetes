@@ -225,6 +225,7 @@ data template_file registry {
         http_secret = "${vaultx_secret.registry_http_secret.path}"
         region = "${var.region}"
         bucket = "${aws_s3_bucket.registry.id}"
+        domain = "${var.domain}"
     }
 }
 
