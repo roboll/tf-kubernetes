@@ -29,7 +29,7 @@ provider ecr {
 resource null_resource render {
     triggers {
         heapster = "${data.template_file.heapster.rendered}"
-        kube_addon_manager = "${data.template_file.kube_addon_manager.rendered}"
+        kube_dns = "${data.template_file.kube_dns.rendered}"
         kube_controller_metrics = "${data.template_file.kube_controller_metrics.rendered}"
         kube_dashboard = "${data.template_file.kube_dashboard.rendered}"
         kube_etcd_metrics = "${data.template_file.kube_etcd_metrics.rendered}"
@@ -52,8 +52,8 @@ cat << "FF" > ${path.root}/kube/manifests/heapster.yaml;
 ${data.template_file.heapster.rendered}
 FF
 
-cat << "FF" > ${path.root}/kube/manifests/kube-addon-manager.yaml;
-${data.template_file.kube_addon_manager.rendered}
+cat << "FF" > ${path.root}/kube/manifests/kube-dns.yaml;
+${data.template_file.kube_dns.rendered}
 FF
 
 cat << "FF" > ${path.root}/kube/manifests/kube-controller-metrics.yaml;
@@ -118,13 +118,8 @@ data template_file heapster {
     template = "${file("${path.module}/manifests/heapster.yaml")}"
 }
 
-data template_file kube_addon_manager {
-    template = "${file("${path.module}/manifests/kube-addon-manager.yaml")}"
-
-    vars {
-        hyperkube = "${var.hyperkube}"
-        kube_version = "${var.kube_version}"
-    }
+data template_file kube_dns {
+    template = "${file("${path.module}/manifests/kube-dns.yaml")}"
 }
 
 data template_file kube_controller_metrics {
