@@ -57,6 +57,7 @@ spec:
             - -output=/etc/secrets
             - -cn=aws:${registry_path}:fmt=awsenv,file=aws.env,export=true
             - -cn=secret:${http_secret}:fmt=env,file=http.env,export=true
+            - -cn=pki:${cert_path}:fmt=cert,file=registry,common_name=registry.${domain},alt_names=registry|registry.kube-system.svc|registry.kube-system.svc.cluster.local
           env:
             - name: VAULT_ADDR
               valueFrom:
@@ -100,6 +101,10 @@ spec:
           env:
             - name: REGISTRY_HTTP_ADDR
               value: :5000
+            - name: REGISTRY_HTTP_TLS_CERTIFICATE
+              value: /etc/secrets/registry.crt
+            - name: REGISTRY_HTTP_TLS_KEY
+              value: /etc/secrets/registry.key
             - name: REGISTRY_STORAGE
               value: s3
             - name: REGISTRY_STORAGE_S3_REGION

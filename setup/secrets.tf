@@ -134,7 +134,25 @@ path "aws/creds/${var.env}-registry" {
 path "secret/${var.env}/registry" {
     capabilities = [ "read", "list" ]
 }
+path "${var.env}-kube/issue/registry" {
+    capabilities = [ "create", "read", "update", "list" ]
+}
 EOF
+}
+
+resource vaultx_secret registry_role {
+    path = "${var.env}-kube/roles/registry"
+    ignore_read = true
+
+    data {
+        allowed_domains = "registry.${var.domain},registry,registry.kube-system,registry.kube-system.svc,registry.kube-system.svc.cluster.local"
+        allow_bare_domains = true
+        allow_subdomains = false
+        allow_localhost = false
+        key_type = "ec"
+        key_bits = "256"
+        max_ttl = "48h"
+    }
 }
 
 resource vaultx_secret registry_approle {
