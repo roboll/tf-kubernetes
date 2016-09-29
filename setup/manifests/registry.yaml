@@ -1,4 +1,37 @@
 ---
+kind: Ingress
+apiVersion: extensions/v1beta1
+metadata:
+  name: registry
+  namespace: kube-system
+  annotations:
+    kubernetes.io/ingress.class: "private"
+spec:
+  rules:
+    - host: docker.${domain}
+      http:
+        paths:
+          - path: /
+            backend:
+              serviceName: registry
+              servicePort: 5000
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: registry
+  namespace: kube-system
+  labels:
+    app: registry
+spec:
+  selector:
+    app: registry
+  ports:
+  - name: registry
+    port: 5000
+
+---
 kind: Deployment
 apiVersion: extensions/v1beta1
 metadata:
