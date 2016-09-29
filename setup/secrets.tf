@@ -131,6 +131,9 @@ resource vaultx_policy registry {
 path "aws/creds/${var.env}-registry" {
     capabilities = [ "read", "list" ]
 }
+path "secret/${var.env}/registry" {
+    capabilities = [ "read", "list" ]
+}
 EOF
 }
 
