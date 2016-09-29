@@ -61,4 +61,4 @@ spec:
       volumes:
         - name: kubeconfig
           configMap:
-            name: service-account-kubeconfig
+            name: kube-service-account-kubeconfig
