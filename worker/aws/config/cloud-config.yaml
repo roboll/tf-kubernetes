@@ -65,7 +65,7 @@ coreos:
         [Service]
         Type=simple
         ExecStart=/opt/bin/kubelet-certs.sh
-        ExecStartPost=/usr/bin/systemctl try-restart kubelet.service
+        ExecStartPost=/usr/bin/systemctl --no-block try-restart kubelet.service
 
     - name: kubelet-certs.timer
       command: start
