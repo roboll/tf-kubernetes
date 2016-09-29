@@ -68,7 +68,7 @@ spec:
             - name: REGISTRY_HTTP_ADDR
               value: :5000
             - name: REGISTRY_STORAGE
-              value: S3
+              value: s3
             - name: REGISTRY_STORAGE_S3_REGION
               value: ${region}
             - name: REGISTRY_STORAGE_S3_BUCKET

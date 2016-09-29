@@ -156,6 +156,6 @@ resource vaultx_secret registry_http_secret {
     ignore_read = true
 
     data {
-        http_secret = "${random_id.http_secret.b64}"
+        registry_http_secret = "${random_id.http_secret.b64}"
     }
 }
