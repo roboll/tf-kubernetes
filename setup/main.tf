@@ -222,7 +222,7 @@ data template_file registry {
 
     vars {
         registry_path = "aws/creds/${var.env}-registry"
-        cert_path = "${var.env}-kube/roles/registry"
+        cert_path = "${var.env}-kube/issue/registry"
         http_secret = "${vaultx_secret.registry_http_secret.path}"
         region = "${var.region}"
         bucket = "${aws_s3_bucket.registry.id}"
