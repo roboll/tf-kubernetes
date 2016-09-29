@@ -149,7 +149,7 @@ spec:
             - containerPort: 443
           args:
             - /nginx-ingress-controller
-            - --ingress-class=public
+            - --logtostderr
             - --default-backend-service=$(POD_NAMESPACE)/kube-ingress-default
             - --nginx-configmap=$(POD_NAMESPACE)/kube-ingress-nginx
 
@@ -194,6 +194,7 @@ spec:
             - containerPort: 443
           args:
             - /nginx-ingress-controller
+            - --logtostderr
             - --ingress-class=private
             - --default-backend-service=$(POD_NAMESPACE)/kube-ingress-default
             - --nginx-configmap=$(POD_NAMESPACE)/kube-ingress-nginx
