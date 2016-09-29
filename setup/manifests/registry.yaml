@@ -1,0 +1,87 @@
+---
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: registry
+  namespace: kube-system
+  labels:
+    app: registry
+    version: v0
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: registry
+        version: v0
+    spec:
+      containers:
+        - name: vault-sidekick
+          image: quay.io/roboll/vault-sidekick:v0.0.9.11
+          args:
+            - -logtostderr=true
+            - -tls-skip-verify=true
+            - -output=/etc/secrets
+            - -cn=aws:${registry_path}:fmt=awsenv,file=aws.env,export=true
+            - -cn=secret:${http_secret}:fmt=env,file=http.env,export=true
+          env:
+            - name: VAULT_ADDR
+              valueFrom:
+                secretKeyRef:
+                  name: vault
+                  key: address
+            - name: VAULT_CACERT
+              value: /etc/vault/ca.pem
+            - name: VAULT_SIDEKICK_AUTH_METHOD
+              value: approle
+            - name: VAULT_SIDEKICK_ROLE_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: vault-role-registry
+                  key: role-id
+            - name: VAULT_SIDEKICK_SECRET_ID
+              valueFrom:
+                secretKeyRef:
+                  name: vault-secret-registry
+                  key: secret-id
+          volumeMounts:
+            - mountPath: /etc/secrets
+              name: secrets
+        - name: registry
+          image: registry:2
+          command:
+            - /bin/sh
+            - -c
+            - sleep 30 &&
+              . /etc/secrets/aws.env &&
+              . /etc/secrets/http.env &&
+              exec registry serve /etc/docker/registry/config.yml
+          resources:
+            # keep request = limit to keep this container in guaranteed class
+            limits:
+              cpu: 100m
+              memory: 100Mi
+            requests:
+              cpu: 100m
+              memory: 100Mi
+          env:
+            - name: REGISTRY_HTTP_ADDR
+              value: :5000
+            - name: REGISTRY_STORAGE
+              value: S3
+            - name: REGISTRY_STORAGE_S3_REGION
+              value: ${region}
+            - name: REGISTRY_STORAGE_S3_BUCKET
+              value: ${bucket}
+            - name: REGISTRY_STORAGE_S3_ENCRYPT
+              value: "true"
+          volumeMounts:
+            - name: secrets
+              mountPath: /etc/secrets
+          ports:
+            - containerPort: 5000
+              name: registry
+              protocol: TCP
+      volumes:
+        - name: secrets
+          emptyDir: {}

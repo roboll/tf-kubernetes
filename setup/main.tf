@@ -41,6 +41,7 @@ resource null_resource render {
         metrics_alerts_config = "${data.template_file.metrics_alerts_config.rendered}"
         metrics_config = "${data.template_file.metrics_config.rendered}"
         metrics = "${data.template_file.metrics.rendered}"
+        registry = "${data.template_file.registry.rendered}"
     }
 
     provisioner local-exec {
@@ -100,6 +101,10 @@ cat << "FF" > ${path.root}/kube/manifests/metrics.yaml;
 ${data.template_file.metrics.rendered}
 FF
 
+cat << "FF" > ${path.root}/kube/manifests/registry.yaml;
+${data.template_file.registry.rendered}
+FF
+
 cat << "FF" > ${path.root}/kube/scripts/etcd-vault-setup.sh;
 ${data.template_file.etcd_vault_setup.rendered}
 FF
@@ -109,6 +114,11 @@ cat << "FF" > ${path.root}/kube/scripts/kube-ingress-dns-vault-setup.sh;
 ${data.template_file.kube_ingress_dns_vault_setup.rendered}
 FF
 chmod +x ${path.root}/kube/scripts/kube-ingress-dns-vault-setup.sh
+
+cat << "FF" > ${path.root}/kube/scripts/registry-setup.sh;
+${data.template_file.registry_setup.rendered}
+FF
+chmod +x ${path.root}/kube/scripts/registry-setup.sh
 
 EOF
     }
@@ -207,6 +217,17 @@ data template_file metrics {
     }
 }
 
+data template_file registry {
+    template = "${file("${path.module}/manifests/registry.yaml")}"
+
+    vars {
+        registry_path = "aws/creds/${var.env}-registry"
+        http_secret = "${vaultx_secret.registry_http_secret.path}"
+        region = "${var.region}"
+        bucket = "${aws_s3_bucket.registry.id}"
+    }
+}
+
 data template_file etcd_vault_setup {
     template = "${file("${path.module}/scripts/vault-setup.sh")}"
 
@@ -225,6 +246,17 @@ data template_file kube_ingress_dns_vault_setup {
         approle = "${var.env}-kube-ingress-dns"
 
         name = "kube-ingress-dns"
+        namespace = "kube-system"
+    }
+}
+
+data template_file registry_setup {
+    template = "${file("${path.module}/scripts/vault-setup.sh")}"
+
+    vars {
+        approle = "${var.env}-registry"
+
+        name = "registry"
         namespace = "kube-system"
     }
 }

@@ -84,3 +84,75 @@ resource vaultx_secret ingress_dns_approle {
     }
 }
 
+resource aws_s3_bucket registry {
+    bucket = "registry.${var.domain}"
+    acl = "private"
+}
+
+resource vaultx_secret registry_policy {
+    path = "aws/roles/${var.env}-registry"
+    ignore_read = true
+
+    data {
+        policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:ListBucket",
+                "s3:GetBucketLocation",
+                "s3:ListBucketMultipartUploads"
+            ],
+            "Resource": "${aws_s3_bucket.registry.arn}"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:PutObject",
+                "s3:GetObject",
+                "s3:DeleteObject",
+                "s3:ListMultipartUploadParts",
+                "s3:AbortMultipartUpload"
+            ],
+            "Resource": "${aws_s3_bucket.registry.arn}/*"
+        }
+    ]
+}
+EOF
+    }
+}
+
+resource vaultx_policy registry {
+    name = "${var.env}-registry"
+
+    rules = <<EOF
+path "aws/creds/${var.env}-registry" {
+    capabilities = [ "read", "list" ]
+}
+EOF
+}
+
+resource vaultx_secret registry_approle {
+    path = "auth/approle/role/${var.env}-registry"
+    ignore_read = true
+
+    data {
+        policies = "${var.env}-registry"
+        period = "12h"
+    }
+}
+
+resource random_id http_secret {
+    byte_length = 32
+}
+
+resource vaultx_secret registry_http_secret {
+    path = "secret/${var.env}/registry"
+    ignore_read = true
+
+    data {
+        http_secret = "${random_id.http_secret.b64}"
+    }
+}
