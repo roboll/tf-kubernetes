@@ -8,7 +8,7 @@ metadata:
     kubernetes.io/ingress.class: "private"
 spec:
   rules:
-    - host: docker.${domain}
+    - host: registry.${domain}
       http:
         paths:
           - path: /
