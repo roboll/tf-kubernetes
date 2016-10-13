@@ -29,6 +29,8 @@ variable kube_pki_backend {}
 variable hyperkube { default = "quay.io/coreos/hyperkube" }
 variable kube_version { default = "v1.3.6_coreos.0" }
 
+variable vault_ssh_image { default = "quay.io/roboll/vault-ssh-coreos:v0.2.0" }
+
 provider aws {
     region = "${var.region}"
 }
@@ -143,6 +145,8 @@ resource coreos_cloudconfig cloud_config {
         kube_fqdn = "${var.controller_fqdn}"
         kube_version = "${var.kube_version}"
         hyperkube = "${var.hyperkube}"
+
+        vault_ssh_image = "${var.vault_ssh_image}"
 
         region = "${var.region}"
         vault_address = "${var.vault_address}"
