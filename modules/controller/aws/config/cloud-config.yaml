@@ -893,7 +893,7 @@ write_files:
                   "name": "scheduler",
                   "image": "${hyperkube}:${kube_version}",
                   "command": [
-                    "/bin/bash", "-c", "sed -i /etc/kubeconfig/kubeconfig.yaml -e s,{{token}},$(cat /var/run/secrets/kubernetes.io/serviceaccount/token),g && exec /hyperkube scheduler --kubeconfig=/etc/kubeconfig/kubeconfig.yaml --leader-elect=true"
+                    "/bin/bash", "-c", "sed /etc/kubeconfig/kubeconfig.yaml -e s,{{token}},$(cat /var/run/secrets/kubernetes.io/serviceaccount/token),g > /kubeconfig.yaml && exec /hyperkube scheduler --kubeconfig=/kubeconfig.yaml --leader-elect=true"
                   ],
                   "livenessProbe": {
                     "httpGet": {
@@ -1091,7 +1091,7 @@ write_files:
                     "privileged": true
                   },
                   "command": [
-                    "/bin/bash", "-c", "sed -i /etc/kubeconfig/kubeconfig.yaml -e s,{{token}},$(cat /var/run/secrets/kubernetes.io/serviceaccount/token),g && exec /hyperkube proxy --master=https://${kube_fqdn} --kubeconfig=/etc/kubeconfig/kubeconfig.yaml --proxy-mode=iptables"
+                    "/bin/bash", "-c", "sed /etc/kubeconfig/kubeconfig.yaml -e s,{{token}},$(cat /var/run/secrets/kubernetes.io/serviceaccount/token),g > /kubeconfig.yaml && exec /hyperkube proxy --master=https://${kube_fqdn} --kubeconfig=/kubeconfig.yaml --proxy-mode=iptables"
                   ],
                   "volumeMounts": [
                     {
