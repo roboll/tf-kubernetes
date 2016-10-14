@@ -682,13 +682,13 @@ write_files:
         }
       }
 
-  - path: /etc/kubernetes/init/kube-service-account-kubeconfig-cm.json
+  - path: /etc/kubernetes/init/kube-proxy-kubeconfig-cm.json
     content: |
       {
         "kind": "ConfigMap",
         "apiVersion": "v1",
         "metadata": {
-          "name": "kube-service-account-kubeconfig",
+          "name": "kube-proxy-kubeconfig",
           "namespace": "kube-system"
         },
         "data": {
@@ -840,6 +840,83 @@ write_files:
                   "name": "vault-token",
                   "hostPath": {
                     "path": "/etc/vault/token"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+
+  - path: /etc/kubernetes/init/kube-scheduler-kubeconfig-cm.json
+    content: |
+      {
+        "kind": "ConfigMap",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "kube-scheduler-kubeconfig",
+          "namespace": "kube-system"
+        },
+        "data": {
+          "kubeconfig.yaml": "kind: Config\napiVersion: v1\ncurrent-context: service-account\nclusters:\n  - name: kubernetes\n    cluster:\n       certificate-authority: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt\ncontexts:\n  - name: service-account\n    context:\n      cluster: kubernetes\n      user: service-account\nusers:\n  - name: service-account\n    user:\n      token: {{token}}\n"
+        }
+      }
+
+  - path: /etc/kubernetes/init/kube-scheduler-ds.json
+    content: |
+      {
+        "kind": "DaemonSet",
+        "apiVersion": "extensions/v1beta1",
+        "metadata": {
+          "name": "kube-scheduler",
+          "namespace": "kube-system",
+          "labels": {
+            "app": "kubernetes",
+            "component": "scheduler"
+          }
+        },
+        "spec": {
+          "template": {
+            "metadata": {
+              "labels": {
+                "app": "kubernetes",
+                "component": "scheduler"
+              }
+            },
+            "spec": {
+              "nodeSelector": {
+                "role": "controller"
+              },
+              "hostNetwork": true,
+              "containers": [
+                {
+                  "name": "scheduler",
+                  "image": "${hyperkube}:${kube_version}",
+                  "command": [
+                    "/bin/bash", "-c", "sed -i /etc/kubeconfig/kubeconfig.yaml -e s,{{token}},$(cat /var/run/secrets/kubernetes.io/serviceaccount/token),g && exec /hyperkube scheduler --kubeconfig=/etc/kubeconfig/kubeconfig.yaml --leader-elect=true"
+                  ],
+                  "livenessProbe": {
+                    "httpGet": {
+                      "path": "/healthz",
+                      "port": 10251
+                    },
+                    "initialDelaySeconds": 15,
+                    "timeoutSeconds": 1
+                  },
+                  "volumeMounts": [
+                    {
+                      "name": "kubeconfig",
+                      "mountPath": "/etc/kubeconfig",
+                      "readOnly": true
+                    }
+                  ]
+                }
+              ],
+              "volumes": [
+                {
+                  "name": "kubeconfig",
+                  "configMap": {
+                    "name": "kube-scheduler-kubeconfig"
                   }
                 }
               ]
@@ -1037,7 +1114,7 @@ write_files:
                 {
                   "name": "kubeconfig",
                   "configMap": {
-                    "name": "kube-service-account-kubeconfig"
+                    "name": "kube-proxy-kubeconfig"
                   }
                 }
               ]
