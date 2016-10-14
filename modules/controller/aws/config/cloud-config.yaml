@@ -1,0 +1,1154 @@
+#cloud-config
+hostname: ${instance_name}.${domain}
+coreos:
+  update:
+    reboot-strategy: etcd-lock
+
+  locksmith:
+    endpoint: https://localhost:2379
+    etcd_cafile: /etc/ssl/etcd/ca.pem
+    etcd_certfile: /etc/ssl/etcd/cert.pem
+    etcd_keyfile: /etc/ssl/etcd/privkey.pem
+    group: controller
+
+  etcd2:
+    name: ${instance_name}
+    data_dir: /var/lib/etcd/data
+
+    initial_cluster: ${etcd_peers}
+    initial_cluster_state: new
+
+    advertise_client_urls: https://$private_ipv4:2379
+    listen_client_urls: https://0.0.0.0:2379
+    initial_advertise_peer_urls: https://$private_ipv4:2380
+    listen_peer_urls: https://0.0.0.0:2380
+
+    cert_file: /etc/ssl/etcd/cert.pem
+    key_file: /etc/ssl/etcd/privkey.pem
+    trusted_ca_file: /etc/ssl/etcd/ca.pem
+    client_cert_auth: true
+
+    peer_cert_file: /etc/ssl/etcd/cert.pem
+    peer_key_file: /etc/ssl/etcd/privkey.pem
+    peer_trusted_ca_file: /etc/ssl/etcd/ca.pem
+    peer_client_cert_auth: true
+
+  units:
+    - name: vault-ssh.service
+      command: start
+      content: |
+        [Service]
+        Type=oneshot
+
+        ExecStartPre=/usr/bin/rkt fetch --trust-keys-from-https ${vault_ssh_image}
+        ExecStart=/usr/bin/rkt image extract --rootfs-only --overwrite ${vault_ssh_image} /tmp/vault-ssh
+        ExecStartPost=/tmp/vault-ssh/link.sh
+
+    - name: vault-login.service
+      command: start
+      content: |
+        [Service]
+        Type=oneshot
+        FailureAction=reboot
+        ExecStart=/opt/bin/vault-login.sh
+
+    - name: vault-renew-token.service
+      content: |
+        [Service]
+        Type=simple
+        ExecStart=/opt/bin/vault-renew-token.sh
+
+    - name: vault-renew-token.timer
+      command: start
+      content: |
+        [Timer]
+        OnActiveSec=12h
+        OnUnitActiveSec=12h
+
+    - name: dev-xvdb-format.service
+      command: start
+      content: |
+        [Unit]
+        Requires=dev-xvdb.device
+        After=dev-xvdb.device
+
+        Before=var-lib-etcd.mount
+        ConditionPathExists=!/var/lib/etcd.formatted
+
+        [Service]
+        Type=oneshot
+        ExecStart=/usr/sbin/wipefs -f /dev/xvdb
+        ExecStart=/bin/bash -c "mkfs.ext4 -E root_owner=$(id -u etcd):$(id -u etcd) /dev/xvdb"
+        ExecStartPost=/bin/touch /var/lib/etcd.formatted
+
+    - name: var-lib-etcd.mount
+      command: start
+      content: |
+        [Unit]
+        Requires=dev-xvdb-format.service
+        After=dev-xvbd-format.service
+
+        Before=etcd2.service
+
+        [Mount]
+        What=/dev/xvdb
+        Where=/var/lib/etcd
+        Type=ext4
+
+    - name: etcd-certs.service
+      command: start
+      content: |
+        [Unit]
+        Before=etcd2.service
+        After=vault-login.service
+
+        [Service]
+        Type=simple
+        ExecStart=/opt/bin/etcd-certs.sh
+        ExecStartPost=/usr/bin/systemctl --no-block try-restart etcd2.service
+
+    - name: etcd-certs.timer
+      command: start
+      content: |
+        [Timer]
+        OnUnitActiveSec=12h
+
+    - name: etcd2.service
+      command: start
+      drop-ins:
+        - name: 99-options.conf
+          content: |
+            [Unit]
+            Requires=var-lib-etcd.mount
+            After=var-lib-etcd.mount etcd-certs.service
+
+            [Service]
+            Restart=always
+            RestartSec=10
+
+    - name: docker.service
+      command: start
+      drop-ins:
+        - name: 99-mount-flags.conf
+          content: |
+            [Service]
+            MountFlags=shared
+
+    - name: kube-ca.service
+      command: start
+      content: |
+        [Unit]
+        ConditionPathExists=!/etc/ssl/kube/ca.pem
+
+        [Service]
+        Type=oneshot
+        ExecStart=/opt/bin/kube-ca.sh
+
+    - name: kubelet-certs.service
+      command: start
+      content: |
+        [Unit]
+        Before=kubelet.service
+        After=vault-login.service
+
+        [Service]
+        Type=simple
+        ExecStart=/opt/bin/kubelet-certs.sh
+        ExecStartPost=/usr/bin/systemctl --no-block try-restart kubelet.service
+
+    - name: kubelet-certs.timer
+      command: start
+      content: |
+        [Timer]
+        OnUnitActiveSec=12h
+
+    - name: kubelet.service
+      command: start
+      content: |
+        [Unit]
+        Requires=kube-ca.service kubelet-certs.service
+        After=docker.service kube-ca.service kubelet-certs.service
+
+        [Service]
+        Restart=always
+        FailureAction=reboot
+        RestartSec=10
+        TimeoutStartSec=300
+
+        Environment=KUBELET_ACI=${hyperkube}
+        Environment=KUBELET_VERSION=${kube_version}
+        Environment="RKT_OPTS=--volume dns,kind=host,source=/etc/resolv.conf \
+        --mount volume=dns,target=/etc/resolv.conf \
+        --volume stage,kind=host,source=/tmp \
+        --mount volume=stage,target=/tmp \
+        --volume var-log,kind=host,source=/var/log \
+        --mount volume=var-log,target=/var/log \
+        --volume kube-ca,kind=host,source=/etc/ssl/kube/ca.pem \
+        --mount volume=kube-ca,target=/etc/ssl/kube/ca.pem \
+        --volume kubelet-ssl,kind=host,source=/etc/ssl/kubelet \
+        --mount volume=kubelet-ssl,target=/etc/ssl/kubelet \
+        --volume cni,kind=host,source=/etc/cni/net.d \
+        --mount volume=cni,target=/etc/cni/net.d"
+
+        ExecStartPre=/usr/bin/mkdir -p /etc/cni/net.d
+        ExecStartPre=/usr/bin/mkdir -p /etc/kubernetes/manifests
+        ExecStart=/usr/lib/coreos/kubelet-wrapper \
+          --api-servers=https://${kube_fqdn} \
+          --tls-cert-file=/etc/ssl/kubelet/cert.pem \
+          --tls-private-key-file=/etc/ssl/kubelet/privkey.pem \
+          --cloud-provider='' \
+          --kubeconfig=/etc/kubernetes/kubelet/kubeconfig.yaml \
+          --pod-manifest-path=/etc/kubernetes/manifests \
+          --cluster-dns=10.0.0.10 \
+          --cluster-domain=cluster.local \
+          --hairpin-mode=hairpin-veth \
+          --network-plugin=cni \
+          --network-plugin-dir=/etc/cni/net.d \
+          --node-labels=role=controller \
+          --register-schedulable=false \
+          --allow-privileged --v=2 --logtostderr=true
+        ExecStartPost=-/opt/bin/init-kube.sh
+
+write_files:
+  - path: /etc/ssl/vault/ca.pem
+    permissions: 0600
+    encoding: base64
+    content: |
+      ${vault_ca_cert_pem_b64}
+
+  - path: /etc/vault/ssh.hcl
+    permissions: 0600
+    content: |
+      allowed_roles = "*"
+      vault_addr = "${vault_address}"
+      ca_cert = "/etc/ssl/vault/ca.pem"
+
+  - path: /opt/bin/vault-login.sh
+    permissions: 0700
+    content: |
+      #!/bin/bash
+      set -eo pipefail
+
+      mkdir -p /etc/vault
+      nonce="$(cat /etc/machine-id | base64)"
+      pkcs="$(curl ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
+        http://169.254.169.254/latest/dynamic/instance-identity/pkcs7 | tr -d '\n')"
+
+      curl ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
+        -X POST -H "Content-Type: application/json" \
+        -d "{\"pkcs7\":\"$pkcs\",\"role\":\"${vault_instance_role}\",\"nonce\":\"$nonce\"}" \
+        ${vault_address}/v1/auth/aws-ec2/login | \
+        sed -re 's/.*"client_token":"([^"]*)".*/\1/g' > /etc/vault/token
+
+  - path: /opt/bin/vault-renew-token.sh
+    permissions: 0700
+    content: |
+      #!/bin/bash
+      set -eo pipefail
+
+      token="$(cat /etc/vault/token)"
+      curl ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
+        -X POST -H "X-Vault-Token: $token" \
+        -d '{"increment": "24h"}' \
+        ${vault_address}/v1/auth/token/renew-self > /dev/null
+
+  - path: /opt/bin/kube-ca.sh
+    permissions: 0700
+    content: |
+      #!/bin/bash
+      set -eo pipefail
+
+      mkdir -p /etc/ssl/kube
+      curl ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
+        -o /etc/ssl/kube/ca.pem -z /etc/ssl/kube/ca.pem \
+        ${vault_address}/v1/${kube_pki_mount}/ca/pem
+
+  - path: /opt/bin/kubelet-certs.sh
+    permissions: 0700
+    content: |
+      #!/bin/bash
+      set -eo pipefail
+
+      mkdir -p /etc/ssl/kubelet
+      token="$(cat /etc/vault/token)"
+      json=$(curl ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
+        -X POST -H "X-Vault-Token: $token" \
+        -d "{\"common_name\":\"kubelet\",\"alt_names\":\"$(hostname)\",\"ip_sans\":\"$private_ipv4\"}" \
+        ${vault_address}/v1/${kube_pki_mount}/issue/kubelet)
+
+      sed -re 's/.*"certificate":"([^"]*)".*/\1/g' \
+        -e 's/\\n/\n/g' > /etc/ssl/kubelet/cert.pem <<< $json
+      sed -re 's/.*"private_key":"([^"]*)".*/\1/g' \
+        -e 's/\\n/\n/g' > /etc/ssl/kubelet/privkey.pem <<< $json
+
+  - path: /etc/kubernetes/kubelet/kubeconfig.yaml
+    content: |
+      apiVersion: v1
+      kind: Config
+      current-context: kubelet
+      clusters:
+        - name: kubernetes
+          cluster:
+            server: https://${kube_fqdn}
+            certificate-authority: /etc/ssl/kube/ca.pem
+      contexts:
+        - name: kubelet
+          context:
+            cluster: kubernetes
+            user: kubelet
+      users:
+        - name: kubelet
+          user:
+            client-certificate: /etc/ssl/kubelet/cert.pem
+            client-key: /etc/ssl/kubelet/privkey.pem
+
+  - path: /opt/bin/etcd-certs.sh
+    permissions: 0700
+    content: |
+      #!/bin/bash
+      set -eo pipefail
+
+      mkdir -p /etc/ssl/etcd
+      curl ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
+        -o /etc/ssl/etcd/ca.pem -z /etc/ssl/etcd/ca.pem \
+        ${vault_address}/v1/${etcd_pki_mount}/ca/pem
+
+      token="$(cat /etc/vault/token)"
+      json=$(curl ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
+        -X POST -H "X-Vault-Token: $token" \
+        -d '{"common_name":"controller","alt_names":"localhost","ip_sans":"$private_ipv4"}' \
+        ${vault_address}/v1/${etcd_pki_mount}/issue/etcd)
+
+      sed -re 's/.*"certificate":"([^"]*)".*/\1/g' \
+        -e 's/\\n/\n/g' > /etc/ssl/etcd/cert.pem <<< $json
+      sed -re 's/.*"private_key":"([^"]*)".*/\1/g' \
+        -e 's/\\n/\n/g' > /etc/ssl/etcd/privkey.pem <<< $json
+
+  - path: /opt/bin/init-kube.sh
+    permissions: 0700
+    content: |
+      #!/bin/bash
+      set -eo pipefail
+
+      instance_name="${instance_name}"
+      [ "$instance_name" != "controller0" ] && {
+        echo "not first controller, skipping init steps"
+        exit
+      }
+
+      [ -f /etc/kubernetes/init-complete ] && {
+        echo "init already complete, exiting"
+        exit
+      }
+
+      token="$(cat /etc/vault/token)"
+      json=$(curl ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
+        -X POST -H "X-Vault-Token: $token" \
+        -d '{"common_name":"bootstrap"}' \
+        ${vault_address}/v1/${kube_pki_mount}/issue/bootstrap)
+
+      sed -re 's/.*"certificate":"([^"]*)".*/\1/g' \
+        -e 's/\\n/\n/g' > /etc/kubernetes/bootstrap/cert.pem <<< $json
+      sed -re 's/.*"private_key":"([^"]*)".*/\1/g' \
+        -e 's/\\n/\n/g' > /etc/kubernetes/bootstrap/privkey.pem <<< $json
+      trap "rm -rf /etc/kubernetes/boostrap/*.pem" EXIT
+
+      curl_opts="--resolve kubernetes:443:127.0.0.1 \
+        --cacert /etc/ssl/kube/ca.pem \
+        --cert /etc/kubernetes/bootstrap/cert.pem \
+        --key /etc/kubernetes/bootstrap/privkey.pem"
+
+      [ ! -f /etc/kubernetes/bootstrap/linked ] && {
+        echo "linking bootstrap components as static pods"
+        ln -sf /etc/kubernetes/bootstrap/manifests/*.yaml /etc/kubernetes/manifests
+        touch /etc/kubernetes/bootstrap/linked
+      }
+
+      until curl $curl_opts https://kubernetes/healthz; do
+        echo "waiting for apiserver..."; sleep 5;
+      done
+      echo "apiserver ready"
+
+      [ ! -f /etc/kubernetes/init/role.json.created ] && {
+        echo "creating from /etc/kubernetes/init/role.json"
+        curl $curl_opts -H "Content-Type: application/json" -XPOST \
+          -d @/etc/kubernetes/init/role.json \
+          https://kubernetes/apis/rbac.authorization.k8s.io/v1alpha1/clusterroles
+        touch /etc/kubernetes/init/role.json.created
+      }
+
+      [ ! -f /etc/kubernetes/init/role-binding.json.created ] && {
+        echo "creating from /etc/kubernetes/init/role-binding.json"
+        curl $curl_opts -H "Content-Type: application/json" -XPOST \
+          -d @/etc/kubernetes/init/role-binding.json \
+          https://kubernetes/apis/rbac.authorization.k8s.io/v1alpha1/clusterrolebindings
+        touch /etc/kubernetes/init/role-binding.json.created
+      }
+
+      [ ! -f /etc/kubernetes/init/vault.json.created ] && {
+        echo "creating from /etc/kubernetes/init/vault.json"
+        curl $curl_opts -H "Content-Type: application/json" -XPOST \
+          -d @/etc/kubernetes/init/vault.json \
+          https://kubernetes/api/v1/namespaces/kube-system/secrets
+        touch /etc/kubernetes/init/vault.json.created
+      }
+
+      for cm in /etc/kubernetes/init/*-cm.json; do
+        [ ! -f $cm.created ] && {
+          echo "creating from $ds"
+          curl $curl_opts -H "Content-Type: application/json" -XPOST \
+            -d @$cm https://kubernetes/api/v1/namespaces/kube-system/configmaps
+          touch $cm.created
+        }
+      done
+
+      for ds in /etc/kubernetes/init/*-ds.json; do
+        [ ! -f $ds.created ] && {
+          echo "creating from $ds"
+          curl $curl_opts -H "Content-Type: application/json" -XPOST \
+            -d @$ds https://kubernetes/apis/extensions/v1beta1/namespaces/kube-system/daemonsets
+          touch $ds.created
+        }
+      done
+
+      echo "all manifests created"
+      until docker ps | grep -q kube-apiserver && docker ps | grep -q kube-controller-manager; do
+        echo "waiting for daemonsets to be scheduled"; sleep 5;
+      done
+
+      rm -f /etc/kubernetes/manifests/*.yaml
+      touch /etc/kubernetes/init-completed
+
+  - path: /opt/bin/recover-kube-master.sh
+    permissions: 0700
+    content: |
+      #!/bin/bash
+      # recovers kube master in case apiserver or controller-manager daemonsets die
+      # run this to re-create the bootstrap components that will allow the master to recover
+      set -eo pipefail
+      rm -f /etc/kubernetes/bootstrap/linked && /opt/bin/init-kube.sh
+
+  - path: /etc/kubernetes/bootstrap/kubeconfig.yaml
+    content: |
+      apiVersion: v1
+      kind: Config
+      current-context: controller
+      clusters:
+        - name: kubernetes
+          cluster:
+            certificate-authority: /etc/secrets/kube.ca
+      contexts:
+        - name: controller
+          context:
+            cluster: kubernetes
+            user: controller
+      users:
+        - name: controller
+          user:
+            client-certificate: /etc/secrets/kube.crt
+            client-key: /etc/secrets/kube.key
+
+  - path: /etc/kubernetes/bootstrap/manifests/apiserver.yaml
+    content: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: bootstrap-apiserver
+        namespace: kube-system
+        labels:
+          app: kubernetes-bootstrap
+          component: apiserver
+      spec:
+        hostNetwork: true
+        containers:
+          - name: vault-sidekick
+            image: quay.io/roboll/vault-sidekick:v0.0.9.12
+            args:
+              - -logtostderr=true
+              - -ca-cert=/etc/ssl/vault/ca.pem
+              - -output=/etc/secrets
+              - -cn=secret:${service_account_pubkey}:file=service-account-pubkey.pem,fmt=txt
+              - -cn=pki:${kube_pki_mount}/issue/apiserver:common_name=${kube_fqdn},alt_names=kubernetes,ip_sans=$private_ipv4,fmt=cert,file=kube
+              - -cn=pki:${etcd_pki_mount}/issue/apiserver:common_name=controller,fmt=cert,file=etcd
+            env:
+              - name: VAULT_ADDR
+                value: ${vault_address}
+              - name: VAULT_SIDEKICK_AUTH_PLUGIN
+                value: token
+              - name: VAULT_SIDEKICK_TOKEN_FILE
+                value: /etc/vault/token
+            volumeMounts:
+              - mountPath: /etc/secrets
+                name: secrets
+              - mountPath: /etc/ssl/vault/ca.pem
+                name: vault-ca
+                readOnly: true
+              - mountPath: /etc/vault/token
+                name: vault-token
+                readOnly: true
+          - name: apiserver
+            image: ${hyperkube}:${kube_version}
+            command:
+              - /hyperkube
+              - apiserver
+              - --secure-port=443
+              - --etcd-servers=https://localhost:2379
+              - --etcd-cafile=/etc/secrets/etcd.ca
+              - --etcd-certfile=/etc/secrets/etcd.crt
+              - --etcd-keyfile=/etc/secrets/etcd.key
+              - --client-ca-file=/etc/secrets/kube.ca
+              - --tls-cert-file=/etc/secrets/kube.crt
+              - --tls-private-key-file=/etc/secrets/kube.key
+              - --service-account-key-file=/etc/secrets/service-account-pubkey.pem
+              - --kubelet-certificate-authority=/etc/secrets/kube.ca
+              - --kubelet-client-certificate=/etc/secrets/kube.crt
+              - --kubelet-client-key=/etc/secrets/kube.key
+              - --allow-privileged=true
+              - --cloud-provider=aws
+              - --service-cluster-ip-range=10.0.0.0/16
+              - --runtime-config=${kube_runtime_config}
+              - --advertise-address=$private_ipv4
+              - --authorization-mode=RBAC
+              - --authorization-rbac-super-user=bootstrap
+              - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,ResourceQuota,DenyEscalatingExec,ServiceAccount
+            volumeMounts:
+              - mountPath: /etc/secrets
+                name: secrets
+                readOnly: true
+        volumes:
+          - name: secrets
+            emptyDir: {}
+          - name: vault-ca
+            hostPath:
+              path: /etc/ssl/vault/ca.pem
+          - name: vault-token
+            hostPath:
+              path: /etc/vault/token
+
+  - path: /etc/kubernetes/bootstrap/manifests/controller-manager.yaml
+    content: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: bootstrap-controller-manager
+        namespace: kube-system
+        labels:
+          app: kubernetes-bootstrap
+          component: controller-manager
+      spec:
+        hostNetwork: true
+        containers:
+          - name: vault-sidekick
+            image: quay.io/roboll/vault-sidekick:v0.0.9.12
+            args:
+              - -logtostderr=true
+              - -ca-cert=/etc/ssl/vault/ca.pem
+              - -output=/etc/secrets
+              - -cn=secret:${service_account_privkey}:file=service-account-privkey.pem,fmt=txt
+              - -cn=pki:${kube_pki_mount}/issue/controller:common_name=controller,fmt=cert,file=kube
+            env:
+              - name: VAULT_ADDR
+                value: ${vault_address}
+              - name: VAULT_SIDEKICK_AUTH_PLUGIN
+                value: token
+              - name: VAULT_SIDEKICK_TOKEN_FILE
+                value: /etc/vault/token
+            volumeMounts:
+              - mountPath: /etc/secrets
+                name: secrets
+              - mountPath: /etc/ssl/vault/ca.pem
+                name: vault-ca
+                readOnly: true
+              - mountPath: /etc/vault/token
+                name: vault-token
+                readOnly: true
+          - name: controller-manager
+            image: ${hyperkube}:${kube_version}
+            command:
+              - /hyperkube
+              - controller-manager
+              - --master=https://$private_ipv4
+              - --root-ca-file=/etc/secrets/kube.ca
+              - --kubeconfig=/etc/kubernetes/bootstrap/kubeconfig.yaml
+              - --service-account-private-key-file=/etc/secrets/service-account-privkey.pem
+              - --cloud-provider=aws
+              - --port=10290
+            volumeMounts:
+              - mountPath: /etc/secrets
+                name: secrets
+                readOnly: true
+              - mountPath: /etc/kubernetes/bootstrap/kubeconfig.yaml
+                name: kubeconfig
+                readOnly: true
+        volumes:
+          - name: secrets
+            emptyDir: {}
+          - name: vault-ca
+            hostPath:
+              path: /etc/ssl/vault/ca.pem
+          - name: vault-token
+            hostPath:
+              path: /etc/vault/token
+          - name: kubeconfig
+            hostPath:
+              path: /etc/kubernetes/bootstrap/kubeconfig.yaml
+
+  - path: /etc/kubernetes/init/role.json
+    permissions: 0644
+    content: |
+      {
+        "kind": "ClusterRole",
+        "apiVersion": "rbac.authorization.k8s.io/v1alpha1",
+        "metadata": {
+          "name": "admin-access"
+        },
+        "rules": [
+          {
+            "apiGroups": ["*"],
+            "resources": ["*"],
+            "verbs": ["*"]
+          },
+          {
+            "nonResourceURLs": ["*"],
+            "verbs": ["*"]
+          }
+        ]
+      }
+
+  - path: /etc/kubernetes/init/role-binding.json
+    permissions: 0644
+    content: |
+      {
+        "kind": "ClusterRoleBinding",
+        "apiVersion": "rbac.authorization.k8s.io/v1alpha1",
+        "metadata": {
+          "name": "admin-access"
+        },
+        "subjects": [
+          {
+            "kind": "ServiceAccount",
+            "name": "default",
+            "namespace": "kube-system"
+          },
+          {
+            "kind": "User",
+            "name": "controller"
+          },
+          {
+            "kind": "User",
+            "name": "kubelet"
+          },
+          {
+            "kind": "User",
+            "name": "admin"
+          }
+        ],
+        "roleRef": {
+          "kind": "ClusterRole",
+          "apiVersion": "rbac.authorization.k8s.io/v1alpha1",
+          "name": "admin-access"
+        }
+      }
+
+  - path: /etc/kubernetes/init/vault.json
+    permissions: 0644
+    content: |
+      {
+        "kind": "Secret",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "vault"
+        },
+        "type": "Opaque",
+        "data": {
+          "address": "${vault_address_b64}",
+          "ca.pem": "${vault_ca_cert_pem_b64}"
+        }
+      }
+
+  - path: /etc/kubernetes/init/kube-controller-kubeconfig-cm.json
+    content: |
+      {
+        "kind": "ConfigMap",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "kube-controller-kubeconfig",
+          "namespace": "kube-system"
+        },
+        "data": {
+          "kubeconfig.yaml": "kind: Config\napiVersion: v1\ncurrent-context: controller\nclusters:\n  - name: kubernetes\n    cluster:\n       certificate-authority: /etc/secrets/kube.ca\ncontexts:\n  - name: controller\n    context:\n      cluster: kubernetes\n      user: controller\nusers:\n  - name: controller\n    user:\n      client-certificate: /etc/secrets/kube.crt\n      client-key: /etc/secrets/kube.key\n"
+        }
+      }
+
+  - path: /etc/kubernetes/init/kube-service-account-kubeconfig-cm.json
+    content: |
+      {
+        "kind": "ConfigMap",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "kube-service-account-kubeconfig",
+          "namespace": "kube-system"
+        },
+        "data": {
+          "kubeconfig.yaml": "kind: Config\napiVersion: v1\ncurrent-context: service-account\nclusters:\n  - name: kubernetes\n    cluster:\n       certificate-authority: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt\ncontexts:\n  - name: service-account\n    context:\n      cluster: kubernetes\n      user: service-account\nusers:\n  - name: service-account\n    user:\n      token: {{token}}\n"
+        }
+      }
+
+  - path: /etc/kubernetes/init/kube-flannel-cm.json
+    content: |
+      {
+        "kind": "ConfigMap",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "kube-flannel",
+          "namespace": "kube-system"
+        },
+        "data": {
+          "cni-conf.json": "{\"name\":\"cbr0\", \"type\": \"flannel\", \"delegate\": {\"isDefaultGateway\": true}}",
+          "net-conf.json": "{\"Network\": \"10.225.0.0/16\",\"Backend\":{\"Type\":\"vxlan\"}}"
+        }
+      }
+
+  - path: /etc/kubernetes/init/kube-apiserver-ds.json
+    content: |
+      {
+        "kind": "DaemonSet",
+        "apiVersion": "extensions/v1beta1",
+        "metadata": {
+          "name": "kube-apiserver",
+          "namespace": "kube-system",
+          "labels": {
+            "app": "kubernetes",
+            "component": "apiserver"
+          }
+        },
+        "spec": {
+          "template": {
+            "metadata": {
+              "labels": {
+                "app": "kubernetes",
+                "component": "apiserver"
+              }
+            },
+            "spec": {
+              "nodeSelector": {
+                "role": "controller"
+              },
+              "hostNetwork": true,
+              "containers": [
+                {
+                  "name": "vault-sidekick",
+                  "image": "quay.io/roboll/vault-sidekick:v0.0.9.12",
+                  "args": [
+                    "-logtostderr=true",
+                    "-ca-cert=/etc/vault/ca.pem",
+                    "-output=/etc/secrets",
+                    "-cn=secret:${service_account_pubkey}:file=service-account-pubkey.pem,fmt=txt",
+                    "-cn=pki:${kube_pki_mount}/issue/apiserver:common_name=${kube_fqdn},alt_names=kubernetes|kubernetes.default.svc|kubernetes.default.svc.cluster.local,ip_sans=10.0.0.1,fmt=cert,file=kube",
+                    "-cn=pki:${etcd_pki_mount}/issue/apiserver:common_name=controller,fmt=cert,file=etcd"
+                  ],
+                  "env": [
+                    {
+                      "name": "VAULT_ADDR",
+                      "value": "${vault_address}"
+                    },
+                    {
+                      "name": "VAULT_SIDEKICK_AUTH_PLUGIN",
+                      "value": "token"
+                    },
+                    {
+                      "name": "VAULT_SIDEKICK_TOKEN_FILE",
+                      "value": "/etc/vault-token"
+                    }
+                  ],
+                  "volumeMounts": [
+                    {
+                      "mountPath": "/etc/secrets",
+                      "name": "secrets"
+                    },
+                    {
+                      "mountPath": "/etc/vault",
+                      "name": "vault",
+                      "readOnly": true
+                    },
+                    {
+                      "mountPath": "/etc/vault-token",
+                      "name": "vault-token",
+                      "readOnly": true
+                    }
+                  ]
+                },
+                {
+                  "name": "apiserver",
+                  "image": "${hyperkube}:${kube_version}",
+                  "command": [
+                    "/hyperkube", "apiserver",
+                    "--secure-port=443",
+                    "--etcd-servers=https://localhost:2379",
+                    "--etcd-cafile=/etc/secrets/etcd.ca",
+                    "--etcd-certfile=/etc/secrets/etcd.crt",
+                    "--etcd-keyfile=/etc/secrets/etcd.key",
+                    "--client-ca-file=/etc/secrets/kube.ca",
+                    "--tls-cert-file=/etc/secrets/kube.crt",
+                    "--tls-private-key-file=/etc/secrets/kube.key",
+                    "--service-account-key-file=/etc/secrets/service-account-pubkey.pem",
+                    "--kubelet-certificate-authority=/etc/secrets/kube.ca",
+                    "--kubelet-client-certificate=/etc/secrets/kube.crt",
+                    "--kubelet-client-key=/etc/secrets/kube.key",
+                    "--allow-privileged=true",
+                    "--cloud-provider=aws",
+                    "--service-cluster-ip-range=10.0.0.0/16",
+                    "--enable-swagger-ui=true",
+                    "--runtime-config=${kube_runtime_config}",
+                    "--advertise-address=$private_ipv4",
+                    "--external-hostname=${kube_fqdn}",
+                    "--authorization-mode=RBAC",
+                    "--admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,ResourceQuota,DenyEscalatingExec,ServiceAccount"
+                  ],
+                  "livenessProbe": {
+                    "httpGet": {
+                      "host":"127.0.0.1",
+                      "path": "/healthz",
+                      "port": 8080
+                    },
+                    "initialDelaySeconds": 30,
+                    "timeoutSeconds": 1
+                  },
+                  "volumeMounts": [
+                    {
+                      "mountPath": "/etc/secrets",
+                      "name": "secrets",
+                      "readOnly": true
+                    }
+                  ]
+                }
+              ],
+              "volumes": [
+                {
+                  "name": "secrets",
+                  "emptyDir": {}
+                },
+                {
+                  "name": "vault",
+                  "secret": {
+                    "secretName": "vault"
+                  }
+                },
+                {
+                  "name": "vault-token",
+                  "hostPath": {
+                    "path": "/etc/vault/token"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+
+  - path: /etc/kubernetes/init/kube-controller-manager-ds.json
+    content: |
+      {
+        "kind": "DaemonSet",
+        "apiVersion": "extensions/v1beta1",
+        "metadata": {
+          "name": "kube-controller-manager",
+          "namespace": "kube-system",
+          "labels": {
+            "app": "kubernetes",
+            "component": "controller-manager"
+          }
+        },
+        "spec": {
+          "template": {
+            "metadata": {
+              "labels": {
+                "app": "kubernetes",
+                "component": "controller-manager"
+              }
+            },
+            "spec": {
+              "nodeSelector": {
+                "role": "controller"
+              },
+              "hostNetwork": true,
+              "containers": [
+                {
+                  "name": "vault-sidekick",
+                  "image": "quay.io/roboll/vault-sidekick:v0.0.9.12",
+                  "args": [
+                    "-logtostderr=true",
+                    "-ca-cert=/etc/vault/ca.pem",
+                    "-output=/etc/secrets",
+                    "-cn=secret:${service_account_privkey}:file=service-account-privkey.pem,fmt=txt",
+                    "-cn=pki:${kube_pki_mount}/issue/controller:common_name=controller,fmt=cert,file=kube"
+                  ],
+                  "env": [
+                    {
+                      "name": "VAULT_ADDR",
+                      "value": "${vault_address}"
+                    },
+                    {
+                      "name": "VAULT_SIDEKICK_AUTH_PLUGIN",
+                      "value": "token"
+                    },
+                    {
+                      "name": "VAULT_SIDEKICK_TOKEN_FILE",
+                      "value": "/etc/vault-token"
+                    }
+                  ],
+                  "volumeMounts": [
+                    {
+                      "mountPath": "/etc/secrets",
+                      "name": "secrets"
+                    },
+                    {
+                      "mountPath": "/etc/vault",
+                      "name": "vault",
+                      "readOnly": true
+                    },
+                    {
+                      "mountPath": "/etc/vault-token",
+                      "name": "vault-token",
+                      "readOnly": true
+                    }
+                  ]
+                },
+                {
+                  "name": "controller-manager",
+                  "image": "${hyperkube}:${kube_version}",
+                  "command": [
+                    "/hyperkube", "controller-manager",
+                    "--leader-elect=true",
+                    "--master=https://${kube_fqdn}",
+                    "--root-ca-file=/etc/secrets/kube.ca",
+                    "--kubeconfig=/etc/kubernetes/kubeconfig.yaml",
+                    "--service-account-private-key-file=/etc/secrets/service-account-privkey.pem",
+                    "--cloud-provider=aws",
+                    "--allocate-node-cidrs=true",
+                    "--configure-cloud-routes=false",
+                    "--cluster-cidr=10.225.0.0/16"
+                  ],
+                  "livenessProbe": {
+                    "httpGet": {
+                      "host":"127.0.0.1",
+                      "path": "/healthz",
+                      "port": 10252
+                    },
+                    "initialDelaySeconds": 15,
+                    "timeoutSeconds": 1
+                  },
+                  "volumeMounts": [
+                    {
+                      "mountPath": "/etc/secrets",
+                      "name": "secrets",
+                      "readOnly": true
+                    },
+                    {
+                      "mountPath": "/etc/kubernetes/",
+                      "name": "kubeconfig",
+                      "readOnly": true
+                    }
+                  ]
+                }
+              ],
+              "volumes": [
+                {
+                  "name":"secrets",
+                  "emptyDir": {}
+                },
+                {
+                  "name": "vault",
+                  "secret": {
+                    "secretName": "vault"
+                  }
+                },
+                {
+                  "name": "vault-token",
+                  "hostPath": {
+                    "path": "/etc/vault/token"
+                  }
+                },
+                {
+                  "name": "kubeconfig",
+                  "configMap": {
+                    "name": "kube-controller-kubeconfig"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+
+  - path: /etc/kubernetes/init/kube-proxy-ds.json
+    content: |
+      {
+        "kind": "DaemonSet",
+        "apiVersion": "extensions/v1beta1",
+        "metadata": {
+          "name": "kube-proxy",
+          "namespace": "kube-system",
+          "labels": {
+            "app": "kubernetes",
+            "component": "proxy"
+          }
+        },
+        "spec": {
+          "template": {
+            "metadata": {
+              "labels": {
+                "app": "kubernetes",
+                "component": "proxy"
+              }
+            },
+            "spec": {
+              "hostNetwork": true,
+              "containers": [
+                {
+                  "name": "kube-proxy",
+                  "image": "${hyperkube}:${kube_version}",
+                  "securityContext": {
+                    "privileged": true
+                  },
+                  "command": [
+                    "/bin/bash", "-c", "sed -i /etc/kubeconfig/kubeconfig.yaml -e s,{{token}},$(cat /var/run/secrets/kubernetes.io/serviceaccount/token),g && exec /hyperkube proxy --master=https://${kube_fqdn} --kubeconfig=/etc/kubeconfig/kubeconfig.yaml --proxy-mode=iptables"
+                  ],
+                  "volumeMounts": [
+                    {
+                      "name": "kubeconfig",
+                      "mountPath": "/etc/kubeconfig"
+                    }
+                  ],
+                  "livenessProbe": {
+                    "httpGet": {
+                      "host": "127.0.0.1",
+                      "path": "/healthz",
+                      "port": 10249
+                    },
+                    "initialDelaySeconds": 15,
+                    "timeoutSeconds": 1
+                  }
+                }
+              ],
+              "volumes": [
+                {
+                  "name": "kubeconfig",
+                  "configMap": {
+                    "name": "kube-service-account-kubeconfig"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+
+  - path: /etc/kubernetes/init/kube-flannel-ds.json
+    content: |
+      {
+        "kind": "DaemonSet",
+        "apiVersion": "extensions/v1beta1",
+        "metadata": {
+          "name": "kube-flannel",
+          "namespace": "kube-system",
+          "labels": {
+            "app": "kubernetes",
+            "component": "flannel"
+          }
+        },
+        "spec": {
+          "template": {
+            "metadata": {
+              "labels": {
+                "app": "kubernetes",
+                "component": "flannel"
+              }
+            },
+            "spec": {
+              "hostNetwork": true,
+              "containers": [
+                {
+                  "name": "flannel",
+                  "image": "quay.io/coreos/flannel-git:latest",
+                  "command": [
+                    "/opt/bin/flanneld",
+                    "--ip-masq",
+                    "--kube-subnet-mgr"
+                  ],
+                  "securityContext": {
+                    "privileged": true
+                  },
+                  "env": [
+                    {
+                      "name": "POD_NAME",
+                      "valueFrom": {
+                        "fieldRef": {
+                          "fieldPath": "metadata.name"
+                        }
+                      }
+                    },
+                    {
+                      "name": "POD_NAMESPACE",
+                      "valueFrom": {
+                        "fieldRef": {
+                          "fieldPath": "metadata.namespace"
+                        }
+                      }
+                    }
+                  ],
+                  "volumeMounts": [
+                    {
+                      "name": "run",
+                      "mountPath": "/run"
+                    },
+                    {
+                      "name": "config",
+                      "mountPath": "/etc/kube-flannel"
+                    }
+                  ]
+                },
+                {
+                  "name": "install-cni",
+                  "image": "busybox",
+                  "command": [
+                    "/bin/sh",
+                    "-c",
+                    "set -e -x; TMP=/etc/cni/net.d/.tmp-flannel; cp /etc/kube-flannel/cni-conf.json $TMP; mv $TMP /etc/cni/net.d/10-flannel.conf; while :; do sleep 3600; done;"
+                  ],
+                  "volumeMounts": [
+                    {
+                      "name": "cni",
+                      "mountPath": "/etc/cni/net.d"
+                    },
+                    {
+                      "name": "config",
+                      "mountPath": "/etc/kube-flannel"
+                    }
+                  ]
+                }
+              ],
+              "volumes": [
+                {
+                  "name": "run",
+                  "hostPath": {
+                    "path": "/run"
+                  }
+                },
+                {
+                  "name": "cni",
+                  "hostPath": {
+                    "path": "/etc/cni/net.d"
+                  }
+                },
+                {
+                  "name": "config",
+                  "configMap": {
+                    "name": "kube-flannel"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }

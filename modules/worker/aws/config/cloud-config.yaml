@@ -1,0 +1,214 @@
+#cloud-config
+coreos:
+  update:
+    reboot-strategy: off
+
+  units:
+    - name: vault-ssh.service
+      command: start
+      content: |
+        [Service]
+        Type=oneshot
+
+        ExecStartPre=/usr/bin/rkt fetch --trust-keys-from-https ${vault_ssh_image}
+        ExecStart=/usr/bin/rkt image extract --rootfs-only --overwrite ${vault_ssh_image} /tmp/vault-ssh
+        ExecStartPost=/tmp/vault-ssh/link.sh
+
+    - name: vault-login.service
+      command: start
+      content: |
+        [Service]
+        Type=oneshot
+        FailureAction=reboot
+        ExecStart=/opt/bin/vault-login.sh
+
+    - name: vault-renew-token.service
+      content: |
+        [Service]
+        Type=simple
+        ExecStart=/opt/bin/vault-renew-token.sh
+
+    - name: vault-renew-token.timer
+      command: start
+      content: |
+        [Timer]
+        OnActiveSec=12h
+        OnUnitActiveSec=12h
+
+    - name: docker.service
+      command: start
+      drop-ins:
+        - name: 99-mount-flags.conf
+          content: |
+            [Service]
+            MountFlags=shared
+
+    - name: kube-ca.service
+      command: start
+      content: |
+        [Unit]
+        ConditionPathExists=!/etc/ssl/kube/ca.pem
+
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStart=/opt/bin/kube-ca.sh
+
+    - name: kubelet-certs.service
+      command: start
+      content: |
+        [Unit]
+        Before=kubelet.service
+        After=vault-login.service
+
+        [Service]
+        Type=simple
+        ExecStart=/opt/bin/kubelet-certs.sh
+        ExecStartPost=/usr/bin/systemctl --no-block try-restart kubelet.service
+
+    - name: kubelet-certs.timer
+      command: start
+      content: |
+        [Timer]
+        OnUnitActiveSec=12h
+
+    - name: kubelet.service
+      command: start
+      content: |
+        [Unit]
+        Requires=kube-ca.service kubelet-certs.service
+        After=docker.service kube-ca.service kubelet-certs.service
+
+        [Service]
+        Restart=always
+        FailureAction=reboot
+        RestartSec=10
+        TimeoutStartSec=300
+
+        Environment=KUBELET_ACI=${hyperkube}
+        Environment=KUBELET_VERSION=${kube_version}
+        Environment="RKT_OPTS=--volume dns,kind=host,source=/etc/resolv.conf \
+        --mount volume=dns,target=/etc/resolv.conf \
+        --volume stage,kind=host,source=/tmp \
+        --mount volume=stage,target=/tmp \
+        --volume var-log,kind=host,source=/var/log \
+        --mount volume=var-log,target=/var/log \
+        --volume kubelet-ssl,kind=host,source=/etc/ssl/kube \
+        --mount volume=kubelet-ssl,target=/etc/ssl/kube \
+        --volume cni,kind=host,source=/etc/cni/net.d \
+        --mount volume=cni,target=/etc/cni/net.d"
+
+        ExecStartPre=/usr/bin/mkdir -p /var/log/containers
+        ExecStartPre=/usr/bin/mkdir -p /etc/cni/net.d
+        ExecStart=/usr/lib/coreos/kubelet-wrapper \
+          --api-servers=https://${kube_fqdn} \
+          --tls-cert-file=/etc/ssl/kube/kubelet/cert.pem \
+          --tls-private-key-file=/etc/ssl/kube/kubelet/privkey.pem \
+          --kubeconfig=/etc/kubernetes/kubelet/kubeconfig.yaml \
+          --cluster-dns=10.0.0.10 \
+          --cluster-domain=cluster.local \
+          --network-plugin=cni \
+          --network-plugin-dir=/etc/cni/net.d \
+          --node-labels=role=worker,class=${worker_class} \
+          --cloud-provider=aws \
+          --allow-privileged --v=2 --logtostderr=true
+
+write_files:
+  - path: /etc/ssl/vault/ca.pem
+    permissions: 0600
+    encoding: base64
+    content: |
+      ${vault_ca_cert_pem}
+
+  - path: /etc/vault/ssh.hcl
+    permissions: 0600
+    content: |
+      allowed_roles = "*"
+      vault_addr = "${vault_address}"
+      ca_cert = "/etc/ssl/vault/ca.pem"
+
+  - path: /opt/bin/host-rkt
+    permissions: 0755
+    owner: root:root
+    content: |
+      #!/bin/sh
+      # https://github.com/coreos/rkt/issues/2878
+      exec nsenter -m -u -i -n -p -t 1 -- /usr/bin/rkt "$@"
+
+  - path: /opt/bin/vault-login.sh
+    permissions: 0700
+    content: |
+      #!/bin/bash
+      set -eo pipefail
+
+      nonce="$(cat /etc/machine-id | base64)"
+      pkcs="$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
+        http://169.254.169.254/latest/dynamic/instance-identity/pkcs7 | tr -d '\n')"
+
+      curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
+        -X POST -H "Content-Type: application/json" \
+        -d "{\"pkcs7\":\"$pkcs\",\"role\":\"${vault_instance_role}\",\"nonce\":\"$nonce\"}" \
+        ${vault_address}/v1/auth/aws-ec2/login | \
+        sed -re 's/.*"client_token":"([^"]*)".*/\1/g' > /root/.vault-token
+
+  - path: /opt/bin/vault-renew-token.sh
+    permissions: 0700
+    content: |
+      #!/bin/bash
+      set -eo pipefail
+
+      token="$(cat /root/.vault-token)"
+      curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
+        -X POST -H "X-Vault-Token: $token" \
+        -d '{"increment": "24h"}' \
+        ${vault_address}/v1/auth/token/renew-self > /dev/null
+
+  - path: /opt/bin/kube-ca.sh
+    permissions: 0700
+    content: |
+      #!/bin/bash
+      set -eo pipefail
+
+      mkdir -p /etc/ssl/kube
+      curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
+        -o /etc/ssl/kube/ca.pem -z /etc/ssl/kube/ca.pem \
+        ${vault_address}/v1/${kube_pki_mount}/ca/pem
+
+  - path: /opt/bin/kubelet-certs.sh
+    permissions: 0700
+    content: |
+      #!/bin/bash
+      set -eo pipefail
+
+      mkdir -p /etc/ssl/kube/kubelet
+      token="$(cat /root/.vault-token)"
+      json=$(curl -sSf ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
+        -X POST -H "X-Vault-Token: $token" \
+        -d "{\"common_name\":\"kubelet\",\"alt_names\":\"$(hostname)\",\"ip_sans\":\"$private_ipv4\"}" \
+        ${vault_address}/v1/${kube_pki_mount}/issue/kubelet)
+
+      sed -re 's/.*"certificate":"([^"]*)".*/\1/g' \
+        -e 's/\\n/\n/g' > /etc/ssl/kube/kubelet/cert.pem <<< $json
+      sed -re 's/.*"private_key":"([^"]*)".*/\1/g' \
+        -e 's/\\n/\n/g' > /etc/ssl/kube/kubelet/privkey.pem <<< $json
+
+  - path: /etc/kubernetes/kubelet/kubeconfig.yaml
+    content: |
+      apiVersion: v1
+      kind: Config
+      current-context: kubelet
+      clusters:
+        - name: kubernetes
+          cluster:
+            server: https://${kube_fqdn}
+            certificate-authority: /etc/ssl/kube/ca.pem
+      contexts:
+        - name: kubelet
+          context:
+            cluster: kubernetes
+            user: kubelet
+      users:
+        - name: kubelet
+          user:
+            client-certificate: /etc/ssl/kube/kubelet/cert.pem
+            client-key: /etc/ssl/kube/kubelet/privkey.pem
