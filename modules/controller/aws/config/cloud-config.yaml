@@ -413,10 +413,10 @@ write_files:
       done
 
       echo "all manifests created"
-      until curl https://localhost:10252/healthz; do
+      until curl http://localhost:10252/healthz; do
         echo "waiting for controller-manager"; sleep 5;
       done
-      until curl https://localhost:8080/healthz; do
+      until curl http://localhost:8080/healthz; do
         echo "waiting for apiserver"; sleep 5;
       done
       echo "daemonsets running, removing bootstrap components"
