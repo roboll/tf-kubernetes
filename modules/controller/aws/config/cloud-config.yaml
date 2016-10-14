@@ -439,7 +439,6 @@ write_files:
         - name: kubernetes
           cluster:
             certificate-authority: /etc/secrets/kube.ca
-            server: https://$private_ipv4
       contexts:
         - name: controller
           context:
@@ -571,6 +570,7 @@ write_files:
               - /hyperkube
               - controller-manager
               - --root-ca-file=/etc/secrets/kube.ca
+              - --master=https://$private_ipv4
               - --kubeconfig=/etc/kubernetes/bootstrap/kubeconfig.yaml
               - --service-account-private-key-file=/etc/secrets/service-account-privkey.pem
               - --cloud-provider=aws
