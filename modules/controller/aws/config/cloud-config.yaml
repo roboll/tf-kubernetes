@@ -416,6 +416,7 @@ write_files:
       until docker ps | grep -q kube-apiserver && docker ps | grep -q kube-controller-manager; do
         echo "waiting for daemonsets to be scheduled"; sleep 5;
       done
+      echo "daemonsets running, removing bootstrap components"
 
       rm -f /etc/kubernetes/manifests/*.yaml
       touch /etc/kubernetes/init-completed
