@@ -56,6 +56,7 @@ coreos:
       content: |
         [Service]
         Type=simple
+        FailureAction=reboot
         ExecStart=/opt/bin/vault-renew-token.sh
 
     - name: vault-renew-token.timer
