@@ -678,7 +678,7 @@ write_files:
           "namespace": "kube-system"
         },
         "data": {
-          "kubeconfig.yaml": "kind: Config\napiVersion: v1\ncurrent-context: service-account\nclusters:\n  - name: kubernetes\n    cluster:\n       certificate-authority: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt\n       server: https://${kube_fqdn}\ncontexts:\n  - name: service-account\n    context:\n      cluster: kubernetes\n      user:\n      client-certificate: /etc/secrets/kube.crt\n      client-key: /etc/secrets/kube.key\n"
+          "kubeconfig.yaml": "kind: Config\napiVersion: v1\ncurrent-context: service-account\nclusters:\n  - name: kubernetes\n    cluster:\n       certificate-authority: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt\n       server: https://${kube_fqdn}\ncontexts:\n  - name: service-account\n    context:\n      cluster: kubernetes\n      user: service-account\nusers:\n  - name: service-account\n    user:\n      client-certificate: /etc/secrets/kube.crt\n      client-key: /etc/secrets/kube.key\n"
         }
       }
 
