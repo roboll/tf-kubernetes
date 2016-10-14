@@ -439,6 +439,7 @@ write_files:
         - name: kubernetes
           cluster:
             certificate-authority: /etc/secrets/kube.ca
+            server: https://${private_ipv4}
       contexts:
         - name: controller
           context:
@@ -569,7 +570,6 @@ write_files:
             command:
               - /hyperkube
               - controller-manager
-              - --master=https://$private_ipv4
               - --root-ca-file=/etc/secrets/kube.ca
               - --kubeconfig=/etc/kubernetes/bootstrap/kubeconfig.yaml
               - --service-account-private-key-file=/etc/secrets/service-account-privkey.pem
@@ -678,7 +678,7 @@ write_files:
           "namespace": "kube-system"
         },
         "data": {
-          "kubeconfig.yaml": "kind: Config\napiVersion: v1\ncurrent-context: controller\nclusters:\n  - name: kubernetes\n    cluster:\n       certificate-authority: /etc/secrets/kube.ca\ncontexts:\n  - name: controller\n    context:\n      cluster: kubernetes\n      user: controller\nusers:\n  - name: controller\n    user:\n      client-certificate: /etc/secrets/kube.crt\n      client-key: /etc/secrets/kube.key\n"
+          "kubeconfig.yaml": "kind: Config\napiVersion: v1\ncurrent-context: service-account\nclusters:\n  - name: kubernetes\n    cluster:\n       certificate-authority: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt\n       server: https://${kube_fqdn}\ncontexts:\n  - name: service-account\n    context:\n      cluster: kubernetes\n      user: service-account\nusers:\n  - name: service-account\n    user:\n      token: {{token}}\n"
         }
       }
 
@@ -692,7 +692,7 @@ write_files:
           "namespace": "kube-system"
         },
         "data": {
-          "kubeconfig.yaml": "kind: Config\napiVersion: v1\ncurrent-context: service-account\nclusters:\n  - name: kubernetes\n    cluster:\n       certificate-authority: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt\ncontexts:\n  - name: service-account\n    context:\n      cluster: kubernetes\n      user: service-account\nusers:\n  - name: service-account\n    user:\n      token: {{token}}\n"
+          "kubeconfig.yaml": "kind: Config\napiVersion: v1\ncurrent-context: service-account\nclusters:\n  - name: kubernetes\n    cluster:\n       certificate-authority: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt\n       server: https://${kube_fqdn}\ncontexts:\n  - name: service-account\n    context:\n      cluster: kubernetes\n      user: service-account\nusers:\n  - name: service-account\n    user:\n      token: {{token}}\n"
         }
       }
 
@@ -858,7 +858,7 @@ write_files:
           "namespace": "kube-system"
         },
         "data": {
-          "kubeconfig.yaml": "kind: Config\napiVersion: v1\ncurrent-context: service-account\nclusters:\n  - name: kubernetes\n    cluster:\n       certificate-authority: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt\ncontexts:\n  - name: service-account\n    context:\n      cluster: kubernetes\n      user: service-account\nusers:\n  - name: service-account\n    user:\n      token: {{token}}\n"
+          "kubeconfig.yaml": "kind: Config\napiVersion: v1\ncurrent-context: service-account\nclusters:\n  - name: kubernetes\n    cluster:\n       certificate-authority: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt\n       server: https://10.0.0.1\ncontexts:\n  - name: service-account\n    context:\n      cluster: kubernetes\n      user: service-account\nusers:\n  - name: service-account\n    user:\n      token: {{token}}\n"
         }
       }
 
@@ -999,7 +999,6 @@ write_files:
                   "command": [
                     "/hyperkube", "controller-manager",
                     "--leader-elect=true",
-                    "--master=https://${kube_fqdn}",
                     "--root-ca-file=/etc/secrets/kube.ca",
                     "--kubeconfig=/etc/kubernetes/kubeconfig.yaml",
                     "--service-account-private-key-file=/etc/secrets/service-account-privkey.pem",
@@ -1091,7 +1090,7 @@ write_files:
                     "privileged": true
                   },
                   "command": [
-                    "/bin/bash", "-c", "sed /etc/kubeconfig/kubeconfig.yaml -e s,{{token}},$(cat /var/run/secrets/kubernetes.io/serviceaccount/token),g > /kubeconfig.yaml && exec /hyperkube proxy --master=https://${kube_fqdn} --kubeconfig=/kubeconfig.yaml --proxy-mode=iptables"
+                    "/bin/bash", "-c", "sed /etc/kubeconfig/kubeconfig.yaml -e s,{{token}},$(cat /var/run/secrets/kubernetes.io/serviceaccount/token),g > /kubeconfig.yaml && exec /hyperkube proxy --kubeconfig=/kubeconfig.yaml --proxy-mode=iptables"
                   ],
                   "volumeMounts": [
                     {
