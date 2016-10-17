@@ -29,16 +29,6 @@ resource aws_security_group_rule kube_controller_ingress_apiserver_elb {
     protocol = "tcp"
 }
 
-resource aws_security_group_rule kube_controller_ingress_flannel_elb {
-    security_group_id = "${aws_security_group.kube_controller.id}"
-    source_security_group_id = "${aws_security_group.kube_controller_elb.id}"
-
-    type = "ingress"
-    from_port = 8888
-    to_port = 8888
-    protocol = "tcp"
-}
-
 resource aws_security_group_rule kube_controller_ingress_self_etcd_server {
     security_group_id = "${aws_security_group.kube_controller.id}"
     self = true
@@ -100,16 +90,6 @@ resource aws_security_group_rule kube_controller_elb_ingress_apiserver {
     protocol = "tcp"
 }
 
-resource aws_security_group_rule kube_controller_elb_ingress_flannel {
-    security_group_id = "${aws_security_group.kube_controller_elb.id}"
-    cidr_blocks = [ "0.0.0.0/0" ]
-
-    type = "ingress"
-    from_port = 8888
-    to_port = 8888
-    protocol = "tcp"
-}
-
 resource aws_security_group_rule kube_controller_elb_egress_apiserver {
     security_group_id = "${aws_security_group.kube_controller_elb.id}"
     source_security_group_id = "${aws_security_group.kube_controller.id}"
@@ -117,16 +97,6 @@ resource aws_security_group_rule kube_controller_elb_egress_apiserver {
     type = "egress"
     from_port = 443
     to_port = 443
-    protocol = "tcp"
-}
-
-resource aws_security_group_rule kube_controller_elb_egress_flannel {
-    security_group_id = "${aws_security_group.kube_controller_elb.id}"
-    source_security_group_id = "${aws_security_group.kube_controller.id}"
-
-    type = "egress"
-    from_port = 8888
-    to_port = 8888
     protocol = "tcp"
 }
 
