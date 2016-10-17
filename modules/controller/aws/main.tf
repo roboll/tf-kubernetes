@@ -3,7 +3,6 @@ variable region {}
 
 variable vpc {}
 variable subnets { type = "list" }
-variable subnet_cidrs { type = "list" }
 
 variable ssh_keypair {}
 
@@ -160,10 +159,10 @@ resource aws_iam_instance_profile kube_controller {
     provisioner local-exec { command = "sleep 30" }
 }
 
-resource null_resource etcd {
+resource null_resource instances {
     triggers {
         name = "controller${count.index}"
-        ip = "${cidrhost(element(var.subnet_cidrs, count.index), (count.index / length(var.subnet_cidrs) + var.cidr_offset))}"
+        hostname = "controller${count.index}.${var.domain}"
     }
 
     count = "${var.replicas}"
@@ -175,8 +174,8 @@ resource coreos_cloudconfig cloud_config {
 
     vars {
         domain = "${var.domain}"
-        instance_name = "${element(null_resource.etcd.*.triggers.name, count.index)}"
-        etcd_peers = "${join(",",formatlist("%s=https://%s:2380", null_resource.etcd.*.triggers.name, null_resource.etcd.*.triggers.ip))}"
+        instance_name = "${element(null_resource.instances.*.triggers.name, count.index)}"
+        etcd_peers = "${join(",",formatlist("%s=https://%s:2380", null_resource.instances.*.triggers.name, null_resource.instances.*.triggers.hostname))}"
 
         kube_fqdn = "kube.${var.domain}"
         kube_version = "${var.kube_version}"
@@ -216,7 +215,6 @@ resource aws_instance controller {
     iam_instance_profile = "${aws_iam_instance_profile.kube_controller.name}"
 
     subnet_id = "${element(var.subnets, count.index)}"
-    private_ip = "${element(null_resource.etcd.*.triggers.ip, count.index)}"
     vpc_security_group_ids = [
         "${var.security_groups}",
         "${aws_security_group.kube_controller.id}"
