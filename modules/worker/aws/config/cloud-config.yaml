@@ -77,14 +77,15 @@ coreos:
       command: start
       content: |
         [Unit]
+        StartLimitAction=reboot
+
         Requires=kube-ca.service kubelet-certs.service
         After=docker.service kube-ca.service kubelet-certs.service
 
         [Service]
         Restart=always
-        FailureAction=reboot
         RestartSec=10
-        TimeoutStartSec=300
+        TimeoutStartSec=600
 
         Environment=KUBELET_ACI=${hyperkube}
         Environment=KUBELET_VERSION=${kube_version}
@@ -127,14 +128,6 @@ write_files:
       allowed_roles = "*"
       vault_addr = "${vault_address}"
       ca_cert = "/etc/ssl/vault/ca.pem"
-
-  - path: /opt/bin/host-rkt
-    permissions: 0755
-    owner: root:root
-    content: |
-      #!/bin/sh
-      # https://github.com/coreos/rkt/issues/2878
-      exec nsenter -m -u -i -n -p -t 1 -- /usr/bin/rkt "$@"
 
   - path: /opt/bin/vault-login.sh
     permissions: 0700
