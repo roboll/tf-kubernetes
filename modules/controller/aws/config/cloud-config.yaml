@@ -78,6 +78,7 @@ coreos:
       content: |
         [Unit]
         #StartLimitAction=reboot
+        After=docker.service
 
         [Service]
         Restart=always
