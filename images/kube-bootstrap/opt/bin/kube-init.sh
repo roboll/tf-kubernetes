@@ -47,3 +47,10 @@ for entry in ${types[@]}; do
         fi
     done
 done
+
+echo "copying kubelet to manifests dir"
+cat /etc/kubernetes/kubelet.yaml | envsubst "$vars" > /etc/kubernetes/manifests/kubelet.yaml
+trap "rm -f /etc/kubernetes/manifests/kubelet.yaml" EXIT
+
+echo "sleeping forever..."
+while true; do sleep 3600; done

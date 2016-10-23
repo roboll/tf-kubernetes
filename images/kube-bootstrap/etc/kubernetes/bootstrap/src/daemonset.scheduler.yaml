@@ -26,6 +26,7 @@ spec:
               exec /hyperkube scheduler
                 --kubeconfig=/kubeconfig.yaml
                 --leader-elect=true
+                --logtostderr=true
           livenessProbe:
             httpGet:
               path: /healthz

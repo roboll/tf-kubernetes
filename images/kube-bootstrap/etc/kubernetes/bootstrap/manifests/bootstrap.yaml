@@ -59,6 +59,8 @@ spec:
           readOnly: true
         - name: markers
           mountPath: /markers
+        - name: manifests
+          mountPath: /etc/kubernetes/manifests
   volumes:
     - name: secrets
       emptyDir: {}
@@ -71,3 +73,6 @@ spec:
     - name: markers
       hostPath:
         path: /var/lib/kubernetes/bootstrap
+    - name: manifests
+      hostPath:
+        path: /etc/kubernetes/manifests

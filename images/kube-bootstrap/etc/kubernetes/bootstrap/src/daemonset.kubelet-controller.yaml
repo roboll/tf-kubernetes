@@ -5,13 +5,15 @@ metadata:
   namespace: kube-system
   labels:
     app: kubernetes
-    component: kubelet-controller
+    component: kubelet
+    selector: controller
 spec:
   template:
     metadata:
       labels:
         app: kubernetes
-        component: kubelet-controller
+        component: kubelet
+        selector: controller
     spec:
       nodeSelector:
         role: controller
@@ -59,23 +61,27 @@ spec:
         - name: kubelet
           image: ${HYPERKUBE}
           command:
-            - /kubelet
-            - --cloud-provider=aws
-            - --node-labels=role=controller
-            - --register-schedulable=false
-            - --lock-file=/var/run/kubelet/lock
-            - --kubeconfig=/etc/kubeconfig/kubeconfig.yaml
-            - --require-kubeconfig
-            - --allow-privileged=true
-            - --cluster-dns=10.0.0.10
-            - --cluster-domain=cluster.local
-            - --network-plugin=cni
-            - --network-plugin-dir=/etc/cni/net.d
-            - --tls-cert-file=/etc/ssl/kubelet/cert.pem
-            - --tls-private-key-file=/etc/ssl/kubelet/privkey.pem
-            - --hairpin-mode=hairpin-veth
-            - --containerized=true
-            - --logtostderr=true
+            - /bin/sh
+            - -c
+            - export HOSTNAME=$(hostname -f);
+              exec /kubelet
+                --cloud-provider=aws
+                --hostname-override=${HOSTNAME}
+                --node-labels=role=controller
+                --register-schedulable=false
+                --lock-file=/var/run/kubelet/lock
+                --kubeconfig=/etc/kubeconfig/kubeconfig.yaml
+                --require-kubeconfig
+                --allow-privileged=true
+                --cluster-dns=10.0.0.10
+                --cluster-domain=cluster.local
+                --network-plugin=cni
+                --network-plugin-dir=/etc/cni/net.d
+                --tls-cert-file=/etc/secrets/kubelet.crt
+                --tls-private-key-file=/etc/secrets/kubelet.key
+                --hairpin-mode=hairpin-veth
+                --containerized=true
+                --logtostderr=true
           securityContext:
             privileged: true
           volumeMounts:

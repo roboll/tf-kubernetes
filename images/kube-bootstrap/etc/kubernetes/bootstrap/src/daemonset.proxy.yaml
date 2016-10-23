@@ -26,6 +26,7 @@ spec:
               exec /proxy
                 --kubeconfig=/kubeconfig.yaml
                 --proxy-mode=iptables
+                --logtostderr=true
           volumeMounts:
             - name: kubeconfig
               mountPath: /etc/kube

@@ -64,6 +64,7 @@ spec:
             - --root-ca-file=/etc/secrets/kube.ca
             - --kubeconfig=/etc/kubeconfig/kubeconfig.yaml
             - --service-account-private-key-file=/etc/secrets/svc-acct-privkey.pem
+            - --logtostderr=true
           livenessProbe:
             httpGet:
               host: 127.0.0.1
