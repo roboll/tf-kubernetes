@@ -50,6 +50,7 @@ coreos:
         [Service]
         Type=oneshot
         ExecStart=/usr/sbin/wipefs -f /dev/xvdb
+        ExecStart=/usr/sbin/mkfs.ext4 /dev/xvdb
         ExecStartPost=/bin/touch /var/lib/etcd.formatted
 
     - name: var-lib-etcd.mount
