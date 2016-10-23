@@ -91,8 +91,8 @@ coreos:
         Environment=ETCD_INITIAL_CLUSTER=${etcd_peers}
         Environment=ETCD_PKI_MOUNT=${etcd_pki_mount}
 
-        Environment=SVC_ACCT_PUBKEY=secret/kube-ops.east/service_account/pubkey
-        Environment=SVC_ACCT_PRIVKEY=secret/kube-ops.east/service_account/privkey
+        Environment=SVC_ACCT_PUBKEY=${service_account_pubkey}
+        Environment=SVC_ACCT_PRIVKEY=${service_account_privkey}
         Environment=KUBE_PKI_MOUNT=${kube_pki_mount}
         Environment=KUBE_FQDN=${kube_fqdn}
 
