@@ -20,14 +20,14 @@ coreos:
       content: |
         [Service]
         Type=oneshot
-        #FailureAction=reboot
+        FailureAction=reboot
         ExecStart=/opt/bin/vault-login.sh
 
     - name: vault-renew-token.service
       content: |
         [Service]
         Type=simple
-        #FailureAction=reboot
+        FailureAction=reboot
         ExecStart=/opt/bin/vault-renew-token.sh
 
     - name: vault-renew-token.timer
@@ -77,7 +77,7 @@ coreos:
       command: start
       content: |
         [Unit]
-        #StartLimitAction=reboot
+        StartLimitAction=reboot
         After=docker.service
 
         [Service]
@@ -111,7 +111,8 @@ coreos:
           --pod-manifest-path=/etc/kubernetes/manifests \
           --node-labels=role=controller \
           --lock-file=/var/run/kubelet/lock \
-          --exit-on-lock-contention=true
+          --exit-on-lock-contention=true \
+          --allow-privileged=true
 
 write_files:
   - path: /etc/ssl/vault/ca.pem
