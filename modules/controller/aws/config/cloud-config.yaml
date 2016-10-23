@@ -12,7 +12,7 @@ coreos:
         Type=oneshot
 
         ExecStartPre=/usr/bin/rkt fetch --trust-keys-from-https ${vault_ssh_image}
-        ExecStart=/usr/bin/rkt image extract --overwrite ${vault_ssh_image} /tmp/vault-ssh
+        ExecStart=/usr/bin/rkt image extract --rootfs-only --overwrite ${vault_ssh_image} /tmp/vault-ssh
         ExecStartPost=/tmp/vault-ssh/link.sh
 
     - name: vault-login.service
