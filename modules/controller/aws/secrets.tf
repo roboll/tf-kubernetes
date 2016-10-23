@@ -123,29 +123,12 @@ resource vaultx_secret kube_apiserver_role {
     depends_on = [ "vaultx_secret.kube_pki_init" ]
 }
 
-resource vaultx_secret kube_flannel_role {
-    path = "${var.env}-kube/roles/flannel"
-    ignore_read = true
-
-    data {
-        allowed_domains = "kube.${var.domain},kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster.local"
-        allow_bare_domains = true
-        allow_subdomains = false
-        allow_localhost = false
-        key_type = "ec"
-        key_bits = "256"
-        max_ttl = "48h"
-    }
-
-    depends_on = [ "vaultx_secret.kube_pki_init" ]
-}
-
 resource vaultx_secret kube_controller_role {
-    path = "${var.env}-kube/roles/controller"
+    path = "${var.env}-kube/roles/controller-manager"
     ignore_read = true
 
     data {
-        allowed_domains = "controller"
+        allowed_domains = "controller-manager"
         allow_bare_domains = true
         allow_subdomains = false
         allow_localhost = false
@@ -212,24 +195,6 @@ resource vaultx_secret etcd_apiserver_role {
     depends_on = [ "vaultx_secret.etcd_pki_init" ]
 }
 
-resource vaultx_secret etcd_flannel_role {
-    path = "${var.env}-kube-etcd/roles/flannel"
-    ignore_read = true
-
-    data {
-        allowed_domains = "flannel"
-        allow_bare_domains = true
-        allow_subdomains = false
-        allow_localhost = false
-        server_flag = false
-        key_type = "ec"
-        key_bits = "256"
-        max_ttl = "48h"
-    }
-
-    depends_on = [ "vaultx_secret.etcd_pki_init" ]
-}
-
 resource vaultx_secret etcd_role {
     path = "${var.env}-kube-etcd/roles/etcd"
     ignore_read = true
@@ -254,10 +219,7 @@ resource vaultx_policy controller_instance {
 path "${var.env}-kube/issue/apiserver" {
     capabilities = [ "create", "read", "update", "list" ]
 }
-path "${var.env}-kube/issue/flannel" {
-    capabilities = [ "create", "read", "update", "list" ]
-}
-path "${var.env}-kube/issue/controller" {
+path "${var.env}-kube/issue/controller-manager" {
     capabilities = [ "create", "read", "update", "list" ]
 }
 path "${var.env}-kube/issue/kubelet" {
@@ -268,9 +230,6 @@ path "${var.env}-kube/issue/bootstrap" {
 }
 
 path "${var.env}-kube-etcd/issue/apiserver" {
-    capabilities = [ "create", "read", "update", "list" ]
-}
-path "${var.env}-kube-etcd/issue/flannel" {
     capabilities = [ "create", "read", "update", "list" ]
 }
 path "${var.env}-kube-etcd/issue/etcd" {

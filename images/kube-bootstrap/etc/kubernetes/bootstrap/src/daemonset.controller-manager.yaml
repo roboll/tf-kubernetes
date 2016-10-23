@@ -24,7 +24,7 @@ spec:
             - -ca-cert=/etc/ssl/vault/ca.pem
             - -output=/etc/secrets
             - -cn=secret:${SVC_ACCT_PRIVKEY}:file=service-account-privkey.pem,fmt=txt
-            - -cn=pki:${KUBE_PKI_MOUNT}/issue/controller:common_name=controller-manager,fmt=cert,file=kube
+            - -cn=pki:${KUBE_PKI_MOUNT}/issue/controller-manager:common_name=controller-manager,fmt=cert,file=kube
           env:
             - name: VAULT_ADDR
               value: ${VAULT_ADDR}
@@ -40,7 +40,7 @@ spec:
               mountPath: /var/lib/vault/token
               readOnly: true
         - name: kubeconfig
-          image: quay.io/roboll/kube-boostrap:alpha
+          image: quay.io/roboll/kube-bootstrap:alpha
           command:
             - /opt/bin/copy-kubeconfig.sh
             - forever

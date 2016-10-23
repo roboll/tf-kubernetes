@@ -44,7 +44,7 @@ spec:
         - name: KUBE_FQDN
           value: ${KUBE_FQDN}
         - name: CERT_PATH
-          value: /etc/ssl/kubelet
+          value: /etc/secrets/kubelet
       volumeMounts:
         - name: kubeconfig
           mountPath: /etc/kubeconfig
