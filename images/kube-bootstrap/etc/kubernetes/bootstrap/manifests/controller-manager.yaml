@@ -31,6 +31,19 @@ spec:
         - name: vault-token
           mountPath: /var/lib/vault/token
           readOnly: true
+    - name: kubeconfig
+      image: quay.io/roboll/kube-boostrap:alpha
+      command:
+        - /opt/bin/copy-kubeconfig.sh
+        - forever
+      env:
+        - name: KUBE_FQDN
+          value: ${KUBE_FQDN}
+        - name: CERT_PATH
+          value: /etc/ssl/kube
+      volumeMounts:
+        - name: kubeconfig
+          mountPath: /etc/kubeconfig
     - name: controller-manager
       image: ${HYPERKUBE}
       command:
@@ -41,7 +54,7 @@ spec:
         - --configure-cloud-routes=false
         - --cluster-cidr=10.225.0.0/16
         - --root-ca-file=/etc/secrets/kube.ca
-        - --kubeconfig=/etc/kubernetes/kubeconfig/kubeconfig.yaml
+        - --kubeconfig=/etc/kubeconfig/kubeconfig.yaml
         - --service-account-private-key-file=/etc/secrets/svc-acct-privkey.pem
       livenessProbe:
         httpGet:
@@ -55,7 +68,7 @@ spec:
           mountPath: /etc/secrets
           readOnly: true
         - name: kubeconfig
-          mountPath: /etc/kubernetes/kubeconfig
+          mountPath: /etc/kubeconfig
           readOnly: true
   volumes:
     - name: secrets
@@ -67,5 +80,4 @@ spec:
       hostPath:
         path: /var/lib/vault/token
     - name: kubeconfig
-      configMap:
-        name: controller-manager-kubeconfig
+      emptyDir: {}

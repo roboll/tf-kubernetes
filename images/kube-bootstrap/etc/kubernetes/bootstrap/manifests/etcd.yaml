@@ -39,8 +39,9 @@ spec:
         - /bin/sh
         - -c
         - export IP=$(ifconfig eth0|awk '/inet addr/{print substr($2,6)}');
+          export HOSTNAME=$(hostname -s);
           exec /usr/local/bin/etcd
-            --name=${IP}
+            --name=${HOSTNAME}
             --advertise-client-urls=https://${IP}:2379
             --initial-advertise-peer-urls=https://${IP}:2380
       env:
