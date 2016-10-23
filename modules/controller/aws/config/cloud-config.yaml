@@ -131,7 +131,7 @@ write_files:
       #!/bin/bash
       set -eo pipefail
 
-      mkdir -p /etc/vault
+      mkdir -p /var/lib/vault
       nonce="$(cat /etc/machine-id | base64)"
       pkcs="$(curl ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
         http://169.254.169.254/latest/dynamic/instance-identity/pkcs7 | tr -d '\n')"
