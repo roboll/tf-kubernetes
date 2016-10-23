@@ -113,6 +113,7 @@ coreos:
           --lock-file=/var/run/kubelet/lock \
           --exit-on-lock-contention=true \
           --allow-privileged=true
+        ExecStartPost=/usr/bin/curl http://localhost:8080/healthz
 
 write_files:
   - path: /etc/ssl/vault/ca.pem
