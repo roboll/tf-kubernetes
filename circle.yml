@@ -1,0 +1,18 @@
+machine:
+  services:
+    - docker
+
+dependencies:
+  override:
+    - echo "no deps"
+
+test:
+  override:
+    - echo "no tests"
+
+deployment:
+  release:
+    tag: /v.*/
+    commands:
+      - docker login -e="." -u="$DOCKER_USER" -p="$DOCKER_PASS" quay.io
+      - make push

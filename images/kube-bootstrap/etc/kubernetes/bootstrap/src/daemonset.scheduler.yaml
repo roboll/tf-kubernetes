@@ -1,0 +1,43 @@
+kind: DaemonSet
+apiVersion: extensions/v1beta1
+metadata:
+  name: scheduler
+  namespace: kube-system
+  labels:
+    app: kubernetes
+    component: scheduler
+spec:
+  template:
+    metadata:
+      labels:
+        app: kubernetes
+        component: scheduler
+    spec:
+      nodeSelector:
+        role: controller
+      hostNetwork: true
+      containers:
+        - name: scheduler
+          image: ${HYPERKUBE}
+          command:
+            - /bin/bash
+            - -c
+            - sed /etc/kube/kubeconfig.yaml -e s,{{token}},$(cat /var/run/secrets/kubernetes.io/serviceaccount/token),g > /kubeconfig.yaml;
+              exec /hyperkube scheduler
+                --kubeconfig=/kubeconfig.yaml
+                --leader-elect=true
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 10251
+            initialDelaySeconds: 15
+            timeoutSeconds: 1
+          volumeMounts:
+            - name: kubeconfig
+              mountPath: /etc/kube
+              readOnly: true
+      volumes:
+        - name: kubeconfig
+          configMap:
+            name: scheduler-kubeconfig
+

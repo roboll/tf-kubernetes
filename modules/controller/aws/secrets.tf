@@ -235,7 +235,7 @@ resource vaultx_secret etcd_role {
     ignore_read = true
 
     data {
-        allowed_domains = "controller"
+        allowed_domains = "etcd"
         allow_bare_domains = true
         allow_subdomains = false
         allow_localhost = true

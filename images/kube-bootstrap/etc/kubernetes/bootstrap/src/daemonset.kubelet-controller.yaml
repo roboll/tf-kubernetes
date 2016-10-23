@@ -1,0 +1,122 @@
+kind: DaemonSet
+apiVersion: extensions/v1beta1
+metadata:
+  name: kubelet-controller
+  namespace: kube-system
+  labels:
+    app: kubernetes
+    component: kubelet-controller
+spec:
+  template:
+    metadata:
+      labels:
+        app: kubernetes
+        component: kubelet-controller
+    spec:
+      nodeSelector:
+        role: controller
+      hostPID: true
+      hostNetwork: true
+      containers:
+        - name: vault-sidekick
+          image: quay.io/roboll/vault-sidekick:v0.0.9.12
+          command:
+            - /bin/sh
+            - -c
+            - export IP=$(ifconfig eth0 | awk '/inet addr/{print substr($2,6)}');
+              exec /vault-sidekick
+                -logtostderr=true
+                -ca-cert=/etc/ssl/vault/ca.pem
+                -output=/etc/secrets
+                -cn=pki:${KUBE_PKI_MOUNT}/issue/kubelet:common_name=kubelet,ip_sans=${IP},fmt=cert,file=kubelet
+          env:
+            - name: VAULT_ADDR
+              value: ${VAULT_ADDR}
+            - name: VAULT_SIDEKICK_TOKEN_FILE
+              value: /var/lib/vault/token
+          volumeMounts:
+            - name: secrets
+              mountPath: /etc/secrets
+            - name: vault-ca
+              mountPath: /etc/ssl/vault/ca.pem
+              readOnly: true
+            - name: vault-token
+              mountPath: /var/lib/vault/token
+              readOnly: true
+        - name: kubelet
+          image: ${HYPERKUBE}
+          command:
+            - /kubelet
+            - --cloud-provider=aws
+            - --node-labels=role=controller
+            - --register-schedulable=false
+            - --lock-file=/var/run/kubelet/lock
+            - --kubeconfig=/etc/kubernetes/kubeconfig/kubeconfig.yaml
+            - --require-kubeconfig
+            - --allow-privileged=true
+            - --cluster-dns=10.0.0.10
+            - --cluster-domain=cluster.local
+            - --network-plugin=cni
+            - --network-plugin-dir=/etc/cni/net.d
+            - --tls-cert-file=/etc/ssl/kubelet/cert.pem
+            - --tls-private-key-file=/etc/ssl/kubelet/privkey.pem
+            - --hairpin-mode=hairpin-veth
+            - --containerized=true
+            - --logtostderr=true
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: secrets
+              mountPath: /etc/secrets
+              readOnly: true
+            - name: kubeconfig
+              mountPath: /etc/kubernetes/kubeconfig
+              readOnly: true
+            - name: rootfs
+              mountPath: /rootfs
+            - name: dev
+              mountPath: /dev
+            - name: run
+              mountPath: /run
+            - name: sys
+              mountPath: /sys
+              readOnly: true
+            - name: var-run
+              mountPath: /var/run
+            - name: var-lib-docker
+              mountPath: /var/lib/docker
+            - name: var-lib-kubelet
+              mountPath: /var/lib/kubelet
+      volumes:
+        - name: secrets
+          emptyDir: {}
+        - name: vault-ca
+          hostPath:
+            path: /etc/ssl/vault/ca.pem
+        - name: vault-token
+          hostPath:
+            path: /var/lib/vault/token
+        - name: kubeconfig
+          configMap:
+            name: kubelet-kubeconfig
+        - name: rootfs
+          hostPath:
+            path: /
+        - name: dev
+          hostPath:
+            path: /dev
+        - name: run
+          hostPath:
+            path: /run
+        - name: var-run
+          hostPath:
+            path: /var/run
+        - name: sys
+          hostPath:
+            path: /sys
+        - name: var-lib-docker
+          hostPath:
+            path: /var/lib/docker
+        - name: var-lib-kubelet
+          hostPath:
+            path: /var/lib/kubelet

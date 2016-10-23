@@ -1,0 +1,73 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bootstrap
+  namespace: kube-system
+  labels:
+    app: kubernetes
+    component: bootstrap
+spec:
+  restartPolicy: OnFailure
+  hostNetwork: true
+  containers:
+    - name: vault-sidekick
+      image: quay.io/roboll/vault-sidekick:v0.0.9.12
+      args:
+        - -logtostderr=true
+        - -ca-cert=/etc/ssl/vault/ca.pem
+        - -output=/etc/secrets
+        - -cn=pki:${KUBE_PKI_MOUNT}/issue/bootstrap:common_name=bootstrap,fmt=cert,file=bootstrap
+      env:
+        - name: VAULT_ADDR
+          value: ${VAULT_ADDR}
+        - name: VAULT_SIDEKICK_TOKEN_FILE
+          value: /var/lib/vault/token
+      volumeMounts:
+        - name: secrets
+          mountPath: /etc/secrets
+        - name: vault-ca
+          mountPath: /etc/ssl/vault/ca.pem
+          readOnly: true
+        - name: vault-token
+          mountPath: /var/lib/vault/token
+          readOnly: true
+    - name: bootstrap
+      image: quay.io/roboll/kube-bootstrap:alpha
+      imagePullPolicy: Always
+      command:
+        - /opt/bin/kube-init.sh
+      env:
+        - name: ETCD_PKI_MOUNT
+          value: ${ETCD_PKI_MOUNT}
+        - name: KUBE_PKI_MOUNT
+          value: ${KUBE_PKI_MOUNT}
+        - name: ETCD_INITIAL_CLUSTER
+          value: ${ETCD_INITIAL_CLUSTER}
+        - name: VAULT_ADDR
+          value: ${VAULT_ADDR}
+        - name: HYPERKUBE
+          value: ${HYPERKUBE}
+        - name: SVC_ACCT_PUBKEY
+          value: ${SVC_ACCT_PUBKEY}
+        - name: SVC_ACCT_PRIVKEY
+          value: ${SVC_ACCT_PRIVKEY}
+        - name: KUBE_FQDN
+          value: ${KUBE_FQDN}
+      volumeMounts:
+        - name: secrets
+          mountPath: /etc/secrets
+          readOnly: true
+        - name: markers
+          mountPath: /markers
+  volumes:
+    - name: secrets
+      emptyDir: {}
+    - name: vault-ca
+      hostPath:
+        path: /etc/ssl/vault/ca.pem
+    - name: vault-token
+      hostPath:
+        path: /var/lib/vault/token
+    - name: markers
+      hostPath:
+        path: /var/lib/kubernetes/bootstrap

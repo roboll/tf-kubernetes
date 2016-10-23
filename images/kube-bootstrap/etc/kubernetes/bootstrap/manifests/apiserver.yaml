@@ -1,0 +1,86 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: apiserver
+  namespace: kube-system
+  labels:
+    app: kubernetes
+    component: apiserver
+spec:
+  hostNetwork: true
+  containers:
+    - name: vault-sidekick
+      image: quay.io/roboll/vault-sidekick:v0.0.9.12
+      command:
+        - /bin/sh
+        - -c
+        - export IP=$(ifconfig eth0 | awk '/inet addr/{print substr($2,6)}');
+          exec /vault-sidekick
+            -logtostderr=true
+            -ca-cert=/etc/ssl/vault/ca.pem
+            -output=/etc/secrets
+            -cn=secret:${SVC_ACCT_PUBKEY}:file=svc-acct-pubkey.pem,fmt=txt
+            -cn='pki:${KUBE_PKI_MOUNT}/issue/apiserver:common_name=${KUBE_FQDN},alt_names=kubernetes|kubernetes.default.svc|kubernetes.default.svc.cluster.local,ip_sans=${IP}|10.0.0.1,fmt=cert,file=kube'
+            -cn=pki:${ETCD_PKI_MOUNT}/issue/apiserver:common_name=controller,fmt=cert,file=etcd
+      env:
+        - name: VAULT_ADDR
+          value: ${VAULT_ADDR}
+        - name: VAULT_SIDEKICK_TOKEN_FILE
+          value: /var/lib/vault/token
+      volumeMounts:
+        - name: secrets
+          mountPath: /etc/secrets
+        - name: vault-ca
+          mountPath: /etc/ssl/vault/ca.pem
+          readOnly: true
+        - name: vault-token
+          mountPath: /var/lib/vault/token
+          readOnly: true
+    - name: apiserver
+      image: ${HYPERKUBE}
+      command:
+        - /bin/sh
+        - -c
+        - export IP=$(ip addr show eth0|awk '/inet /{print substr($2,0,index($2,"/"))}');
+          exec /apiserver
+            --secure-port=443
+            --cloud-provider=aws
+            --allow-privileged=true
+            --runtime-config=api/all=true
+            --enable-swagger-ui=true
+            --authorization-mode=RBAC
+            --authorization-rbac-super-user=bootstrap
+            --service-cluster-ip-range=10.0.0.0/16
+            --external-hostname=${KUBE_FQDN}
+            --etcd-servers=https://${IP}:2379
+            --etcd-cafile=/etc/secrets/etcd.ca
+            --etcd-certfile=/etc/secrets/etcd.crt
+            --etcd-keyfile=/etc/secrets/etcd.key
+            --client-ca-file=/etc/secrets/kube.ca
+            --tls-cert-file=/etc/secrets/kube.crt
+            --tls-private-key-file=/etc/secrets/kube.key
+            --service-account-key-file=/etc/secrets/svc-acct-pubkey.pem
+            --kubelet-certificate-authority=/etc/secrets/kube.ca
+            --kubelet-client-certificate=/etc/secrets/kube.crt
+            --kubelet-client-key=/etc/secrets/kube.key
+            --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,ResourceQuota,DenyEscalatingExec,ServiceAccount
+      livenessProbe:
+        httpGet:
+          host: 127.0.0.1
+          path: /healthz
+          port: 8080
+        initialDelaySeconds: 30
+        timeoutSeconds: 1
+      volumeMounts:
+        - name: secrets
+          mountPath: /etc/secrets
+          readOnly: true
+  volumes:
+    - name: secrets
+      emptyDir: {}
+    - name: vault-ca
+      hostPath:
+        path: /etc/ssl/vault/ca.pem
+    - name: vault-token
+      hostPath:
+        path: /var/lib/vault/token
