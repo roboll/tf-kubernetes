@@ -20,14 +20,14 @@ coreos:
       content: |
         [Service]
         Type=oneshot
-        FailureAction=reboot
+        #FailureAction=reboot
         ExecStart=/opt/bin/vault-login.sh
 
     - name: vault-renew-token.service
       content: |
         [Service]
         Type=simple
-        FailureAction=reboot
+        #FailureAction=reboot
         ExecStart=/opt/bin/vault-renew-token.sh
 
     - name: vault-renew-token.timer
