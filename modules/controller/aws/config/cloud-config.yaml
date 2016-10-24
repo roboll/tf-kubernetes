@@ -111,7 +111,6 @@ coreos:
 
         ExecStart=/usr/lib/coreos/kubelet-wrapper \
           --pod-manifest-path=/etc/kubernetes/manifests \
-          --node-labels=role=controller \
           --lock-file=/var/run/kubelet/lock \
           --exit-on-lock-contention=true \
           --allow-privileged=true
