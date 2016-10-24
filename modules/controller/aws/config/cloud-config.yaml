@@ -77,13 +77,13 @@ coreos:
       command: start
       content: |
         [Unit]
-        StartLimitAction=reboot
-
         Requires=docker.service
         After=docker.service
 
+        ConditionPathExists=!/var/run/kubelet/lock
+
         [Service]
-        Restart=on-failure
+        Restart=always
         RestartSec=10
 
         Environment=KUBELET_ACI=${hyperkube}
