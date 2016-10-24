@@ -80,8 +80,6 @@ coreos:
         Requires=docker.service
         After=docker.service
 
-        ConditionPathExists=!/var/run/kubelet/lock
-
         [Service]
         Restart=always
         RestartSec=10
