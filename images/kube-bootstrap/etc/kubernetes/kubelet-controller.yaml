@@ -17,11 +17,12 @@ spec:
         - /bin/sh
         - -c
         - export IP=$(ifconfig eth0 | awk '/inet addr/{print substr($2,6)}');
+          export HOSTNAME=$(hostname -f);
           exec /vault-sidekick
             -logtostderr=true
             -ca-cert=/etc/ssl/vault/ca.pem
             -output=/etc/secrets
-            -cn=pki:${KUBE_PKI_MOUNT}/issue/kubelet:common_name=kubelet,ip_sans=${IP},fmt=cert,file=kubelet
+            -cn=pki:${KUBE_PKI_MOUNT}/issue/kubelet:common_name=kubelet,alt_names=${HOSTNAME},ip_sans=${IP},fmt=cert,file=kubelet
       env:
         - name: VAULT_ADDR
           value: ${VAULT_ADDR}
@@ -56,8 +57,7 @@ spec:
         - -c
         - export HOSTNAME=$(hostname -f);
           exec /kubelet
-            --cloud-provider=aws
-            --hostname-override=${HOSTNAME}
+            --cloud-provider=''
             --node-labels=role=controller
             --register-schedulable=false
             --lock-file=/var/run/kubelet/lock

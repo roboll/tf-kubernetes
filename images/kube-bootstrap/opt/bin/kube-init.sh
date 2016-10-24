@@ -49,7 +49,7 @@ for entry in ${types[@]}; do
 done
 
 echo "copying kubelet to manifests dir"
-cat /etc/kubernetes/kubelet.yaml | envsubst "$vars" > /etc/kubernetes/manifests/kubelet.yaml
+cat /etc/kubernetes/kubelet-controller.yaml | envsubst "$vars" > /etc/kubernetes/manifests/kubelet.yaml
 trap "rm -f /etc/kubernetes/manifests/kubelet.yaml" EXIT
 
 echo "sleeping forever..."
