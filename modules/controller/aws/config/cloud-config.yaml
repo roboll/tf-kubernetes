@@ -104,7 +104,7 @@ coreos:
         ExecStartPre=/usr/bin/rkt run --trust-keys-from-https --inherit-env \
           --volume manifests,kind=host,source=/etc/kubernetes/manifests \
           --mount volume=manifests,target=/etc/kubernetes/manifests \
-          quay.io/roboll/kube-bootstrap:alpha --exec /opt/bin/copy-manifests.sh
+          quay.io/roboll/kube-bootstrap:alpha --exec /opt/bin/copy-bootstrap-manifest.sh
 
         Environment="RKT_OPTS=--volume manifests,kind=host,source=/etc/kubernetes/manifests \
         --mount volume=manifests,target=/etc/kubernetes/manifests"
