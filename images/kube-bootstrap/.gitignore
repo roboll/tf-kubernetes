@@ -1,1 +1,1 @@
-etc/kubernetes/bootstrap/api-objects/
+etc/kube-bootstrap/api-objects/*.json

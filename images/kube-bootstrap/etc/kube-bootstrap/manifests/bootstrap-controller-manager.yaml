@@ -1,10 +1,10 @@
 kind: Pod
 apiVersion: v1
 metadata:
-  name: controller-manager
+  name: bootstrap-controller-manager
   namespace: kube-system
   labels:
-    app: kubernetes
+    app: bootstrap-kubernetes
     component: controller-manager
 spec:
   hostNetwork: true

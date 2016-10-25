@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: apiserver
+  name: bootstrap-apiserver
   namespace: kube-system
   labels:
-    app: kubernetes
+    app: bootstrap-kubernetes
     component: apiserver
 spec:
   hostNetwork: true

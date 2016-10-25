@@ -2,11 +2,19 @@
 set -eo pipefail
 
 types=(
+    "serviceaccount:api/v1/namespaces/kube-system/serviceaccounts"
     "clusterrole:apis/rbac.authorization.k8s.io/v1alpha1/clusterroles"
     "clusterrolebinding:apis/rbac.authorization.k8s.io/v1alpha1/clusterrolebindings"
     "daemonset:apis/extensions/v1beta1/namespaces/kube-system/daemonsets"
-    "configmap:api/v1/namespaces/kube-system/configmaps"
 )
+
+vars='${VAULT_ADDR} ${KUBE_FQDN} ${ETCD_INITIAL_CLUSTER} ${ETCD_PKI_MOUNT} ${KUBE_PKI_MOUNT} ${SVC_ACCT_PUBKEY} ${SVC_ACCT_PRIVKEY} ${HYPERKUBE}'
+
+echo "copying bootstrap manifests to /etc/kubernetes/manifests..."
+dir=/etc/kube-bootstrap/manifests
+for item in $dir/*; do
+    cat $item | envsubst "$vars" > /etc/kubernetes/manifests/${item#$dir}
+done
 
 key=/etc/secrets/bootstrap.key
 cert=/etc/secrets/bootstrap.crt
@@ -26,9 +34,7 @@ done
 echo ""
 echo "apiserver ready"
 
-vars='${VAULT_ADDR} ${KUBE_FQDN} ${ETCD_INITIAL_CLUSTER} ${ETCD_PKI_MOUNT} ${KUBE_PKI_MOUNT} ${SVC_ACCT_PUBKEY} ${SVC_ACCT_PRIVKEY} ${HYPERKUBE}'
-
-dir=/etc/kubernetes/bootstrap/api-objects
+dir=/etc/kube-bootstrap/api-objects
 for entry in ${types[@]}; do
     apitype="${entry%%:*}"
     apipath="${entry#*:}"
@@ -48,9 +54,22 @@ for entry in ${types[@]}; do
     done
 done
 
+echo ""
 echo "copying kubelet to manifests dir"
-cat /etc/kubernetes/kubelet-controller.yaml | envsubst "$vars" > /etc/kubernetes/manifests/kubelet.yaml
-trap "rm -f /etc/kubernetes/manifests/kubelet.yaml" EXIT
+cat /etc/kube-bootstrap/kubelet-controller.yaml | envsubst "$vars" > /etc/kubernetes/manifests/kubelet.yaml
+
+echo ""
+echo "waiting for daemonsets to schedule"
+for ds in {apiserver,controller-manager,etcd}; do
+    echo "checking daemonset $ds"
+    until [ $(curl $opts https://kubernetes/apis/extensions/v1beta1/namespaces/kube-system/daemonsets/$ds | jq .status.currentNumberScheduled) -gt 0 ]; do
+        echo "waiting for $ds to schedule"; sleep 5;
+    done
+    rm -f etc/kubernetes/manifests/bootstrap-$ds.yaml
+done
+
+echo ""
+echo "TODO: need to move kubelet to daemonset"
 
 echo "sleeping forever..."
 while true; do sleep 3600; done

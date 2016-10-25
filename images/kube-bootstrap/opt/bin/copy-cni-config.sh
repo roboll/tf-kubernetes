@@ -1,8 +1,7 @@
 #! /bin/bash
 set -eo pipefail
 
-vars='${KUBE_FQDN} ${CERT_PATH}'
-cat /etc/kube-bootstrap/kubeconfig.yaml | envsubst "$vars" > /etc/kubeconfig/kubeconfig.yaml
+cp /etc/kube-bootstrap/cni/* /etc/cni/net.d/
 
 if [ $1 == "forever" ]; then
     echo "sleeping forever..."

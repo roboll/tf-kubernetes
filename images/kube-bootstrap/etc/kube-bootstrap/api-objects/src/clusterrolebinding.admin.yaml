@@ -3,11 +3,11 @@ apiVersion: rbac.authorization.k8s.io/v1alpha1
 metadata:
   name: admin
 subjects:
+  - kind: User
+    name: admin
   - kind: ServiceAccount
     name: default
     namespace: kube-system
-  - kind: User
-    name: admin
 roleRef:
   kind: ClusterRole
   apiVersion: rbac.authorization.k8s.io/v1alpha1

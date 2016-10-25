@@ -1,12 +1,11 @@
 kind: Pod
 apiVersion: v1
 metadata:
-  name: kubelet-controller
+  name: kubelet
   namespace: kube-system
   labels:
     app: kubernetes
     component: kubelet
-    selector: controller
 spec:
   hostPID: true
   hostNetwork: true
@@ -40,11 +39,11 @@ spec:
     - name: kubeconfig
       image: quay.io/roboll/kube-bootstrap:alpha
       command:
-        - /opt/bin/copy-kubeconfig.sh
-        - forever
+        - /bin/sh
+        - -c
+        - export KUBE_FQDN=$(ifconfig eth0 | awk '/inet addr/{print substr($2,6)}');
+          /opt/bin/copy-kubeconfig.sh forever
       env:
-        - name: KUBE_FQDN
-          value: ${KUBE_FQDN}
         - name: CERT_PATH
           value: /etc/secrets/kubelet
       volumeMounts:
@@ -61,6 +60,7 @@ spec:
             --node-labels=role=controller
             --register-schedulable=false
             --lock-file=/var/run/kubelet/lock
+            --pod-manifest-path=/etc/kubernetes/manifests
             --kubeconfig=/etc/kubeconfig/kubeconfig.yaml
             --require-kubeconfig
             --allow-privileged=true
@@ -97,6 +97,9 @@ spec:
           mountPath: /var/lib/docker
         - name: var-lib-kubelet
           mountPath: /var/lib/kubelet
+        - name: manifests
+          mountPath: /etc/kubernetes/manifests
+          readOnly: true
   volumes:
     - name: secrets
       emptyDir: {}
@@ -129,3 +132,6 @@ spec:
     - name: var-lib-kubelet
       hostPath:
         path: /var/lib/kubelet
+    - name: manifests
+      hostPath:
+        path: /etc/kubernetes/manifests

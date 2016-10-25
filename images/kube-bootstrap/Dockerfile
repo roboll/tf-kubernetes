@@ -1,6 +1,6 @@
 FROM alpine:3.4
 
-RUN apk add --update --no-cache bash curl gettext
+RUN apk add --update --no-cache bash curl jq gettext
 
 ADD opt /opt
-ADD etc/kubernetes /etc/kubernetes
+ADD etc/kube-bootstrap /etc/kube-bootstrap

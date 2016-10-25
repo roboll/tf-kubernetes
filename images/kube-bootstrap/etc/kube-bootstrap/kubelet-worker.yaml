@@ -61,6 +61,7 @@ spec:
             --node-labels=role=controller
             --register-schedulable=false
             --lock-file=/var/run/kubelet/lock
+            --pod-manifest-path=/etc/kubernetes/manifests
             --kubeconfig=/etc/kubeconfig/kubeconfig.yaml
             --require-kubeconfig
             --allow-privileged=true
@@ -97,6 +98,9 @@ spec:
           mountPath: /var/lib/docker
         - name: var-lib-kubelet
           mountPath: /var/lib/kubelet
+        - name: manifests
+          mountPath: /etc/kubernetes/manifests
+          readOnly: true
   volumes:
     - name: secrets
       emptyDir: {}
@@ -129,3 +133,6 @@ spec:
     - name: var-lib-kubelet
       hostPath:
         path: /var/lib/kubelet
+    - name: manifests
+      hostPath:
+        path: /etc/kubernetes/manifests

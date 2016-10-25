@@ -28,7 +28,7 @@ spec:
                 -ca-cert=/etc/ssl/vault/ca.pem
                 -output=/etc/secrets
                 -cn=secret:${SVC_ACCT_PUBKEY}:file=svc-acct-pubkey.pem,fmt=txt
-                -cn=pki:${KUBE_PKI_MOUNT}/issue/apiserver:common_name=$(KUBE_FQDN),alt_names=kubernetes|kubernetes.default.svc|kubernetes.default.svc.cluster.local,ip_sans=${IP}|10.0.0.1,fmt=cert,file=kube
+                -'cn=pki:${KUBE_PKI_MOUNT}/issue/apiserver:common_name=${KUBE_FQDN},alt_names=kubernetes|kubernetes.default.svc|kubernetes.default.svc.cluster.local,ip_sans=${IP}|10.0.0.1,fmt=cert,file=kube'
                 -cn=pki:${ETCD_PKI_MOUNT}/issue/apiserver:common_name=controller,fmt=cert,file=etcd
           env:
             - name: VAULT_ADDR

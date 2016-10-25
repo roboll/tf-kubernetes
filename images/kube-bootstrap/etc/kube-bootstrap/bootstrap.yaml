@@ -7,7 +7,6 @@ metadata:
     app: kubernetes
     component: bootstrap
 spec:
-  restartPolicy: OnFailure
   hostNetwork: true
   containers:
     - name: vault-sidekick
@@ -35,7 +34,7 @@ spec:
       image: quay.io/roboll/kube-bootstrap:alpha
       imagePullPolicy: Always
       command:
-        - /opt/bin/kube-init.sh
+        - /opt/bin/kube-bootstrap.sh
       env:
         - name: ETCD_PKI_MOUNT
           value: ${ETCD_PKI_MOUNT}

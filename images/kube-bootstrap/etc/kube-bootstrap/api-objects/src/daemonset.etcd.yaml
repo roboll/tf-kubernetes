@@ -80,13 +80,6 @@ spec:
               value: /etc/secrets/etcd.ca
             - name: ETCD_PEER_CLIENT_CERT_AUTH
               value: "true"
-          ports:
-            - containerPort: 2379
-              hostPort: 2379
-              name: client
-            - containerPort: 2380
-              hostPort: 2380
-              name: server
           volumeMounts:
             - name: data
               mountPath: /var/lib/etcd
