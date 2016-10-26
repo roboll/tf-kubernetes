@@ -112,6 +112,7 @@ coreos:
           --api-servers=http://localhost:8080 \
           --lock-file=/var/run/kubelet/lock \
           --exit-on-lock-contention=true \
+          --node-labels=role=controller \
           --allow-privileged=true
 
 write_files:
