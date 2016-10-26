@@ -110,7 +110,6 @@ coreos:
         ExecStart=/usr/lib/coreos/kubelet-wrapper \
           --pod-manifest-path=/etc/kubernetes/manifests \
           --api-servers=http://localhost:8080 \
-          --root-dir=/var/lib/host-kubelet \
           --lock-file=/var/run/kubelet/lock \
           --exit-on-lock-contention=true \
           --allow-privileged=true
