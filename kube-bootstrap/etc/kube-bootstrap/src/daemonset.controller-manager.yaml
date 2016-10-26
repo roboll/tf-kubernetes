@@ -1,17 +1,17 @@
 kind: DaemonSet
 apiVersion: extensions/v1beta1
 metadata:
-  name: scheduler
+  name: controller-manager
   namespace: kube-system
   labels:
     app: kubernetes
-    component: scheduler
+    component: controller-manager
 spec:
   template:
     metadata:
       labels:
         app: kubernetes
-        component: scheduler
+        component: controller-manager
     spec:
       nodeSelector:
         role: controller
@@ -23,7 +23,8 @@ spec:
             - -logtostderr=true
             - -ca-cert=/etc/ssl/vault/ca.pem
             - -output=/etc/secrets
-            - -cn=pki:${KUBE_PKI_MOUNT}/issue/scheduler:common_name=scheduler,fmt=cert,file=scheduler
+            - -cn=secret:${SVC_ACCT_PRIVKEY}:file=svc-acct-privkey.pem,fmt=txt
+            - -cn=pki:${KUBE_PKI_MOUNT}/issue/controller-manager:common_name=controller-manager,fmt=cert,file=kube
           env:
             - name: VAULT_ADDR
               value: ${VAULT_ADDR}
@@ -38,39 +39,31 @@ spec:
             - name: vault-token
               mountPath: /var/lib/vault/token
               readOnly: true
-        - name: kubeconfig
-          image: quay.io/roboll/kube-bootstrap:alpha
-          command:
-            - /opt/bin/copy-kubeconfig.sh
-            - forever
-          env:
-            - name: KUBE_FQDN
-              value: ${KUBE_FQDN}
-            - name: CERT_PATH
-              value: /etc/secrets/scheduler
-          volumeMounts:
-            - name: kubeconfig
-              mountPath: /etc/kubeconfig
-        - name: scheduler
+        - name: controller-manager
           image: ${HYPERKUBE}
           command:
-            - /scheduler
-            - --kubeconfig=/etc/kubeconfig/kubeconfig.yaml
+            - /controller-manager
             - --leader-elect=true
-            - --logtostderr=true
-          serviceAccount: proxy
+            - --cloud-provider=aws
+            - --allocate-node-cidrs=true
+            - --configure-cloud-routes=false
+            - --cluster-cidr=10.225.0.0/16
+            - --root-ca-file=/etc/secrets/kube.ca
+            - --kubeconfig=/etc/kubeconfig/kubeconfig.yaml
+            - --service-account-private-key-file=/etc/secrets/svc-acct-privkey.pem
           livenessProbe:
             httpGet:
+              host: 127.0.0.1
               path: /healthz
-              port: 10251
+              port: 10252
             initialDelaySeconds: 15
             timeoutSeconds: 1
           volumeMounts:
-            - name: kubeconfig
-              mountPath: /etc/kubeconfig
-              readOnly: true
             - name: secrets
               mountPath: /etc/secrets
+              readOnly: true
+            - name: kubeconfig
+              mountPath: /etc/kubeconfig
               readOnly: true
       volumes:
         - name: secrets
@@ -83,4 +76,3 @@ spec:
             path: /var/lib/vault/token
         - name: kubeconfig
           emptyDir: {}
-

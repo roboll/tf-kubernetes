@@ -1,0 +1,42 @@
+kind: DaemonSet
+apiVersion: extensions/v1beta1
+metadata:
+  name: proxy
+  namespace: kube-system
+  labels:
+    app: kubernetes
+    component: proxy
+spec:
+  template:
+    metadata:
+      labels:
+        app: kubernetes
+        component: proxy
+    spec:
+      hostNetwork: true
+      containers:
+        - name: proxy
+          image: ${HYPERKUBE}
+          serviceAccount: proxy
+          securityContext:
+            privileged: true
+          command:
+            - /bin/sh
+            - -c
+            - sed /etc/kubeconfig/kubeconfig.yaml -e s,{{TOKEN}},$(cat /var/run/secrets/kubernetes.io/serviceaccount/token),g > /kubeconfig.yaml;
+              exec /hyperkube proxy --kubeconfig=/kubeconfig.yaml --proxy-mode=iptables --logtostderr
+          volumeMounts:
+            - name: kubeconfig
+              mountPath: /etc/kubeconfig
+              readOnly: true
+          livenessProbe:
+            httpGet:
+              host: 127.0.0.1
+              path: /healthz
+              port: 10249
+            initialDelaySeconds: 15
+            timeoutSeconds: 1
+      volumes:
+        - name: kubeconfig
+          configMap:
+            name: proxy-kubeconfig

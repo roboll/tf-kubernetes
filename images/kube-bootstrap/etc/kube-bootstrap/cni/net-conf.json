@@ -1,6 +1,0 @@
-{
-    "Network": "10.225.0.0/16",
-    "Backend": {
-        "Type": "vxlan"
-    }
-}

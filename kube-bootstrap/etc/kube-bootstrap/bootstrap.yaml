@@ -69,9 +69,9 @@ spec:
     - name: vault-token
       hostPath:
         path: /var/lib/vault/token
-    - name: markers
-      hostPath:
-        path: /var/lib/kubernetes/bootstrap
     - name: manifests
       hostPath:
         path: /etc/kubernetes/manifests
+    - name: markers
+      hostPath:
+        path: /var/lib/kubernetes/bootstrap

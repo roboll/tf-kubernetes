@@ -72,8 +72,6 @@ spec:
                 --kubelet-client-certificate=/etc/secrets/kube.crt
                 --kubelet-client-key=/etc/secrets/kube.key
                 --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,ResourceQuota,DenyEscalatingExec,ServiceAccount
-                --v=1
-                --logtostderr=true
           livenessProbe:
             httpGet:
               host: 127.0.0.1
@@ -94,4 +92,3 @@ spec:
         - name: vault-token
           hostPath:
             path: /var/lib/vault/token
-
