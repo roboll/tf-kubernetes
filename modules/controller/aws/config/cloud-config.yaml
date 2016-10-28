@@ -109,16 +109,17 @@ coreos:
           --volume=/sys:/sys:ro \
           --volume=/dev:/dev \
           --volume=/var/run:/var/run:rw \
+          --volume=/etc/kubernetes/:/etc/kubernetes/ \
           --volume=/var/lib/docker/:/var/lib/docker:rw \
           --volume=/var/lib/kubelet/:/var/lib/kubelet:shared \
-          --volume=/etc/kubernetes/manifests:/etc/kubernetes/manifests \
           --net=host \
           --pid=host \
           --privileged=true \
           ${hyperkube}:${kube_version} \
             /hyperkube kubelet \
               --pod-manifest-path=/etc/kubernetes/manifests \
-              --api-servers=http://localhost:8080 \
+              --kubeconfig=/etc/kubernetes/kubeconfig.yaml \
+              --require-kubeconfig \
               --lock-file=/var/run/kubelet/lock \
               --exit-on-lock-contention=true \
               --node-labels=role=controller \
@@ -166,3 +167,21 @@ write_files:
         -X POST -H "X-Vault-Token: $token" \
         -d '{"increment": "24h"}' \
         ${vault_address}/v1/auth/token/renew-self > /dev/null
+
+  - path: /etc/kubernetes/kubeconfig.yaml
+    permissions: 0700
+    content: |
+      kind: Config
+      apiVersion: v1
+      current-context: kube
+      clusters:
+        - name: kubernetes
+          cluster:
+            server: http://localhost:8080
+      users:
+        - name: user
+      contexts:
+        - name: kube
+          context:
+            cluster: kubernetes
+            user: user
