@@ -44,47 +44,42 @@ coreos:
             [Service]
             MountFlags=shared
 
+    - name: kubelet-certs.service
+      command: start
+      content: |
+        [Unit]
+        Before=kubelet.service
+        After=vault-login.service
+
+        [Service]
+        Type=simple
+        ExecStart=/opt/bin/kubelet-certs.sh
+
     - name: kubelet.service
       command: start
       content: |
         [Unit]
-        StartLimitAction=reboot
-
-        Requires=kube-ca.service kubelet-certs.service
-        After=docker.service kube-ca.service kubelet-certs.service
+        Requires=docker.service kubelet-certs.service
+        After=docker.service kubelet-certs.service
 
         [Service]
         Restart=always
         RestartSec=10
-        TimeoutStartSec=600
 
         Environment=KUBELET_ACI=${hyperkube}
         Environment=KUBELET_VERSION=${kube_version}
-        Environment="RKT_OPTS=--volume dns,kind=host,source=/etc/resolv.conf \
-        --mount volume=dns,target=/etc/resolv.conf \
-        --volume stage,kind=host,source=/tmp \
-        --mount volume=stage,target=/tmp \
-        --volume var-log,kind=host,source=/var/log \
-        --mount volume=var-log,target=/var/log \
-        --volume kubelet-ssl,kind=host,source=/etc/ssl/kube \
-        --mount volume=kubelet-ssl,target=/etc/ssl/kube \
-        --volume cni,kind=host,source=/etc/cni/net.d \
-        --mount volume=cni,target=/etc/cni/net.d"
 
-        ExecStartPre=/usr/bin/mkdir -p /var/log/containers
-        ExecStartPre=/usr/bin/mkdir -p /etc/cni/net.d
+        Environment="RKT_OPTS=--volume manifests,kind=host,source=/etc/kubernetes/manifests \
+        --mount volume=manifests,target=/etc/kubernetes/manifests"
+
         ExecStart=/usr/lib/coreos/kubelet-wrapper \
+          --pod-manifest-path=/etc/kubernetes/manifests \
           --api-servers=https://${kube_fqdn} \
-          --tls-cert-file=/etc/ssl/kube/kubelet/cert.pem \
-          --tls-private-key-file=/etc/ssl/kube/kubelet/privkey.pem \
           --kubeconfig=/etc/kubernetes/kubelet/kubeconfig.yaml \
-          --cluster-dns=10.0.0.10 \
-          --cluster-domain=cluster.local \
-          --network-plugin=cni \
-          --network-plugin-dir=/etc/cni/net.d \
+          --lock-file=/var/run/kubelet/lock \
+          --exit-on-lock-contention=true \
           --node-labels=role=worker,class=${worker_class} \
-          --cloud-provider=aws \
-          --allow-privileged --v=2 --logtostderr=true
+          --allow-privileged=true
 
 write_files:
   - path: /etc/ssl/vault/ca.pem
@@ -128,3 +123,47 @@ write_files:
         -X POST -H "X-Vault-Token: $token" \
         -d '{"increment": "24h"}' \
         ${vault_address}/v1/auth/token/renew-self > /dev/null
+
+  - path: /opt/bin/kubelet-certs.sh
+    permissions: 0700
+    content: |
+      #!/bin/bash
+      set -eo pipefail
+
+      mkdir -p /var/lib/secrets
+      token="$(cat /var/lib/vault/token)"
+
+      curl ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
+        -o /var/lib/secrets/kubelet.ca -z /var/lib/secrets/kubelet.ca \
+        ${vault_address}/v1/${kube_pki_mount}/ca/pem
+
+      json=$(curl ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
+        -X POST -H "X-Vault-Token: $token" \
+        -d "{\"common_name\":\"kubelet\",\"alt_names\":\"$(hostname)\",\"ip_sans\":\"$private_ipv4\"}" \
+        ${vault_address}/v1/${kube_pki_mount}/issue/kubelet)
+
+      sed -re 's/.*"certificate":"([^"]*)".*/\1/g' \
+        -e 's/\\n/\n/g' > /var/lib/secrets/kubelet.crt <<< $json
+      sed -re 's/.*"private_key":"([^"]*)".*/\1/g' \
+        -e 's/\\n/\n/g' > /var/lib/secrets/kubelet.key <<< $json
+
+  - path: /etc/kubernetes/kubelet/kubeconfig.yaml
+    content: |
+      apiVersion: v1
+      kind: Config
+      current-context: kubelet
+      clusters:
+        - name: kubernetes
+          cluster:
+            server: https://${kube_fqdn}
+            certificate-authority: /var/lib/secrets/kubelet.ca
+      contexts:
+        - name: kubelet
+          context:
+            cluster: kubernetes
+            user: kubelet
+      users:
+        - name: kubelet
+          user:
+            client-certificate: /var/lib/secrets/kubelet.crt
+            client-key: /var/lib/secrets/kubelet.key
