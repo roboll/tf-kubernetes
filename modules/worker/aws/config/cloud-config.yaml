@@ -66,24 +66,22 @@ coreos:
         Restart=always
         RestartSec=10
 
-        ExecStarPre=/usr/bin/mkdir -p /var/lib/kubelet
+        ExecStarPre=/usr/bin/mkdir -p /var/run/kubelet
         ExecStart=/usr/bin/docker run \
-          --volume=/:/rootfs:ro \
-          --volume=/sys:/sys:ro \
-          --volume=/dev:/dev \
-          --volume=/var/run:/var/run:rw \
-          --volume=/etc/kubernetes/:/etc/kubernetes/ \
+          --volume=/:/rootfs/:ro \
+          --volume=/sys/:/sys/:ro \
+          --volume=/dev/:/dev/ \
+          --volume=/var/run/:/var/run/:rw \
           --volume=/var/lib/secrets/:/var/lib/secrets/ \
-          --volume=/var/lib/docker/:/var/lib/docker:rw \
-          --volume=/var/lib/kubelet/:/var/lib/kubelet:shared \
+          --volume=/var/lib/docker/:/var/lib/docker/:rw \
+          --volume=/var/lib/kubelet/:/var/lib/kubelet/:shared \
           --net=host \
           --pid=host \
           --privileged=true \
           ${hyperkube}:${kube_version} \
             /hyperkube kubelet \
-              --pod-manifest-path=/etc/kubernetes/manifests \
-              --kubeconfig=/etc/kubernetes/kubeconfig.yaml \
-              --require-kubeconfig \
+              --require-kubeconfig=true \
+              --kubeconfig=/var/lib/kubelet/kubeconfig.yaml \
               --lock-file=/var/run/kubelet/lock \
               --exit-on-lock-contention=true \
               --node-labels=role=worker,class=${worker_class} \
@@ -155,7 +153,7 @@ write_files:
       sed -re 's/.*"private_key":"([^"]*)".*/\1/g' \
         -e 's/\\n/\n/g' > /var/lib/secrets/kubelet.key <<< $json
 
-  - path: /etc/kubernetes/kubeconfig.yaml
+  - path: /var/lib/kubelet/kubeconfig.yaml
     content: |
       apiVersion: v1
       kind: Config

@@ -89,25 +89,25 @@ coreos:
 
         ExecStartPre=/usr/bin/docker run \
           --env-file=/etc/kubernetes/env \
-          --volume /etc/kubernetes/manifests:/etc/kubernetes/manifests \
+          --volume /etc/kubernetes/manifests/:/etc/kubernetes/manifests/ \
           quay.io/roboll/kube-bootstrap:alpha \
           /opt/bin/copy-bootstrap-manifest.sh
 
         ExecStart=/usr/bin/docker run \
-          --volume=/:/rootfs:ro \
-          --volume=/sys:/sys:ro \
-          --volume=/dev:/dev \
-          --volume=/var/run:/var/run:rw \
+          --volume=/:/rootfs/:ro \
+          --volume=/sys/:/sys/:ro \
+          --volume=/dev/:/dev/ \
+          --volume=/var/run/:/var/run/:rw \
           --volume=/etc/kubernetes/:/etc/kubernetes/ \
-          --volume=/var/lib/docker/:/var/lib/docker:rw \
-          --volume=/var/lib/kubelet/:/var/lib/kubelet:shared \
+          --volume=/var/lib/docker/:/var/lib/docker/:rw \
+          --volume=/var/lib/kubelet/:/var/lib/kubelet/:shared \
           --net=host \
           --pid=host \
           --privileged=true \
           ${hyperkube}:${kube_version} \
             /hyperkube kubelet \
               --pod-manifest-path=/etc/kubernetes/manifests \
-              --kubeconfig=/etc/kubernetes/kubeconfig.yaml \
+              --kubeconfig=/var/lib/kubelet/kubeconfig.yaml \
               --require-kubeconfig \
               --lock-file=/var/run/kubelet/lock \
               --exit-on-lock-contention=true \
@@ -172,7 +172,7 @@ write_files:
 
       VAULT_ADDR=${vault_address}
 
-  - path: /etc/kubernetes/kubeconfig.yaml
+  - path: /var/lib/kubelet/kubeconfig.yaml
     permissions: 0700
     content: |
       kind: Config
