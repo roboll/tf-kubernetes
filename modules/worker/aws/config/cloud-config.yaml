@@ -70,9 +70,12 @@ coreos:
         Environment=KUBELET_VERSION=${kube_version}
 
         Environment="RKT_OPTS=--volume secrets,kind=host,source=/var/lib/secrets \
-        --mount volume=secrets,target=/var/lib/secrets"
+        --mount volume=secrets,target=/var/lib/secrets \
+        --volume dns,kind=host,source=/etc/resolv.conf \
+        --mount volume=dns,target=/etc/resolv.conf"
 
         ExecStart=/usr/lib/coreos/kubelet-wrapper \
+          --require-kubeconfig \
           --kubeconfig=/etc/kubernetes/kubelet/kubeconfig.yaml \
           --lock-file=/var/run/kubelet/lock \
           --exit-on-lock-contention=true \
