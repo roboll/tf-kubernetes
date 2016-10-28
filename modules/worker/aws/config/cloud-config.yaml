@@ -69,11 +69,7 @@ coreos:
         Environment=KUBELET_ACI=${hyperkube}
         Environment=KUBELET_VERSION=${kube_version}
 
-        Environment="RKT_OPTS=--volume manifests,kind=host,source=/etc/kubernetes/manifests \
-        --mount volume=manifests,target=/etc/kubernetes/manifests"
-
         ExecStart=/usr/lib/coreos/kubelet-wrapper \
-          --pod-manifest-path=/etc/kubernetes/manifests \
           --api-servers=https://${kube_fqdn} \
           --kubeconfig=/etc/kubernetes/kubelet/kubeconfig.yaml \
           --lock-file=/var/run/kubelet/lock \
