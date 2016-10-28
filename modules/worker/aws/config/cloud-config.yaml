@@ -73,6 +73,7 @@ coreos:
           --volume=/dev:/dev \
           --volume=/var/run:/var/run:rw \
           --volume=/etc/kubernetes/:/etc/kubernetes/ \
+          --volume=/var/lib/secrets/:/var/lib/secrets/ \
           --volume=/var/lib/docker/:/var/lib/docker:rw \
           --volume=/var/lib/kubelet/:/var/lib/kubelet:shared \
           --net=host \
