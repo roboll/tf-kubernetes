@@ -102,8 +102,6 @@ spec:
               mountPath: /var/lib/kubelet
             - name: var-lib-secrets
               mountPath: /var/lib/secrets
-            - name: configmap-test
-              mountPath: /etc/configmap-test
       volumes:
         - name: dev
           hostPath:
@@ -132,6 +130,3 @@ spec:
         - name: vault-token
           hostPath:
             path: /var/lib/vault/token
-        - name: configmap-test
-          configMap:
-            name: kubelet-kubeconfig

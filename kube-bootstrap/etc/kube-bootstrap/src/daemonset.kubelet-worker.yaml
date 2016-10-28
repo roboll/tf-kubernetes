@@ -46,16 +46,6 @@ spec:
             - name: vault-token
               mountPath: /var/lib/vault/token
               readOnly: true
-        - name: kubeconfig
-          image: quay.io/roboll/kube-bootstrap:alpha
-          command:
-            - /opt/bin/copy-kubeconfig.sh
-            - forever
-          env:
-            - name: KUBE_FQDN
-              value: ${KUBE_FQDN}
-            - name: CERT_PATH
-              value: /var/lib/secrets/kubelet
           volumeMounts:
             - name: var-lib-kubelet
               mountPath: /etc/kubeconfig
@@ -73,8 +63,7 @@ spec:
             - --node-labels=role=worker
             - --lock-file=/var/run/kubelet/lock
             - --require-kubeconfig
-            - --kubeconfig=/etc/kubeconfig/kubeconfig.yaml
-            - --pod-manifest-path=/etc/kubernetes/manifests
+            - --kubeconfig=/var/lib/kubelet/kubeconfig.yaml
             - --allow-privileged=true
             - --cluster-dns=10.0.0.10
             - --cluster-domain=cluster.local

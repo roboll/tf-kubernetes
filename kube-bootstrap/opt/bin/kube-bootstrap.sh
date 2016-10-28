@@ -4,8 +4,9 @@ set -eo pipefail
 types=(
     "clusterrole:https://kubernetes/apis/rbac.authorization.k8s.io/v1alpha1/clusterroles"
     "clusterrolebinding:https://kubernetes/apis/rbac.authorization.k8s.io/v1alpha1/clusterrolebindings"
-    "serviceaccount:http://localhost:8080/api/v1/namespaces/kube-system/serviceaccounts"
     "configmap:http://localhost:8080/api/v1/namespaces/kube-system/configmaps"
+    "serviceaccount:http://localhost:8080/api/v1/namespaces/kube-system/serviceaccounts"
+    "deployment:http://localhost:8080/apis/extensions/v1beta1/namespaces/kube-system/deployments"
     "daemonset:http://localhost:8080/apis/extensions/v1beta1/namespaces/kube-system/daemonsets"
 )
 

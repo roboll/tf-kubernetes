@@ -66,6 +66,7 @@ coreos:
         Restart=always
         RestartSec=10
 
+        ExecStarPre=/usr/bin/mkdir -p /var/lib/kubelet
         ExecStart=/usr/bin/docker run \
           --volume=/:/rootfs:ro \
           --volume=/sys:/sys:ro \
