@@ -69,6 +69,9 @@ coreos:
         Environment=KUBELET_ACI=${hyperkube}
         Environment=KUBELET_VERSION=${kube_version}
 
+        Environment="RKT_OPTS=--volume secrets,kind=host,source=/var/lib/secrets \
+        --mount volume=secrets,target=/var/lib/secrets"
+
         ExecStart=/usr/lib/coreos/kubelet-wrapper \
           --kubeconfig=/etc/kubernetes/kubelet/kubeconfig.yaml \
           --lock-file=/var/run/kubelet/lock \
