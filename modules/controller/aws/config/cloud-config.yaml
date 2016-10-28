@@ -111,6 +111,7 @@ coreos:
           --volume=/var/run:/var/run:rw \
           --volume=/var/lib/docker/:/var/lib/docker:rw \
           --volume=/var/lib/kubelet/:/var/lib/kubelet:shared \
+          --volume=/etc/kubernetes/manifests:/etc/kubernetes/manifests \
           --net=host \
           --pid=host \
           --privileged=true \
