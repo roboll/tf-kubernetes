@@ -84,8 +84,6 @@ coreos:
         Restart=always
         RestartSec=10
 
-        Environment=KUBELET_ACI=${hyperkube}
-        Environment=KUBELET_VERSION=${kube_version}
         Environment=HYPERKUBE=${hyperkube}:${kube_version}
 
         Environment=ETCD_INITIAL_CLUSTER=${etcd_peers}
@@ -104,16 +102,24 @@ coreos:
           --mount volume=manifests,target=/etc/kubernetes/manifests \
           quay.io/roboll/kube-bootstrap:alpha --exec /opt/bin/copy-bootstrap-manifest.sh
 
-        Environment="RKT_OPTS=--volume manifests,kind=host,source=/etc/kubernetes/manifests \
-        --mount volume=manifests,target=/etc/kubernetes/manifests"
-
-        ExecStart=/usr/lib/coreos/kubelet-wrapper \
-          --pod-manifest-path=/etc/kubernetes/manifests \
-          --api-servers=http://localhost:8080 \
-          --lock-file=/var/run/kubelet/lock \
-          --exit-on-lock-contention=true \
-          --node-labels=role=controller \
-          --allow-privileged=true
+        ExecStart=/usr/bin/docker run \
+          --volume=/:/rootfs:ro \
+          --volume=/sys:/sys:ro \
+          --volume=/dev:/dev \
+          --volume=/var/run:/var/run:rw \
+          --volume=/var/lib/docker/:/var/lib/docker:rw \
+          --volume=/var/lib/kubelet/:/var/lib/kubelet:shared \
+          --net=host \
+          --pid=host \
+          --privileged=true \
+          ${hyperkube}:${kube_version} \
+            /hyperkube kubelet \
+              --pod-manifest-path=/etc/kubernetes/manifests \
+              --api-servers=http://localhost:8080 \
+              --lock-file=/var/run/kubelet/lock \
+              --exit-on-lock-contention=true \
+              --node-labels=role=controller \
+              --allow-privileged=true
 
 write_files:
   - path: /etc/ssl/vault/ca.pem
