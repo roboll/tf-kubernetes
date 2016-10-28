@@ -38,7 +38,7 @@ spec:
         - forever
       env:
         - name: KUBE_FQDN
-          value: ${KUBE_FQDN}
+          value: localhost:8080
         - name: CERT_PATH
           value: /etc/secrets/kube
       volumeMounts:
@@ -48,13 +48,13 @@ spec:
       image: ${HYPERKUBE}
       command:
         - /controller-manager
+        - --master=localhost:8080
         - --leader-elect=true
         - --cloud-provider=aws
         - --allocate-node-cidrs=true
         - --configure-cloud-routes=false
         - --cluster-cidr=10.225.0.0/16
         - --root-ca-file=/etc/secrets/kube.ca
-        - --kubeconfig=/etc/kubeconfig/kubeconfig.yaml
         - --service-account-private-key-file=/etc/secrets/svc-acct-privkey.pem
       livenessProbe:
         httpGet:

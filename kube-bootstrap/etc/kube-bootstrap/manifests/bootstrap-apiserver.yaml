@@ -41,7 +41,8 @@ spec:
       command:
         - /bin/sh
         - -c
-        - export IP=$(ip addr show eth0|awk '/inet /{print substr($2,0,index($2,"/"))}');
+        - echo "bootstrap,bootstrap,bootstrap" > /etc/kubernetes/bootstrap-auth;
+          export IP=$(ip addr show eth0|awk '/inet /{print substr($2,0,index($2,"/"))}');
           exec /apiserver
             --secure-port=443
             --cloud-provider=aws
@@ -50,6 +51,7 @@ spec:
             --enable-swagger-ui=true
             --authorization-mode=RBAC
             --authorization-rbac-super-user=bootstrap
+            --token-auth-file=/etc/kubernetes/bootstrap-auth
             --service-cluster-ip-range=10.0.0.0/16
             --external-hostname=${KUBE_FQDN}
             --etcd-servers=https://${IP}:2379

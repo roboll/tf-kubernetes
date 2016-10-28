@@ -97,9 +97,6 @@ spec:
         - name: secrets
           mountPath: /var/lib/secrets
           readOnly: true
-        - name: kubeconfig
-          mountPath: /etc/kubeconfig
-          readOnly: true
         - name: manifests
           mountPath: /etc/kubernetes/manifests
           readOnly: true

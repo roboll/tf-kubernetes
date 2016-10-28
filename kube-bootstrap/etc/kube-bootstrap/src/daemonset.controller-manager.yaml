@@ -49,7 +49,6 @@ spec:
             - --configure-cloud-routes=false
             - --cluster-cidr=10.225.0.0/16
             - --root-ca-file=/etc/secrets/kube.ca
-            - --kubeconfig=/etc/kubeconfig/kubeconfig.yaml
             - --service-account-private-key-file=/etc/secrets/svc-acct-privkey.pem
           livenessProbe:
             httpGet:
@@ -62,9 +61,6 @@ spec:
             - name: secrets
               mountPath: /etc/secrets
               readOnly: true
-            - name: kubeconfig
-              mountPath: /etc/kubeconfig
-              readOnly: true
       volumes:
         - name: secrets
           emptyDir: {}
@@ -74,5 +70,3 @@ spec:
         - name: vault-token
           hostPath:
             path: /var/lib/vault/token
-        - name: kubeconfig
-          emptyDir: {}

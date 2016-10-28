@@ -30,7 +30,7 @@ spec:
               exec /vault-sidekick
                 -logtostderr=true
                 -ca-cert=/etc/ssl/vault/ca.pem
-                -output=/etc/secrets
+                -output=/var/lib/secrets
                 -cn=pki:${KUBE_PKI_MOUNT}/issue/kubelet:common_name=kubelet,alt_names=${HOSTNAME},ip_sans=${IP},fmt=cert,file=kubelet
           env:
             - name: VAULT_ADDR
@@ -38,8 +38,8 @@ spec:
             - name: VAULT_SIDEKICK_TOKEN_FILE
               value: /var/lib/vault/token
           volumeMounts:
-            - name: secrets
-              mountPath: /etc/secrets
+            - name: var-lib-secrets
+              mountPath: /var/lib/secrets
             - name: vault-ca
               mountPath: /etc/ssl/vault/ca.pem
               readOnly: true
@@ -55,72 +55,56 @@ spec:
             - name: KUBE_FQDN
               value: ${KUBE_FQDN}
             - name: CERT_PATH
-              value: /etc/ssl/kubelet
+              value: /var/lib/secrets/kubelet
           volumeMounts:
-            - name: kubeconfig
+            - name: var-lib-kubelet
               mountPath: /etc/kubeconfig
         - name: kubelet
           image: ${HYPERKUBE}
           command:
-            - /kubelet
-            - --cloud-provider=''
+            - /nsenter
+            - --target=1
+            - --mount
+            - --wd=.
+            - --
+            - ./hyperkube
+            - kubelet
+            - --cloud-provider=
             - --node-labels=role=controller
             - --register-schedulable=false
             - --lock-file=/var/run/kubelet/lock
-            - --pod-manifest-path=/etc/kubernetes/manifests
-            - --kubeconfig=/etc/kubeconfig/kubeconfig.yaml
             - --require-kubeconfig
+            - --kubeconfig=/var/lib/kubelet/kubeconfig.yaml
+            - --pod-manifest-path=/etc/kubernetes/manifests
             - --allow-privileged=true
             - --cluster-dns=10.0.0.10
             - --cluster-domain=cluster.local
             - --network-plugin=cni
             - --network-plugin-dir=/etc/cni/net.d
-            - --tls-cert-file=/etc/secrets/kubelet.crt
-            - --tls-private-key-file=/etc/secrets/kubelet.key
+            - --tls-cert-file=/var/lib/secrets/kubelet.crt
+            - --tls-private-key-file=/var/lib/secrets/kubelet.key
             - --hairpin-mode=hairpin-veth
-            - --containerized=true
-            - --logtostderr=true
           securityContext:
             privileged: true
           volumeMounts:
-            - name: secrets
-              mountPath: /etc/secrets
-              readOnly: true
-            - name: kubeconfig
-              mountPath: /etc/kubeconfig
-              readOnly: true
-            - name: rootfs
-              mountPath: /rootfs
             - name: dev
               mountPath: /dev
             - name: run
               mountPath: /run
+            - name: var-run
+              mountPath: /var/run
             - name: sys
               mountPath: /sys
               readOnly: true
-            - name: var-run
-              mountPath: /var/run
             - name: var-lib-docker
               mountPath: /var/lib/docker
             - name: var-lib-kubelet
               mountPath: /var/lib/kubelet
-            - name: manifests
-              mountPath: /etc/kubernetes/manifests
-              readOnly: true
+            - name: var-lib-secrets
+              mountPath: /var/lib/secrets
+            - name: configmap-test
+              mountPath: /etc/configmap-test
       volumes:
-        - name: secrets
-          emptyDir: {}
-        - name: vault-ca
-          hostPath:
-            path: /etc/ssl/vault/ca.pem
-        - name: vault-token
-          hostPath:
-            path: /var/lib/vault/token
-        - name: kubeconfig
-          emptyDir: {}
-        - name: rootfs
-          hostPath:
-            path: /
         - name: dev
           hostPath:
             path: /dev
@@ -139,6 +123,15 @@ spec:
         - name: var-lib-kubelet
           hostPath:
             path: /var/lib/kubelet
-        - name: manifests
+        - name: var-lib-secrets
           hostPath:
-            path: /etc/kubernetes/manifests
+            path: /var/lib/secrets
+        - name: vault-ca
+          hostPath:
+            path: /etc/ssl/vault/ca.pem
+        - name: vault-token
+          hostPath:
+            path: /var/lib/vault/token
+        - name: configmap-test
+          configMap:
+            name: kubelet-kubeconfig
