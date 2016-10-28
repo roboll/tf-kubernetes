@@ -66,21 +66,26 @@ coreos:
         Restart=always
         RestartSec=10
 
-        Environment=KUBELET_ACI=${hyperkube}
-        Environment=KUBELET_VERSION=${kube_version}
-
-        Environment="RKT_OPTS=--volume secrets,kind=host,source=/var/lib/secrets \
-        --mount volume=secrets,target=/var/lib/secrets \
-        --volume dns,kind=host,source=/etc/resolv.conf \
-        --mount volume=dns,target=/etc/resolv.conf"
-
-        ExecStart=/usr/lib/coreos/kubelet-wrapper \
-          --require-kubeconfig \
-          --kubeconfig=/etc/kubernetes/kubelet/kubeconfig.yaml \
-          --lock-file=/var/run/kubelet/lock \
-          --exit-on-lock-contention=true \
-          --node-labels=role=worker,class=${worker_class} \
-          --allow-privileged=true
+        ExecStart=/usr/bin/docker run \
+          --volume=/:/rootfs:ro \
+          --volume=/sys:/sys:ro \
+          --volume=/dev:/dev \
+          --volume=/var/run:/var/run:rw \
+          --volume=/etc/kubernetes/:/etc/kubernetes/ \
+          --volume=/var/lib/docker/:/var/lib/docker:rw \
+          --volume=/var/lib/kubelet/:/var/lib/kubelet:shared \
+          --net=host \
+          --pid=host \
+          --privileged=true \
+          ${hyperkube}:${kube_version} \
+            /hyperkube kubelet \
+              --pod-manifest-path=/etc/kubernetes/manifests \
+              --kubeconfig=/etc/kubernetes/kubeconfig.yaml \
+              --require-kubeconfig \
+              --lock-file=/var/run/kubelet/lock \
+              --exit-on-lock-contention=true \
+              --node-labels=role=worker,class=${worker_class} \
+              --allow-privileged=true
 
 write_files:
   - path: /etc/ssl/vault/ca.pem
@@ -148,7 +153,7 @@ write_files:
       sed -re 's/.*"private_key":"([^"]*)".*/\1/g' \
         -e 's/\\n/\n/g' > /var/lib/secrets/kubelet.key <<< $json
 
-  - path: /etc/kubernetes/kubelet/kubeconfig.yaml
+  - path: /etc/kubernetes/kubeconfig.yaml
     content: |
       apiVersion: v1
       kind: Config
