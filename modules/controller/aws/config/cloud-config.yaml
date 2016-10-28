@@ -92,11 +92,13 @@ coreos:
         Environment=SVC_ACCT_PUBKEY=${service_account_pubkey}
         Environment=SVC_ACCT_PRIVKEY=${service_account_privkey}
         Environment=KUBE_PKI_MOUNT=${kube_pki_mount}
-        Environment=KUBE_FQDN=${kube_fqdn}
 
         Environment=VAULT_ADDR=${vault_address}
+        Environment=KUBE_FQDN=${kube_fqdn}
 
+        ExecStartPre=/usr/bin/mkdir -p /var/run/kubelet
         ExecStartPre=/usr/bin/mkdir -p /etc/kubernetes/manifests
+
         ExecStartPre=/usr/bin/rkt run --trust-keys-from-https --inherit-env \
           --volume manifests,kind=host,source=/etc/kubernetes/manifests \
           --mount volume=manifests,target=/etc/kubernetes/manifests \
