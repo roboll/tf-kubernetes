@@ -107,7 +107,7 @@ coreos:
           ${hyperkube}:${kube_version} \
             /hyperkube kubelet \
               --pod-manifest-path=/etc/kubernetes/manifests \
-              --kubeconfig=/var/lib/kubelet/kubeconfig.yaml \
+              --kubeconfig=/var/lib/kubelet/kubeconfig-local.yaml \
               --require-kubeconfig \
               --lock-file=/var/run/kubelet/lock \
               --exit-on-lock-contention=true \
@@ -172,7 +172,7 @@ write_files:
 
       VAULT_ADDR=${vault_address}
 
-  - path: /var/lib/kubelet/kubeconfig.yaml
+  - path: /var/lib/kubelet/kubeconfig-local.yaml
     permissions: 0700
     content: |
       kind: Config
