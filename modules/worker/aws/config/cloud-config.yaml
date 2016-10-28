@@ -70,7 +70,6 @@ coreos:
         Environment=KUBELET_VERSION=${kube_version}
 
         ExecStart=/usr/lib/coreos/kubelet-wrapper \
-          --api-servers=https://${kube_fqdn} \
           --kubeconfig=/etc/kubernetes/kubelet/kubeconfig.yaml \
           --lock-file=/var/run/kubelet/lock \
           --exit-on-lock-contention=true \
