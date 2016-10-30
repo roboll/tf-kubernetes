@@ -1,0 +1,38 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: dashboard
+  namespace: kube-system
+  labels:
+    app: kubernetes
+    component: dashboard
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: kubernetes
+        component: dashboard
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ''
+        scheduler.alpha.kubernetes.io/tolerations: '[{"key":"CriticalAddonsOnly", "operator":"Exists"}]'
+    spec:
+      containers:
+        - name: dashboard
+          image: gcr.io/google_containers/kubernetes-dashboard-amd64:v1.4.1
+          resources:
+            limits:
+              cpu: 100m
+              memory: 50Mi
+            requests:
+              cpu: 100m
+              memory: 50Mi
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 9090
+            initialDelaySeconds: 30
+            timeoutSeconds: 30
+          ports:
+            - containerPort: 9090
+              protocol: TCP

@@ -158,20 +158,14 @@ write_files:
         -d '{"increment": "24h"}' \
         ${vault_address}/v1/auth/token/renew-self > /dev/null
 
-  - path: /etc/kubernetes/env
+  - path: /etc/kube-bootstrap/env
     permissions: 0600
     content: |
-      HYPERKUBE=${hyperkube}:${kube_version}
-
-      ETCD_INITIAL_CLUSTER=${etcd_peers}
+      VAULT_ADDR=${vault_address}
       ETCD_PKI_MOUNT=${etcd_pki_mount}
-
+      KUBE_PKI_MOUNT=${kube_pki_mount}
       SVC_ACCT_PUBKEY=${service_account_pubkey}
       SVC_ACCT_PRIVKEY=${service_account_privkey}
-      KUBE_PKI_MOUNT=${kube_pki_mount}
-      KUBE_FQDN=${kube_fqdn}
-
-      VAULT_ADDR=${vault_address}
 
   - path: /var/lib/kubelet/kubeconfig-local.yaml
     permissions: 0700

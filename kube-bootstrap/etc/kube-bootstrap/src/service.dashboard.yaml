@@ -1,0 +1,16 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: kubernetes-dashboard
+  namespace: kube-system
+  labels:
+    app: kubernetes
+    component: dashboard
+    kubernetes.io/cluster-service: "true"
+spec:
+  selector:
+    app: kubernetes
+    component: dashboard
+  ports:
+    - port: 80
+      targetPort: 9090

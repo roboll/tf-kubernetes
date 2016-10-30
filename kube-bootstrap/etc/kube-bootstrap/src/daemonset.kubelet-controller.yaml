@@ -62,13 +62,7 @@ spec:
         - name: kubelet
           image: ${HYPERKUBE}
           command:
-            - /nsenter
-            - --target=1
-            - --mount
-            - --wd=.
-            - --
-            - ./hyperkube
-            - kubelet
+            - /kubelet
             - --cloud-provider=
             - --node-labels=role=controller
             - --register-schedulable=false
@@ -84,9 +78,12 @@ spec:
             - --tls-cert-file=/var/lib/secrets/kubelet.crt
             - --tls-private-key-file=/var/lib/secrets/kubelet.key
             - --hairpin-mode=hairpin-veth
+            - --containerized-true
           securityContext:
             privileged: true
           volumeMounts:
+            - name: rootfs
+              mountPath: /rootfs
             - name: dev
               mountPath: /dev
             - name: run
@@ -102,7 +99,14 @@ spec:
               mountPath: /var/lib/kubelet
             - name: var-lib-secrets
               mountPath: /var/lib/secrets
+            - name: etc-cni
+              mountPath: /etc/cni/net.d
+            - name: manifests
+              mountPath: /etc/kubernetes/manifests
       volumes:
+        - name: rootfs
+          hostPath:
+            path: /
         - name: dev
           hostPath:
             path: /dev
@@ -124,6 +128,12 @@ spec:
         - name: var-lib-secrets
           hostPath:
             path: /var/lib/secrets
+        - name: etc-cni
+          hostPath:
+            path: /etc/cni/net.d
+        - name: manifests
+          hostPath:
+            path: /etc/kubernetes/manifests
         - name: vault-ca
           hostPath:
             path: /etc/ssl/vault/ca.pem

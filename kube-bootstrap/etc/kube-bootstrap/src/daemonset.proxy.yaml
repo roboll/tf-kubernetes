@@ -24,7 +24,7 @@ spec:
             - /bin/sh
             - -c
             - sed /etc/kubeconfig/kubeconfig.yaml -e s,{{TOKEN}},$(cat /var/run/secrets/kubernetes.io/serviceaccount/token),g > /kubeconfig.yaml;
-              exec /hyperkube proxy --kubeconfig=/kubeconfig.yaml --proxy-mode=iptables --logtostderr
+              exec /hyperkube proxy --kubeconfig=/kubeconfig.yaml --proxy-mode=iptables
           volumeMounts:
             - name: kubeconfig
               mountPath: /etc/kubeconfig

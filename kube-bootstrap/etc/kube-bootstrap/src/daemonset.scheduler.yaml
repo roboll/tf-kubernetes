@@ -1,0 +1,32 @@
+kind: DaemonSet
+apiVersion: extensions/v1beta1
+metadata:
+  name: scheduler
+  namespace: kube-system
+  labels:
+    app: kubernetes
+    component: scheduler
+spec:
+  template:
+    metadata:
+      labels:
+        app: kubernetes
+        component: scheduler
+    spec:
+      nodeSelector:
+        role: controller
+      hostNetwork: true
+      containers:
+        - name: scheduler
+          image: ${HYPERKUBE}
+          serviceAccount: scheduler
+          command:
+            - /scheduler
+            - --leader-elect=true
+          livenessProbe:
+            httpGet:
+              host: 127.0.0.1
+              path: /healthz
+              port: 10251
+            initialDelaySeconds: 15
+            timeoutSeconds: 1
