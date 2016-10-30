@@ -164,11 +164,11 @@ write_files:
   - path: /etc/kube-bootstrap/env
     permissions: 0600
     content: |
-      VAULT_ADDR=${vault_address}
-      ETCD_PKI_MOUNT=${etcd_pki_mount}
-      KUBE_PKI_MOUNT=${kube_pki_mount}
-      SVC_ACCT_PUBKEY=${service_account_pubkey}
-      SVC_ACCT_PRIVKEY=${service_account_privkey}
+      export VAULT_ADDR=${vault_address}
+      export ETCD_PKI_MOUNT=${etcd_pki_mount}
+      export KUBE_PKI_MOUNT=${kube_pki_mount}
+      export SVC_ACCT_PUBKEY=${service_account_pubkey}
+      export SVC_ACCT_PRIVKEY=${service_account_privkey}
 
   - path: /var/lib/kubelet/kubeconfig-local.yaml
     permissions: 0700
