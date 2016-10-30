@@ -109,6 +109,7 @@ coreos:
               --pod-manifest-path=/etc/kubernetes/manifests \
               --kubeconfig=/var/lib/kubelet/kubeconfig-local.yaml \
               --require-kubeconfig \
+              --register-schedulable=false \
               --lock-file=/var/run/kubelet/lock \
               --exit-on-lock-contention=true \
               --node-labels=role=controller \
