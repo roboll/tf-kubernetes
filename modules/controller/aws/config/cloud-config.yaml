@@ -91,6 +91,7 @@ coreos:
         Environment=HYPERKUBE=${hyperkube}:${kube_version}
         Environment=ETCD_INITIAL_CLUSTER=${etcd_peers}
         ExecStartPre=/usr/bin/docker run \
+          -e KUBE_FQDN -e HYPERKUBE -e ETCD_INITIAL_CLUSTER \
           --volume /etc/kubernetes/manifests/:/etc/kubernetes/manifests/ \
           quay.io/roboll/kube-bootstrap:alpha \
           /opt/bin/copy-bootstrap-manifest.sh
