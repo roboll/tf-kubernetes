@@ -87,8 +87,10 @@ coreos:
         ExecStartPre=/usr/bin/mkdir -p /var/run/kubelet
         ExecStartPre=/usr/bin/mkdir -p /etc/kubernetes/manifests
 
+        Environment=KUBE_FQDN=${kube_fqdn}
+        Environment=HYPERKUBE=${hyperkube}:${kube_version}
+        Environment=ETCD_INITIAL_CLUSTER=${etcd_peers}
         ExecStartPre=/usr/bin/docker run \
-          --env-file=/etc/kubernetes/env \
           --volume /etc/kubernetes/manifests/:/etc/kubernetes/manifests/ \
           quay.io/roboll/kube-bootstrap:alpha \
           /opt/bin/copy-bootstrap-manifest.sh
