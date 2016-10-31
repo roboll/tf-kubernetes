@@ -6,7 +6,7 @@ resource vaultx_secret service_account_pubkey {
     path = "secret/kube-${var.env}/service_account/pubkey"
 
     data {
-        public_key = "${tls_private_key.service_account_key.public_key_pem}"
+        pubkey.pem = "${tls_private_key.service_account_key.public_key_pem}"
     }
 }
 
@@ -14,7 +14,7 @@ resource vaultx_secret service_account_privkey {
     path = "secret/kube-${var.env}/service_account/privkey"
 
     data {
-        private_key = "${tls_private_key.service_account_key.private_key_pem}"
+        privkey.pem = "${tls_private_key.service_account_key.private_key_pem}"
     }
 }
 
