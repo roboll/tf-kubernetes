@@ -29,9 +29,9 @@ spec:
               export HOSTNAME=$(hostname -f);
               exec /vault-sidekick
                 -logtostderr=true
-                -ca-cert=/etc/ssl/vault/ca.pem
                 -output=/var/lib/secrets
-                -cn=pki:${KUBE_PKI_MOUNT}/issue/kubelet:common_name=kubelet,alt_names=${HOSTNAME},ip_sans=${IP},fmt=cert,file=kubelet
+                -ca-cert=/etc/ssl/vault/ca.pem
+                -cn=pki:${KUBE_PKI_MOUNT}/issue/kubelet:common_name=kubelet,alt_names=${HOSTNAME},ip_sans=${IP},file=kubelet,fmt=cert
           env:
             - name: VAULT_ADDR
               value: ${VAULT_ADDR}

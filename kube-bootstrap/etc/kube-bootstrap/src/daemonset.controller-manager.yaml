@@ -43,6 +43,7 @@ spec:
           image: ${HYPERKUBE}
           command:
             - /controller-manager
+            - --master=localhost:8080
             - --leader-elect=true
             - --cloud-provider=aws
             - --allocate-node-cidrs=true

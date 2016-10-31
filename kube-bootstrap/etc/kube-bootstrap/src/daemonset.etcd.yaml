@@ -47,15 +47,13 @@ spec:
           command:
             - /bin/sh
             - -c
-            - export IP=$(ifconfig eth0|awk '/inet addr/{print substr($2,6)}');
-              export HOSTNAME=$(hostname -s);
-              exec /usr/local/bin/etcd
-                --name=${HOSTNAME}
-                --advertise-client-urls=https://${IP}:2379
-                --initial-advertise-peer-urls=https://${IP}:2380
+            - exec /usr/local/bin/etcd
+                --name=$(hostname -s)
+                --advertise-client-urls=https://$(hostname -f):2379
+                --initial-advertise-peer-urls=https://$(hostname -f):2380
           env:
             - name: ETCD_INITIAL_CLUSTER
-              value: ${ETCD_INITIAL_CLUSTER}
+              value: ${ETCD_PEERS}
             - name: ETCD_DATA_DIR
               value: /var/lib/etcd/data
             - name: ETCD_INITIAL_CLUSTER_STATE

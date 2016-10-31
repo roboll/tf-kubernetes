@@ -29,9 +29,9 @@ spec:
               export HOSTNAME=$(hostname -f);
               exec /vault-sidekick
                 -logtostderr=true
-                -ca-cert=/etc/ssl/vault/ca.pem
                 -output=/var/lib/secrets
-                -cn=pki:${KUBE_PKI_MOUNT}/issue/kubelet:common_name=kubelet,alt_names=${HOSTNAME},ip_sans=${IP},fmt=cert,file=kubelet
+                -ca-cert=/etc/ssl/vault/ca.pem
+                -cn=pki:${KUBE_PKI_MOUNT}/issue/kubelet:common_name=kubelet,alt_names=${HOSTNAME},ip_sans=${IP},file=kubelet,fmt=cert
           env:
             - name: VAULT_ADDR
               value: ${VAULT_ADDR}
@@ -46,19 +46,6 @@ spec:
             - name: vault-token
               mountPath: /var/lib/vault/token
               readOnly: true
-        - name: kubeconfig
-          image: quay.io/roboll/kube-bootstrap:alpha
-          command:
-            - /opt/bin/copy-kubeconfig.sh
-            - forever
-          env:
-            - name: KUBE_FQDN
-              value: ${KUBE_FQDN}
-            - name: CERT_PATH
-              value: /var/lib/secrets/kubelet
-          volumeMounts:
-            - name: var-lib-kubelet
-              mountPath: /etc/kubeconfig
         - name: kubelet
           image: ${HYPERKUBE}
           command:
@@ -68,7 +55,7 @@ spec:
             - --register-schedulable=false
             - --lock-file=/var/run/kubelet/lock
             - --require-kubeconfig
-            - --kubeconfig=/var/lib/kubelet/kubeconfig.yaml
+            - --kubeconfig=/var/lib/kubelet/kubeconfig-local.yaml
             - --pod-manifest-path=/etc/kubernetes/manifests
             - --allow-privileged=true
             - --cluster-dns=10.0.0.10
@@ -78,7 +65,7 @@ spec:
             - --tls-cert-file=/var/lib/secrets/kubelet.crt
             - --tls-private-key-file=/var/lib/secrets/kubelet.key
             - --hairpin-mode=hairpin-veth
-            - --containerized-true
+            - --containerized=true
           securityContext:
             privileged: true
           volumeMounts:

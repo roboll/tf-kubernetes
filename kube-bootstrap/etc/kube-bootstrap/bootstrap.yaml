@@ -19,17 +19,19 @@ spec:
           value: ${KUBE_FQDN}
         - name: HYPERKUBE
           value: ${HYPERKUBE}
-        - name: ETCD_INITIAL_CLUSTER
-          value: ${ETCD_INITIAL_CLUSTER}
+        - name: ETCD_NODES
+          value: ${ETCD_NODES}
+        - name: ETCD_PEERS
+          value: ${ETCD_PEERS}
       volumeMounts:
+        - name: env
+          mountPath: /etc/kube-bootstrap/env
         - name: manifests
           mountPath: /etc/kubernetes/manifests
-        - name: env-vars
-          mountPath: /etc/kube-bootstrap/env
   volumes:
+    - name: env
+      hostPath:
+        path: /etc/kube-bootstrap/env
     - name: manifests
       hostPath:
         path: /etc/kubernetes/manifests
-    - name: env-vars
-      hostPath:
-        path: /etc/kubernetes/env

@@ -11,15 +11,11 @@ spec:
   containers:
     - name: vault-sidekick
       image: quay.io/roboll/vault-sidekick:v0.0.9.12
-      command:
-        - /bin/sh
-        - -c
-        - export IP=$(ifconfig eth0|awk '/inet addr/{print substr($2,6)}');
-          exec /vault-sidekick
-            -logtostderr=true
-            -ca-cert=/etc/ssl/vault/ca.pem
-            -output=/etc/secrets
-            -cn=pki:${ETCD_PKI_MOUNT}/issue/etcd:common_name=etcd,ip_sans=${IP},file=etcd,fmt=cert
+      args:
+        - -logtostderr=true
+        - -output=/etc/secrets
+        - -ca-cert=/etc/ssl/vault/ca.pem
+        - -cn=pki:${ETCD_PKI_MOUNT}/issue/etcd:common_name=etcd,alt_names=localhost,file=etcd,fmt=cert
       env:
         - name: VAULT_ADDR
           value: ${VAULT_ADDR}
@@ -39,15 +35,13 @@ spec:
       command:
         - /bin/sh
         - -c
-        - export IP=$(ifconfig eth0|awk '/inet addr/{print substr($2,6)}');
-          export HOSTNAME=$(hostname -s);
-          exec /usr/local/bin/etcd
-            --name=${HOSTNAME}
-            --advertise-client-urls=https://${IP}:2379
-            --initial-advertise-peer-urls=https://${IP}:2380
+        - exec /usr/local/bin/etcd
+            --name=$(hostname -s)
+            --advertise-client-urls=https://$(hostname -f):2379
+            --initial-advertise-peer-urls=https://$(hostname -f):2380
       env:
         - name: ETCD_INITIAL_CLUSTER
-          value: ${ETCD_INITIAL_CLUSTER}
+          value: ${ETCD_PEERS}
         - name: ETCD_DATA_DIR
           value: /var/lib/etcd/data
         - name: ETCD_INITIAL_CLUSTER_STATE
@@ -72,13 +66,6 @@ spec:
           value: /etc/secrets/etcd.ca
         - name: ETCD_PEER_CLIENT_CERT_AUTH
           value: "true"
-      ports:
-        - containerPort: 2379
-          hostPort: 2379
-          name: client
-        - containerPort: 2380
-          hostPort: 2380
-          name: server
       volumeMounts:
         - name: data
           mountPath: /var/lib/etcd
