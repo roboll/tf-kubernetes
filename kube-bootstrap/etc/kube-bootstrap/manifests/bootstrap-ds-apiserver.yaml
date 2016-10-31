@@ -46,7 +46,7 @@ spec:
             --token-auth-file=/etc/kubernetes/bootstrap-auth
             --service-cluster-ip-range=10.0.0.0/16
             --external-hostname=${KUBE_FQDN}
-            --etcd-servers=${ETCD_NODES}
+            --etcd-servers=localhost:2379
             --etcd-cafile=/etc/secrets/etcd.ca
             --etcd-certfile=/etc/secrets/etcd.crt
             --etcd-keyfile=/etc/secrets/etcd.key

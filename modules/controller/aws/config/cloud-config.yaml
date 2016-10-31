@@ -88,8 +88,8 @@ coreos:
         ExecStartPre=/usr/bin/mkdir -p /etc/kubernetes/manifests
 
         ExecStartPre=/usr/bin/docker run \
-          -e KUBE_FQDN=${kube_fqdn} \
           -e HYPERKUBE=${hyperkube}:${kube_version}  \
+          -e KUBE_FQDN=${kube_fqdn} \
           -e ETCD_PEERS=${etcd_peers} \
           -e ETCD_NODES=${etcd_nodes} \
           --volume /etc/kubernetes/manifests/:/etc/kubernetes/manifests/ \

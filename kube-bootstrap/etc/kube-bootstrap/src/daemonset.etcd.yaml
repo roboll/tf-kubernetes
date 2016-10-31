@@ -27,7 +27,7 @@ spec:
                 -logtostderr=true
                 -ca-cert=/etc/ssl/vault/ca.pem
                 -output=/etc/secrets
-                -cn=pki:${ETCD_PKI_MOUNT}/issue/etcd:common_name=etcd,ip_sans=${IP},file=etcd,fmt=cert
+                -cn=pki:${ETCD_PKI_MOUNT}/issue/etcd:common_name=etcd,alt_names=$(hostname -f),ip_sans=${IP},file=etcd,fmt=cert
           env:
             - name: VAULT_ADDR
               value: ${VAULT_ADDR}
