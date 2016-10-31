@@ -176,6 +176,7 @@ resource coreos_cloudconfig cloud_config {
         domain = "${var.domain}"
         instance_name = "${element(null_resource.instances.*.triggers.name, count.index)}"
         etcd_peers = "${join(",",formatlist("%s=https://%s:2380", null_resource.instances.*.triggers.name, null_resource.instances.*.triggers.hostname))}"
+        etcd_nodes = "${join(",",formatlist("https://%s:2379", null_resource.instances.*.triggers.hostname))}"
 
         kube_fqdn = "kube.${var.domain}"
         kube_version = "${var.kube_version}"
