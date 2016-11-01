@@ -87,16 +87,20 @@ coreos:
         ExecStartPre=/usr/bin/mkdir -p /var/run/kubelet
         ExecStartPre=/usr/bin/mkdir -p /etc/kubernetes/manifests
 
+        ExecStartPre=/opt/bin/kube-ca.pem
         ExecStartPre=/usr/bin/docker run \
           -e HYPERKUBE=${hyperkube}:${kube_version}  \
           -e KUBE_FQDN=${kube_fqdn} \
+          -e KUBE_CA=/etc/ssl/kube/ca.pem \
           -e ETCD_PEERS=${etcd_peers} \
           -e ETCD_NODES=${etcd_nodes} \
           --volume /etc/kubernetes/manifests/:/etc/kubernetes/manifests/ \
-          quay.io/roboll/kube-bootstrap:alpha \
-          /opt/bin/copy-bootstrap-manifest.sh
+          quay.io/roboll/kube-bootstrap:alpha /opt/bin/copy-manifest.sh
 
         ExecStart=/usr/bin/docker run \
+          --net=host \
+          --pid=host \
+          --privileged=true \
           --volume=/:/rootfs/:ro \
           --volume=/sys/:/sys/:ro \
           --volume=/dev/:/dev/ \
@@ -104,11 +108,8 @@ coreos:
           --volume=/etc/kubernetes/:/etc/kubernetes/ \
           --volume=/var/lib/docker/:/var/lib/docker/:rw \
           --volume=/var/lib/kubelet/:/var/lib/kubelet/:shared \
-          --net=host \
-          --pid=host \
-          --privileged=true \
           ${hyperkube}:${kube_version} \
-            /hyperkube kubelet \
+            /kubelet \
               --pod-manifest-path=/etc/kubernetes/manifests \
               --kubeconfig=/var/lib/kubelet/kubeconfig-local.yaml \
               --require-kubeconfig \
@@ -161,12 +162,24 @@ write_files:
         -d '{"increment": "24h"}' \
         ${vault_address}/v1/auth/token/renew-self > /dev/null
 
+  - path: /opt/bin/kube-ca.sh
+    permissions: 0700
+    content: |
+      #! /bin/bash
+      set -eo pipefail
+
+      mkdir -p /etc/ssl/kube
+      curl -sSf --ca-file /etc/ssl/vault/ca.pem \
+        -z /etc/ssl/kube/ca.pem \
+        -o /etc/ssl/kube/ca.pem \
+        ${vault_address}/${kube_pki_mount}/ca/pem
+
   - path: /etc/kube-bootstrap/env
     permissions: 0600
     content: |
       export VAULT_ADDR=${vault_address}
-      export ETCD_PKI_MOUNT=${etcd_pki_mount}
-      export KUBE_PKI_MOUNT=${kube_pki_mount}
+      export ETCD_VAULT_PKI_MOUNT=${etcd_pki_mount}
+      export KUBE_VAULT_PKI_MOUNT=${kube_pki_mount}
       export SVC_ACCT_PUBKEY=${service_account_pubkey}
       export SVC_ACCT_PRIVKEY=${service_account_privkey}
 
