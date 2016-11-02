@@ -9,49 +9,28 @@ metadata:
 spec:
   hostNetwork: true
   containers:
-    - name: vault-sidekick
-      image: quay.io/roboll/vault-sidekick:v0.0.9.12
-      args:
-        - -logtostderr=true
-        - -output=/etc/secrets
-        - -ca-cert=/etc/ssl/vault/ca.pem
-        - -cn=secret:${SVC_ACCT_PRIVKEY}:file=svc-acct-privkey.pem,fmt=txt
-      env:
-        - name: VAULT_ADDR
-          value: ${VAULT_ADDR}
-        - name: VAULT_SIDEKICK_TOKEN_FILE
-          value: /var/lib/vault/token
-      volumeMounts:
-        - name: secrets
-          mountPath: /etc/secrets
-        - name: vault-ca
-          mountPath: /etc/ssl/vault/ca.pem
-          readOnly: true
-        - name: vault-token
-          mountPath: /var/lib/vault/token
-          readOnly: true
     - name: controller-manager
       image: ${HYPERKUBE}
       command:
         - /controller-manager
-        - --master=localhost:8080
+        - --master=http://localhost:8080
         - --leader-elect=true
         - --allocate-node-cidrs=true
         - --configure-cloud-routes=false
         - --cluster-cidr=10.225.0.0/16
-        - --service-account-private-key-file=/etc/secrets/svc-acct-privkey.pem
+        - --root-ca-file=/etc/secrets/kube-ca/ca.pem
+        - --service-account-private-key-file=/etc/secrets/svc-acct/privkey.pem
       volumeMounts:
-        - name: secrets
-          mountPath: /etc/secrets
+        - name: kube-ca
+          mountPath: /etc/secrets/kube-ca
+          readOnly: true
+        - name: svc-acct-privkey
+          mountPath: /etc/secrets/svc-acct
+          readOnly: true
   volumes:
+    - name: kube-ca
+      secret:
+        secretName: kube-ca
     - name: svc-acct-privkey
       secret:
         secretName: svc-acct-privkey
-    - name: secrets
-      emptyDir: {}
-    - name: vault-ca
-      hostPath:
-        path: /etc/ssl/vault/ca.pem
-    - name: vault-token
-      hostPath:
-        path: /var/lib/vault/token

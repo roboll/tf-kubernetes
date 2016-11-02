@@ -13,12 +13,14 @@ spec:
       image: quay.io/roboll/kube-bootstrap:alpha
       imagePullPolicy: Always
       command:
-        - /opt/bin/kube-bootstrap.sh
+        - /opt/bin/bootstrap.sh
       env:
-        - name: KUBE_FQDN
-          value: ${KUBE_FQDN}
         - name: HYPERKUBE
           value: ${HYPERKUBE}
+        - name: KUBE_FQDN
+          value: ${KUBE_FQDN}
+        - name: KUBE_CA
+          value: /etc/kubernetes/ca.pem
         - name: ETCD_NODES
           value: ${ETCD_NODES}
         - name: ETCD_PEERS
@@ -26,12 +28,20 @@ spec:
       volumeMounts:
         - name: env
           mountPath: /etc/kube-bootstrap/env
+          readOnly: true
+        - name: kube-ca
+          mountPath: /etc/kubernetes/ca.pem
+          readOnly: true
         - name: manifests
           mountPath: /etc/kubernetes/manifests
+          readOnly: true
   volumes:
     - name: env
       hostPath:
         path: /etc/kube-bootstrap/env
+    - name: kube-ca
+      hostPath:
+        path: ${KUBE_CA}
     - name: manifests
       hostPath:
         path: /etc/kubernetes/manifests

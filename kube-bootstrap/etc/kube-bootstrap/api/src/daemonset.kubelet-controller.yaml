@@ -31,7 +31,7 @@ spec:
                 -logtostderr=true
                 -output=/var/lib/secrets
                 -ca-cert=/etc/ssl/vault/ca.pem
-                -cn=pki:${KUBE_PKI_MOUNT}/issue/kubelet:common_name=kubelet,alt_names=${HOSTNAME},ip_sans=${IP},file=kubelet,fmt=cert
+                -cn=pki:${KUBE_VAULT_PKI_MOUNT}/issue/kubelet:common_name=kubelet,alt_names=${HOSTNAME},ip_sans=${IP},file=kubelet,fmt=cert
           env:
             - name: VAULT_ADDR
               value: ${VAULT_ADDR}
@@ -55,7 +55,7 @@ spec:
             - --register-schedulable=false
             - --lock-file=/var/run/kubelet/lock
             - --require-kubeconfig
-            - --kubeconfig=/var/lib/kubelet/kubeconfig-local.yaml
+            - --kubeconfig=/var/lib/kubelet/kubeconfig
             - --pod-manifest-path=/etc/kubernetes/manifests
             - --allow-privileged=true
             - --cluster-dns=10.0.0.10

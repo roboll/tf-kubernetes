@@ -6,8 +6,8 @@ if [ ! -x $(which yaml2json) ]; then
 fi
 
 dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-src=$dir/etc/kube-bootstrap/src
-dest=$dir/etc/kube-bootstrap/api-objects
+src=$dir/etc/kube-bootstrap/api/src
+dest=$dir/etc/kube-bootstrap/api/objects
 
 rm -rf $dest
 mkdir -p $dest

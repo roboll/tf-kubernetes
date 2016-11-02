@@ -13,9 +13,9 @@ spec:
       image: quay.io/roboll/vault-sidekick:v0.0.9.12
       args:
         - -logtostderr=true
-        - -output=/etc/secrets
+        - -output=/etc/secrets/sidekick
         - -ca-cert=/etc/ssl/vault/ca.pem
-        - -cn=pki:${ETCD_PKI_MOUNT}/issue/apiserver:common_name=controller,file=etcd,fmt=cert
+        - -cn=pki:${ETCD_VAULT_PKI_MOUNT}/issue/apiserver:common_name=controller,file=etcd,fmt=cert
       env:
         - name: VAULT_ADDR
           value: ${VAULT_ADDR}
@@ -23,7 +23,7 @@ spec:
           value: /var/lib/vault/token
       volumeMounts:
         - name: secrets
-          mountPath: /etc/secrets
+          mountPath: /etc/secrets/sidekick
         - name: vault-ca
           mountPath: /etc/ssl/vault/ca.pem
           readOnly: true
@@ -45,15 +45,14 @@ spec:
             --authorization-rbac-super-user=bootstrap
             --token-auth-file=/etc/kubernetes/bootstrap-auth
             --service-cluster-ip-range=10.0.0.0/16
-            --external-hostname=${KUBE_FQDN}
-            --etcd-servers=localhost:2379
-            --etcd-cafile=/etc/secrets/etcd.ca
-            --etcd-certfile=/etc/secrets/etcd.crt
-            --etcd-keyfile=/etc/secrets/etcd.key
+            --etcd-servers=https://localhost:2379
+            --etcd-cafile=/etc/secrets/sidekick/etcd.ca
+            --etcd-certfile=/etc/secrets/sidekick/etcd.crt
+            --etcd-keyfile=/etc/secrets/sidekick/etcd.key
             --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,ResourceQuota,DenyEscalatingExec,ServiceAccount
       volumeMounts:
         - name: secrets
-          mountPath: /etc/secrets
+          mountPath: /etc/secrets/sidekick
           readOnly: true
   volumes:
     - name: secrets

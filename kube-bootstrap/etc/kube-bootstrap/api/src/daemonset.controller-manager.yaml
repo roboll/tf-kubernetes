@@ -1,0 +1,52 @@
+kind: DaemonSet
+apiVersion: extensions/v1beta1
+metadata:
+  name: controller-manager
+  namespace: kube-system
+  labels:
+    app: kubernetes
+    component: controller-manager
+spec:
+  template:
+    metadata:
+      labels:
+        app: kubernetes
+        component: controller-manager
+    spec:
+      nodeSelector:
+        role: controller
+      hostNetwork: true
+      containers:
+        - name: controller-manager
+          image: ${HYPERKUBE}
+          command:
+            - /controller-manager
+            - --master=localhost:8080
+            - --leader-elect=true
+            - --cloud-provider=aws
+            - --allocate-node-cidrs=true
+            - --configure-cloud-routes=false
+            - --cluster-cidr=10.225.0.0/16
+            - --root-ca-file=/etc/secrets/kube-ca/ca.pem
+            - --service-account-private-key-file=/etc/secrets/svc-acct/privkey.pem
+          livenessProbe:
+            httpGet:
+              host: 127.0.0.1
+              path: /healthz
+              port: 10252
+            initialDelaySeconds: 15
+            timeoutSeconds: 1
+          volumeMounts:
+            - name: kube-ca
+              mountPath: /etc/secrets/kube-ca
+              readOnly: true
+            - name: svc-acct-privkey
+              mountPath: /etc/secrets/svc-acct
+              readOnly: true
+      volumes:
+        - name: kube-ca
+          secret:
+            secretName: kube-ca
+        - name: svc-acct-privkey
+          secret:
+            secretName: svc-acct-privkey
