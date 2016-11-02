@@ -15,28 +15,6 @@ coreos:
         ExecStart=/usr/bin/rkt image extract --rootfs-only --overwrite ${vault_ssh_image} /tmp/vault-ssh
         ExecStartPost=/tmp/vault-ssh/link.sh
 
-    - name: vault-login.service
-      command: start
-      content: |
-        [Service]
-        Type=oneshot
-        FailureAction=reboot
-        ExecStart=/opt/bin/vault-login.sh
-
-    - name: vault-renew-token.service
-      content: |
-        [Service]
-        Type=simple
-        FailureAction=reboot
-        ExecStart=/opt/bin/vault-renew-token.sh
-
-    - name: vault-renew-token.timer
-      command: start
-      content: |
-        [Timer]
-        OnActiveSec=12h
-        OnUnitActiveSec=12h
-
     - name: dev-xvdb-format.service
       command: start
       content: |
@@ -95,7 +73,14 @@ coreos:
           -e ETCD_PEERS=${etcd_peers} \
           -e ETCD_NODES=${etcd_nodes} \
           --volume /etc/kubernetes/manifests/:/etc/kubernetes/manifests/ \
-          quay.io/roboll/kube-bootstrap:alpha /opt/bin/copy-manifest.sh
+          quay.io/roboll/kube-bootstrap:alpha /opt/bin/copy-bootstrap.sh
+
+        ExecStartPre=/usr/bin/docker run \
+          -e VAULT_ADDR=${vault_address} \
+          -e VAULT_AUTH_ROLE=${vault_instance_role} \
+          -e KUBE_PKI_MOUNT=${kube_pki_mount} \
+          --volume /etc/kubernetes/manifests/:/etc/kubernetes/manifests/ \
+          quay.io/roboll/kube-bootstrap:alpha /opt/bin/copy-registrar.sh
 
         ExecStart=/usr/bin/docker run \
           --net=host \
@@ -132,35 +117,6 @@ write_files:
       allowed_roles = "*"
       vault_addr = "${vault_address}"
       ca_cert = "/etc/ssl/vault/ca.pem"
-
-  - path: /opt/bin/vault-login.sh
-    permissions: 0700
-    content: |
-      #!/bin/bash
-      set -eo pipefail
-
-      mkdir -p /var/lib/vault
-      nonce="$(cat /etc/machine-id | base64)"
-      pkcs="$(curl ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
-        http://169.254.169.254/latest/dynamic/instance-identity/pkcs7 | tr -d '\n')"
-
-      curl ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
-        -X POST -H "Content-Type: application/json" \
-        -d "{\"pkcs7\":\"$pkcs\",\"role\":\"${vault_instance_role}\",\"nonce\":\"$nonce\"}" \
-        ${vault_address}/v1/auth/aws-ec2/login | \
-        sed -re 's/.*"client_token":"([^"]*)".*/\1/g' > /var/lib/vault/token
-
-  - path: /opt/bin/vault-renew-token.sh
-    permissions: 0700
-    content: |
-      #!/bin/bash
-      set -eo pipefail
-
-      token="$(cat /var/lib/vault/token)"
-      curl ${vault_curl_opts} --cacert /etc/ssl/vault/ca.pem \
-        -X POST -H "X-Vault-Token: $token" \
-        -d '{"increment": "24h"}' \
-        ${vault_address}/v1/auth/token/renew-self > /dev/null
 
   - path: /opt/bin/kube-ca.sh
     permissions: 0700
