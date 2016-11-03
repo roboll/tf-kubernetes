@@ -11,9 +11,7 @@ coreos:
         [Service]
         Type=oneshot
 
-        ExecStartPre=/usr/bin/rkt fetch --trust-keys-from-https ${vault_ssh_image}
-        ExecStart=/usr/bin/rkt image extract --rootfs-only --overwrite ${vault_ssh_image} /tmp/vault-ssh
-        ExecStartPost=/tmp/vault-ssh/link.sh
+        ExecStart=/usr/bin/docker pull ${vault_ssh_image}
 
     - name: dev-xvdb-format.service
       command: start
@@ -67,18 +65,12 @@ coreos:
 
         ExecStartPre=/opt/bin/kube-ca.sh
         ExecStartPre=/usr/bin/docker run \
-          -e HYPERKUBE=${hyperkube}:${kube_version}  \
-          -e KUBE_FQDN=${kube_fqdn} \
-          -e KUBE_CA=/etc/ssl/kube/ca.pem \
-          -e ETCD_PEERS=${etcd_peers} \
-          -e ETCD_NODES=${etcd_nodes} \
+          --env-file /etc/kube-bootstrap/env \
           --volume /etc/kubernetes/manifests/:/etc/kubernetes/manifests/ \
           quay.io/roboll/kube-bootstrap:alpha /opt/bin/copy-bootstrap.sh
 
         ExecStartPre=/usr/bin/docker run \
-          -e VAULT_ADDR=${vault_address} \
-          -e VAULT_AUTH_ROLE=${vault_instance_role} \
-          -e KUBE_PKI_MOUNT=${kube_pki_mount} \
+          --env-file=/etc/kube-bootstrap-env \
           --volume /etc/kubernetes/manifests/:/etc/kubernetes/manifests/ \
           quay.io/roboll/kube-bootstrap:alpha /opt/bin/copy-registrar.sh
 
@@ -133,9 +125,17 @@ write_files:
   - path: /etc/kube-bootstrap/env
     permissions: 0600
     content: |
+      export HYPERKUBE=${hyperkube}:${kube_version}
+      export KUBE_FQDN=${kube_fqdn}
+      export KUBE_CA=/etc/ssl/kube/ca.pem
+
+      export ETCD_PEERS=${etcd_peers}
+      export ETCD_NODES=${etcd_nodes}
+
       export VAULT_ADDR=${vault_address}
-      export ETCD_VAULT_PKI_MOUNT=${etcd_pki_mount}
-      export KUBE_VAULT_PKI_MOUNT=${kube_pki_mount}
+      export VAULT_AUTH_ROLE=${vault_instance_role}
+      export ETCD_PKI_MOUNT=${etcd_pki_mount}
+      export KUBE_PKI_MOUNT=${kube_pki_mount}
       export SVC_ACCT_PUBKEY=${service_account_pubkey}
       export SVC_ACCT_PRIVKEY=${service_account_privkey}
 
