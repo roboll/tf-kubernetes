@@ -70,7 +70,7 @@ coreos:
           quay.io/roboll/kube-bootstrap:alpha /opt/bin/copy-bootstrap.sh
 
         ExecStartPre=/usr/bin/docker run \
-          --env-file=/etc/kube-bootstrap-env \
+          --env-file=/etc/kube-bootstrap/env \
           --volume /etc/kubernetes/manifests/:/etc/kubernetes/manifests/ \
           quay.io/roboll/kube-bootstrap:alpha /opt/bin/copy-registrar.sh
 
