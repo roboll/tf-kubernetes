@@ -72,7 +72,7 @@ coreos:
         ExecStartPre=/usr/bin/docker run \
           --env-file=/etc/kube-bootstrap/env \
           --volume /etc/kubernetes/manifests/:/etc/kubernetes/manifests/ \
-          quay.io/roboll/kube-bootstrap:alpha /opt/bin/copy-registrar.sh
+          quay.io/roboll/kube-bootstrap:alpha /opt/bin/copy-kubelet-sidecar.sh
 
         ExecStart=/usr/bin/docker run \
           --net=host \
