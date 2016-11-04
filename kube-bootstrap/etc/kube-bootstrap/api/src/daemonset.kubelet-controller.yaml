@@ -20,32 +20,6 @@ spec:
       hostPID: true
       hostNetwork: true
       containers:
-        - name: vault-sidekick
-          image: quay.io/roboll/vault-sidekick:v0.0.9.12
-          command:
-            - /bin/sh
-            - -c
-            - export IP=$(ifconfig eth0 | awk '/inet addr/{print substr($2,6)}');
-              export HOSTNAME=$(hostname -f);
-              exec /vault-sidekick
-                -logtostderr=true
-                -output=/var/lib/secrets
-                -ca-cert=/etc/ssl/vault/ca.pem
-                -cn=pki:${KUBE_VAULT_PKI_MOUNT}/issue/kubelet:common_name=kubelet,alt_names=${HOSTNAME},ip_sans=${IP},file=kubelet,fmt=cert
-          env:
-            - name: VAULT_ADDR
-              value: ${VAULT_ADDR}
-            - name: VAULT_SIDEKICK_TOKEN_FILE
-              value: /var/lib/vault/token
-          volumeMounts:
-            - name: var-lib-secrets
-              mountPath: /var/lib/secrets
-            - name: vault-ca
-              mountPath: /etc/ssl/vault/ca.pem
-              readOnly: true
-            - name: vault-token
-              mountPath: /var/lib/vault/token
-              readOnly: true
         - name: kubelet
           image: ${HYPERKUBE}
           command:
@@ -62,8 +36,8 @@ spec:
             - --cluster-domain=cluster.local
             - --network-plugin=cni
             - --network-plugin-dir=/etc/cni/net.d
-            - --tls-cert-file=/var/lib/secrets/kubelet.crt
-            - --tls-private-key-file=/var/lib/secrets/kubelet.key
+            - --tls-cert-file=/var/lib/kubelet/certs/cert.pem
+            - --tls-private-key-file=/var/lib/kubelet/certs/key.pem
             - --hairpin-mode=hairpin-veth
             - --containerized=true
           securityContext:
@@ -84,8 +58,6 @@ spec:
               mountPath: /var/lib/docker
             - name: var-lib-kubelet
               mountPath: /var/lib/kubelet
-            - name: var-lib-secrets
-              mountPath: /var/lib/secrets
             - name: etc-cni
               mountPath: /etc/cni/net.d
             - name: manifests
@@ -112,18 +84,9 @@ spec:
         - name: var-lib-kubelet
           hostPath:
             path: /var/lib/kubelet
-        - name: var-lib-secrets
-          hostPath:
-            path: /var/lib/secrets
         - name: etc-cni
           hostPath:
             path: /etc/cni/net.d
         - name: manifests
           hostPath:
             path: /etc/kubernetes/manifests
-        - name: vault-ca
-          hostPath:
-            path: /etc/ssl/vault/ca.pem
-        - name: vault-token
-          hostPath:
-            path: /var/lib/vault/token

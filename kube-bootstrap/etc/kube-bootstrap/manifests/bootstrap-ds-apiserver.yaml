@@ -9,27 +9,21 @@ metadata:
 spec:
   hostNetwork: true
   containers:
-    - name: vault-sidekick
-      image: quay.io/roboll/vault-sidekick:v0.0.9.12
+    - name: vault-cert-sidecar
+      image: quay.io/roboll/vault-cert-sidecar:v0.0.1-6-g0c646b8
       args:
-        - -logtostderr=true
-        - -output=/etc/secrets/sidekick
-        - -ca-cert=/etc/ssl/vault/ca.pem
-        - -cn=pki:${ETCD_VAULT_PKI_MOUNT}/issue/apiserver:common_name=controller,file=etcd,fmt=cert
+        - -auth-strategy=token-file
+        - -pki-backend=${ETCD_PKI_MOUNT}
+        - -cert-dir=/var/lib/secrets
+        - -auth-dir=/var/lib/vault
       env:
         - name: VAULT_ADDR
           value: ${VAULT_ADDR}
-        - name: VAULT_SIDEKICK_TOKEN_FILE
-          value: /var/lib/vault/token
       volumeMounts:
+        - name: vault-secrets
+          mountPath: /var/lib/vault/
         - name: secrets
-          mountPath: /etc/secrets/sidekick
-        - name: vault-ca
-          mountPath: /etc/ssl/vault/ca.pem
-          readOnly: true
-        - name: vault-token
-          mountPath: /var/lib/vault/token
-          readOnly: true
+          mountPath: /var/lib/secrets/
     - name: apiserver
       image: ${HYPERKUBE}
       command:
@@ -46,20 +40,17 @@ spec:
             --token-auth-file=/etc/kubernetes/bootstrap-auth
             --service-cluster-ip-range=10.0.0.0/16
             --etcd-servers=https://localhost:2379
-            --etcd-cafile=/etc/secrets/sidekick/etcd.ca
-            --etcd-certfile=/etc/secrets/sidekick/etcd.crt
-            --etcd-keyfile=/etc/secrets/sidekick/etcd.key
+            --etcd-cafile=/var/lib/secrets/ca.pem
+            --etcd-certfile=/var/lib/secrets/cert.pem
+            --etcd-keyfile=/var/lib/secrets/key.pem
             --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,ResourceQuota,DenyEscalatingExec,ServiceAccount
       volumeMounts:
         - name: secrets
-          mountPath: /etc/secrets/sidekick
+          mountPath: /var/lib/secrets
           readOnly: true
   volumes:
     - name: secrets
       emptyDir: {}
-    - name: vault-ca
+    - name: vault-secrets
       hostPath:
-        path: /etc/ssl/vault/ca.pem
-    - name: vault-token
-      hostPath:
-        path: /var/lib/vault/token
+        path: /var/lib/vault/

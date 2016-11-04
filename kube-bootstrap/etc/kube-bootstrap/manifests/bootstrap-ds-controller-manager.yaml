@@ -22,10 +22,10 @@ spec:
         - --service-account-private-key-file=/etc/secrets/svc-acct/privkey.pem
       volumeMounts:
         - name: kube-ca
-          mountPath: /etc/secrets/kube-ca
+          mountPath: /etc/secrets/kube-ca/
           readOnly: true
         - name: svc-acct-privkey
-          mountPath: /etc/secrets/svc-acct
+          mountPath: /etc/secrets/svc-acct/
           readOnly: true
   volumes:
     - name: kube-ca

@@ -34,7 +34,6 @@ spec:
           readOnly: true
         - name: manifests
           mountPath: /etc/kubernetes/manifests
-          readOnly: true
   volumes:
     - name: env
       hostPath:

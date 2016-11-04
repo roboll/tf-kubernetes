@@ -17,17 +17,11 @@ ds_api="http://localhost:8080/apis/extensions/v1beta1/namespaces/kube-system/dae
 node_api="http://localhost:8080/api/v1/nodes"
 healthz_api="http://localhost:8080/healthz"
 
-vars='${VAULT_ADDR} ${KUBE_FQDN} ${KUBE_CA_B64} ${ETCD_NODES} ${ETCD_PEERS} ${ETCD_VAULT_PKI_MOUNT} ${KUBE_VAULT_PKI_MOUNT} ${SVC_ACCT_PUBKEY} ${SVC_ACCT_PRIVKEY} ${HYPERKUBE}'
-
 opts="-sSfk --resolve kubernetes:443:127.0.0.1"
 json="Content-Type: application/json"
 auth="Authorization: Bearer bootstrap"
 manifests=/etc/kube-bootstrap/manifests
 api_objects=/etc/kube-bootstrap/api/objects
-
-if [ -f /etc/kube-bootstrap/env ]; then
-    . /etc/kube-bootstrap/env
-fi
 
 export KUBE_CA_B64=$(cat /etc/kubernetes/ca.pem | base64)
 
@@ -38,7 +32,7 @@ bootstrap() {
         echo "copying bootstrap manifests to /etc/kubernetes/manifests..."
 
         for item in $manifests/*; do
-            cat $item | envsubst "$vars" > /etc/kubernetes/manifests/${item#$manifests}
+            cat $item | envsubst > /etc/kubernetes/manifests/${item#$manifests}
         done
 
         until curl $opts -H "$auth" $healthz_api; do
@@ -54,7 +48,7 @@ bootstrap() {
 
         for file in $api_objects/$api_type.*.json; do
             echo "creating $api_type from $file"
-            cat $file | envsubst "$vars" | curl $opts -H "$auth" -XPOST -H "$json" -d@- $api_path > /dev/null || true
+            cat $file | envsubst | curl $opts -H "$auth" -XPOST -H "$json" -d@- $api_path > /dev/null || true
             sleep 1
         done
     done

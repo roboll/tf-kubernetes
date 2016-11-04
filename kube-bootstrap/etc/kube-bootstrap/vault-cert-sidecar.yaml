@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kubelet-vault-sidecar
+  namespace: kube-system
+  labels:
+    app: kubernetes
+    component: kubelet-vault-registrar
+spec:
+  hostNetwork: true
+  containers:
+    - name: vault-cert-sidecar
+      image: quay.io/roboll/vault-cert-sidecar:v0.0.1-6-g0c646b8
+      imagePullPolicy: Always
+      args:
+        - -auth-strategy=aws-ec2
+        - -pki-backend=${KUBE_PKI_MOUNT}
+        - -cert-dir=/var/lib/kubelet/secrets/
+        - -auth-dir=/var/lib/vault/
+      env:
+        - name: VAULT_ADDR
+          value: ${VAULT_ADDR}
+        - name: VAULT_AUTH_ROLE
+          value: ${VAULT_AUTH_ROLE}
+      volumeMounts:
+        - name: vault-secrets
+          mountPath: /var/lib/vault/
+        - name: kubelet-secrets
+          mountPath: /var/lib/kubelet/secrets/
+  volumes:
+    - name: vault-secrets
+      hostPath:
+        path: /var/lib/vault/
+    - name: kubelet-secrets
+      hostPath:
+        path: /var/lib/kubelet/secrets/
