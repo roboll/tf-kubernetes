@@ -113,6 +113,7 @@ write_files:
     content: |
       #! /bin/bash
       [ -f /etc/ssl/kube/ca.pem ] || {
+        mkdir -p /etc/ssl/kube/
         curl -o /etc/ssl/kube/ca.pem ${vault_address}/v1/${kube_pki_mount}/ca/pem
       }
 
