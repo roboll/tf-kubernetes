@@ -63,13 +63,13 @@ coreos:
         ExecStartPre=/usr/bin/mkdir -p /var/run/kubelet
         ExecStartPre=/usr/bin/mkdir -p /etc/kubernetes/manifests
 
-        ExecStartPre=/usr/bin/docker run --rm --env-file /etc/kube-bootstrap/env \
-          --volume /etc/kubernetes/manifests/:/etc/kubernetes/manifests/ \
-          quay.io/roboll/kube-bootstrap:alpha /opt/bin/copy-bootstrap.sh
-
         ExecStartPre=/usr/bin/docker run --rm --env-file=/etc/kube-bootstrap/env \
           --volume /etc/kubernetes/manifests/:/etc/kubernetes/manifests/ \
           quay.io/roboll/kube-bootstrap:alpha /opt/bin/copy-cert-sidecar.sh
+
+        ExecStartPre=/usr/bin/docker run --rm --env-file /etc/kube-bootstrap/env \
+          --volume /etc/kubernetes/manifests/:/etc/kubernetes/manifests/ \
+          quay.io/roboll/kube-bootstrap:alpha /opt/bin/copy-bootstrap.sh
 
         ExecStart=/usr/bin/docker run \
           --net=host \
