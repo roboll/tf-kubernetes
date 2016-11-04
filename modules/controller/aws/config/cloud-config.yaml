@@ -63,6 +63,7 @@ coreos:
         ExecStartPre=/usr/bin/mkdir -p /var/run/kubelet
         ExecStartPre=/usr/bin/mkdir -p /etc/kubernetes/manifests
 
+        ExecStartPre=/opt/bin/kube-ca.sh
         ExecStartPre=/usr/bin/docker run --rm --env-file=/etc/kube-bootstrap/env \
           --volume /etc/kubernetes/manifests/:/etc/kubernetes/manifests/ \
           quay.io/roboll/kube-bootstrap:alpha /opt/bin/copy-cert-sidecar.sh
@@ -107,12 +108,20 @@ write_files:
       vault_addr = "${vault_address}"
       ca_cert = "/etc/ssl/vault/ca.pem"
 
+  - path: /opt/bin/kube-ca.sh
+    permission: 0700
+    content: |
+      #! /bin/bash
+      [ -f /etc/ssl/kube/ca.pem ] || {
+        curl -o /etc/ssl/kube/ca.pem $vault_address/v1/${kube_pki_mount}/ca/pem
+      }
+
   - path: /etc/kube-bootstrap/env
     permissions: 0600
     content: |
       HYPERKUBE=${hyperkube}:${kube_version}
       KUBE_FQDN=${kube_fqdn}
-      KUBE_CA=/var/lib/kubelet/secrets/ca.pem
+      KUBE_CA=/etc/kubernetes/ca.pem
 
       ETCD_PEERS=${etcd_peers}
       ETCD_NODES=${etcd_nodes}
