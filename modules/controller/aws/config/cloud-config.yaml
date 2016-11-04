@@ -109,7 +109,7 @@ write_files:
       ca_cert = "/etc/ssl/vault/ca.pem"
 
   - path: /opt/bin/kube-ca.sh
-    permission: 0700
+    permissions: 0700
     content: |
       #! /bin/bash
       [ -f /etc/ssl/kube/ca.pem ] || {
