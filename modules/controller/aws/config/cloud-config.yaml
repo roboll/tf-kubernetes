@@ -112,7 +112,7 @@ write_files:
     content: |
       HYPERKUBE=${hyperkube}:${kube_version}
       KUBE_FQDN=${kube_fqdn}
-      KUBE_CA=/var/lib/kubelet/secretS/ca.pem
+      KUBE_CA=/var/lib/kubelet/secrets/ca.pem
 
       ETCD_PEERS=${etcd_peers}
       ETCD_NODES=${etcd_nodes}
