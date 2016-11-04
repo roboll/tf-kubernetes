@@ -91,7 +91,7 @@ coreos:
               --lock-file=/var/run/kubelet/lock \
               --exit-on-lock-contention=true \
               --node-labels=role=controller \
-              --allow-privileged=true
+              --allow-privileged=true --v=5
 
 write_files:
   - path: /etc/ssl/vault/ca.pem
