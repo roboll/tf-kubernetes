@@ -122,19 +122,21 @@ write_files:
   - path: /etc/kube-bootstrap/env
     permissions: 0600
     content: |
-      HYPERKUBE=${hyperkube}:${kube_version}
-      KUBE_FQDN=${kube_fqdn}
-      KUBE_CA=/etc/ssl/kube/ca.pem
+      export HYPERKUBE=${hyperkube}:${kube_version}
+      export KUBE_FQDN=${kube_fqdn}
+      export KUBE_CA=/etc/ssl/kube/ca.pem
 
-      ETCD_PEERS=${etcd_peers}
-      ETCD_NODES=${etcd_nodes}
+      export ETCD_PEERS=${etcd_peers}
+      export ETCD_NODES=${etcd_nodes}
 
-      VAULT_ADDR=${vault_address}
-      VAULT_AUTH_ROLE=${vault_instance_role}
-      ETCD_PKI_MOUNT=${etcd_pki_mount}
-      KUBE_PKI_MOUNT=${kube_pki_mount}
-      SVC_ACCT_PUBKEY=${service_account_pubkey}
-      SVC_ACCT_PRIVKEY=${service_account_privkey}
+      export VAULT_ADDR=${vault_address}
+      export VAULT_AUTH_ROLE=${vault_instance_role}
+
+      export ETCD_PKI_MOUNT=${etcd_pki_mount}
+      export KUBE_PKI_MOUNT=${kube_pki_mount}
+
+      export SVC_ACCT_PUBKEY=${service_account_pubkey}
+      export SVC_ACCT_PRIVKEY=${service_account_privkey}
 
   - path: /var/lib/kubelet/kubeconfig
     permissions: 0700
