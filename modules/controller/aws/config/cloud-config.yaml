@@ -122,7 +122,7 @@ write_files:
     content: |
       HYPERKUBE=${hyperkube}:${kube_version}
       KUBE_FQDN=${kube_fqdn}
-      KUBE_CA=/etc/kubernetes/ca.pem
+      KUBE_CA=/etc/ssl/kube/ca.pem
 
       ETCD_PEERS=${etcd_peers}
       ETCD_NODES=${etcd_nodes}
