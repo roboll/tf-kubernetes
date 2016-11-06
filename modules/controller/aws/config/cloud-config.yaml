@@ -96,7 +96,7 @@ coreos:
               --exit-on-lock-contention=true \
               --register-schedulable=false \
               --node-labels=role=controller \
-              --allow-privileged=true --v=5
+              --allow-privileged=true --containerized=true --v=5
 
 write_files:
   - path: /etc/ssl/vault/ca.pem
