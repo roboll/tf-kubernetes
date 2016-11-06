@@ -10,9 +10,7 @@ coreos:
         [Service]
         Type=oneshot
 
-        ExecStartPre=/usr/bin/rkt fetch --trust-keys-from-https ${vault_ssh_image}
-        ExecStart=/usr/bin/rkt image extract --rootfs-only --overwrite ${vault_ssh_image} /tmp/vault-ssh
-        ExecStartPost=/tmp/vault-ssh/link.sh
+        ExecStart=/usr/bin/docker pull ${vault_ssh_image}
 
     - name: docker.service
       command: start
@@ -34,33 +32,33 @@ coreos:
         RestartSec=10
 
         ExecStartPre=/usr/bin/mkdir -p /var/run/kubelet
+        ExecStartPre=/usr/bin/mkdir -p /etc/kubernetes/manifests
 
-        ExecStartPre=/usr/bin/docker run \
-          -e VAULT_ADDR=${vault_address} \
-          -e VAULT_AUTH_ROLE=${vault_instance_role} \
-          -e KUBE_PKI_MOUNT=${kube_pki_mount} \
+        ExecStartPre=/usr/bin/docker run --rm \
+          --volume /etc/kube-bootstrap/env:/etc/kube-bootstrap/env \
           --volume /etc/kubernetes/manifests/:/etc/kubernetes/manifests/ \
-          quay.io/roboll/kube-bootstrap:alpha /opt/bin/copy-registrar.sh
+          quay.io/roboll/kube-bootstrap:alpha /opt/bin/copy-cert-sidecar.sh
 
         ExecStart=/usr/bin/docker run \
+          --net=host \
+          --pid=host \
+          --privileged=true \
           --volume=/:/rootfs/:ro \
           --volume=/sys/:/sys/:ro \
           --volume=/dev/:/dev/ \
           --volume=/var/run/:/var/run/:rw \
-          --volume=/var/lib/secrets/:/var/lib/secrets/ \
+          --volume /etc/kubernetes/:/etc/kubernetes/ \
           --volume=/var/lib/docker/:/var/lib/docker/:rw \
           --volume=/var/lib/kubelet/:/var/lib/kubelet/:shared \
-          --net=host \
-          --pid=host \
-          --privileged=true \
           ${hyperkube}:${kube_version} \
-            /hyperkube kubelet \
+            /kubelet \
               --require-kubeconfig=true \
-              --kubeconfig=/var/lib/kubelet/kubeconfig\
+              --kubeconfig=/var/lib/kubelet/kubeconfig \
+              --pod-manifest-path=/etc/kubernetes/manifests \
               --lock-file=/var/run/kubelet/lock \
               --exit-on-lock-contention=true \
               --node-labels=role=worker,class=${worker_class} \
-              --allow-privileged=true
+              --allow-privileged=true --containerized=true --v=5
 
 write_files:
   - path: /etc/ssl/vault/ca.pem
@@ -76,6 +74,13 @@ write_files:
       vault_addr = "${vault_address}"
       ca_cert = "/etc/ssl/vault/ca.pem"
 
+  - path: /etc/kube-bootstrap/env
+    permissions: 0600
+    content: |
+      export VAULT_ADDR=${vault_address}
+      export VAULT_AUTH_ROLE=${vault_instance_role}
+      export KUBE_PKI_MOUNT=${kube_pki_mount}
+
   - path: /var/lib/kubelet/kubeconfig
     content: |
       apiVersion: v1
@@ -85,7 +90,7 @@ write_files:
         - name: kubernetes
           cluster:
             server: https://${kube_fqdn}
-            certificate-authority: /var/lib/kubelet/certs/ca.pem
+            certificate-authority: /var/lib/kubelet/secrets/ca.pem
       contexts:
         - name: kubelet
           context:
@@ -94,5 +99,5 @@ write_files:
       users:
         - name: kubelet
           user:
-            client-certificate: /var/lib/kubelet/certs/cert.pem
-            client-key: /var/lib/kubelet/certs/key.pem
+            client-certificate: /var/lib/kubelet/secrets/cert.pem
+            client-key: /var/lib/kubelet/secrets/key.pem

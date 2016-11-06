@@ -89,14 +89,14 @@ coreos:
           --volume=/var/lib/kubelet/:/var/lib/kubelet/:shared \
           ${hyperkube}:${kube_version} \
             /kubelet \
-              --pod-manifest-path=/etc/kubernetes/manifests \
+              --require-kubeconfig=true \
               --kubeconfig=/var/lib/kubelet/kubeconfig \
-              --require-kubeconfig \
-              --register-schedulable=false \
+              --pod-manifest-path=/etc/kubernetes/manifests \
               --lock-file=/var/run/kubelet/lock \
               --exit-on-lock-contention=true \
+              --register-schedulable=false \
               --node-labels=role=controller \
-              --allow-privileged=true --v=5
+              --allow-privileged=true --containerized=true --v=5
 
 write_files:
   - path: /etc/ssl/vault/ca.pem
