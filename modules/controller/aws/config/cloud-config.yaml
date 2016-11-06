@@ -64,6 +64,8 @@ coreos:
         ExecStartPre=/usr/bin/mkdir -p /etc/kubernetes/manifests
 
         ExecStartPre=/opt/bin/kube-ca.sh
+        ExecStartPre=/opt/bin/etcd-ca.sh
+
         ExecStartPre=/usr/bin/docker run --rm \
           --volume /etc/kube-bootstrap/env:/etc/kube-bootstrap/env \
           --volume /etc/kubernetes/manifests/:/etc/kubernetes/manifests/ \
@@ -119,6 +121,15 @@ write_files:
         curl -o /etc/ssl/kube/ca.pem ${vault_address}/v1/${kube_pki_mount}/ca/pem
       }
 
+  - path: /opt/bin/etcd-ca.sh
+    permissions: 0700
+    content: |
+      #! /bin/bash
+      [ -f /etc/ssl/etcd/ca.pem ] || {
+        mkdir -p /etc/ssl/etcd/
+        curl -o /etc/ssl/etcd/ca.pem ${vault_address}/v1/${etcd_pki_mount}/ca/pem
+      }
+
   - path: /etc/kube-bootstrap/env
     permissions: 0600
     content: |
@@ -128,6 +139,7 @@ write_files:
 
       export ETCD_PEERS=${etcd_peers}
       export ETCD_NODES=${etcd_nodes}
+      export ETCD_CA=/etc/ssl/etcd/ca.pem
 
       export VAULT_ADDR=${vault_address}
       export VAULT_AUTH_ROLE=${vault_instance_role}
