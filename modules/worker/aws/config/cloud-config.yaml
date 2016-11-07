@@ -53,6 +53,7 @@ coreos:
           ${hyperkube}:${kube_version} \
             /kubelet \
               --pod-manifest-path=/etc/kubernetes/manifests \
+              --allow-privileged=true --containerized=true --v=5 \
               --runonce
 
         ExecStart=/usr/bin/docker run \
