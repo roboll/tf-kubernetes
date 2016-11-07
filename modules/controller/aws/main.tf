@@ -8,7 +8,6 @@ variable ssh_keypair {}
 
 variable vault_address {}
 variable vault_ca_cert_pem_b64 {}
-variable vault_curl_opts { default = "" }
 
 variable domain {}
 variable dns_zone_id {}
@@ -30,10 +29,6 @@ variable hyperkube { default = "quay.io/coreos/hyperkube" }
 variable kube_version { default = "v1.4.1_coreos.0" }
 
 variable vault_ssh_image { default = "quay.io/roboll/vault-ssh-coreos:v0.2.0" }
-
-variable kube_runtime_config {
-    default = "extensions/v1beta1=true,extensions/v1beta1/networkpolicies=true,rbac.authorization.k8s.io/v1alpha1=true"
-}
 
 variable cidr_offset { default = "16" }
 
@@ -184,15 +179,11 @@ resource coreos_cloudconfig cloud_config {
 
         vault_ssh_image = "${var.vault_ssh_image}"
 
-        kube_runtime_config = "${var.kube_runtime_config}"
-
         region = "${var.region}"
         vault_address = "${var.vault_address}"
         vault_instance_role = "${vaultx_policy.controller_instance.name}"
 
-        vault_address_b64 = "${base64encode(var.vault_address)}"
         vault_ca_cert_pem_b64 = "${var.vault_ca_cert_pem_b64}"
-        vault_curl_opts = "${var.vault_curl_opts}"
 
         kube_pki_mount = "${null_resource.pki_mount.triggers.kube_path}"
         etcd_pki_mount = "${null_resource.pki_mount.triggers.etcd_path}"
