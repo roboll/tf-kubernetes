@@ -60,43 +60,9 @@ coreos:
         Restart=always
         RestartSec=10
 
-        ExecStartPre=/usr/bin/mkdir -p /var/run/kubelet
         ExecStartPre=/usr/bin/mkdir -p /etc/kubernetes/manifests
-
-        ExecStartPre=/opt/bin/kube-ca.sh
-        ExecStartPre=/opt/bin/etcd-ca.sh
-
-        ExecStartPre=/usr/bin/docker run --rm \
-          --volume /etc/kubernetes/manifests/:/etc/kubernetes/manifests/ \
-          --env-file=/etc/kube-bootstrap/env \
-          quay.io/roboll/kube-bootstrap:alpha /opt/bin/copy-cert-sidecar.sh
-
-        ExecStartPre=/usr/bin/docker run --rm \
-          --volume /etc/kubernetes/manifests/:/etc/kubernetes/manifests/ \
-          --env-file=/etc/kube-bootstrap/env \
-          quay.io/roboll/kube-bootstrap:alpha /opt/bin/copy-bootstrap.sh
-
-        ExecStart=/usr/bin/docker run \
-          --net=host \
-          --pid=host \
-          --privileged=true \
-          --volume=/:/rootfs/:ro \
-          --volume=/sys/:/sys/:ro \
-          --volume=/dev/:/dev/ \
-          --volume=/var/run/:/var/run/:rw \
-          --volume=/etc/kubernetes/:/etc/kubernetes/ \
-          --volume=/var/lib/docker/:/var/lib/docker/:rw \
-          --volume=/var/lib/kubelet/:/var/lib/kubelet/:shared \
-          ${hyperkube}:${kube_version} \
-            /kubelet \
-              --require-kubeconfig=true \
-              --kubeconfig=/var/lib/kubelet/kubeconfig \
-              --pod-manifest-path=/etc/kubernetes/manifests \
-              --lock-file=/var/run/kubelet/lock \
-              --exit-on-lock-contention=true \
-              --register-schedulable=false \
-              --node-labels=role=controller \
-              --allow-privileged=true --containerized=true --v=5
+        ExecStartPre=/opt/bin/kube-bootstrap-manifest
+        ExecStart=/opt/bin/host-kubelet
 
 write_files:
   - path: /etc/ssl/vault/ca.pem
@@ -112,36 +78,17 @@ write_files:
       vault_addr = "${vault_address}"
       ca_cert = "/etc/ssl/vault/ca.pem"
 
-  - path: /opt/bin/kube-ca.sh
-    permissions: 0700
-    content: |
-      #! /bin/bash
-      [ -f /etc/ssl/kube/ca.pem ] || {
-        mkdir -p /etc/ssl/kube/
-        curl -o /etc/ssl/kube/ca.pem ${vault_address}/v1/${kube_pki_mount}/ca/pem
-      }
-
-  - path: /opt/bin/etcd-ca.sh
-    permissions: 0700
-    content: |
-      #! /bin/bash
-      [ -f /etc/ssl/etcd/ca.pem ] || {
-        mkdir -p /etc/ssl/etcd/
-        curl -o /etc/ssl/etcd/ca.pem ${vault_address}/v1/${etcd_pki_mount}/ca/pem
-      }
-
   - path: /etc/kube-bootstrap/env
     permissions: 0600
     content: |
       HYPERKUBE=${hyperkube}:${kube_version}
       KUBE_FQDN=${kube_fqdn}
-      KUBE_CA=/etc/ssl/kube/ca.pem
 
       ETCD_PEERS=${etcd_peers}
       ETCD_NODES=${etcd_nodes}
-      ETCD_CA=/etc/ssl/etcd/ca.pem
 
       VAULT_ADDR=${vault_address}
+      VAULT_CA_CERT=/etc/ssl/vault/ca.pem
       VAULT_AUTH_ROLE=${vault_instance_role}
 
       ETCD_PKI_MOUNT=${etcd_pki_mount}
@@ -167,3 +114,34 @@ write_files:
           context:
             cluster: kubernetes
             user: user
+
+  - path: /opt/bin/kube-bootstrap-manifest
+    permissions: 0700
+    content: |
+      #! /bin/bash
+      /usr/bin/docker run --rm --name=kube-bootstrap \
+        --volume /etc/kubernetes/manifests/:/etc/kubernetes/manifests/ \
+        --volume /etc/kube-bootstrap/env:/etc/kube-bootstrap/env \
+        quay.io/roboll/kube-bootstrap:alpha /opt/bin/copy-bootstrap.sh
+
+    - path: /opt/bin/host-kubelet
+      permissions: 0700
+      content: |
+        #! /bin/bash
+        /usr/bin/docker run --rm --name=host-kubelet \
+          --net=host --pid=host --privileged=true \
+          --volume=/:/rootfs/:ro \
+          --volume=/sys/:/sys/:ro \
+          --volume=/dev/:/dev/ \
+          --volume=/var/run/:/var/run/:rw \
+          --volume=/etc/kubernetes/:/etc/kubernetes/ \
+          --volume=/var/lib/docker/:/var/lib/docker/:rw \
+          --volume=/var/lib/kubelet/:/var/lib/kubelet/:shared \
+          ${hyperkube}:${kube_version} \
+            /kubelet \
+              --require-kubeconfig=true --kubeconfig=/var/lib/kubelet/kubeconfig \
+              --lock-file=/var/run/kubelet/lock --exit-on-lock-contention=true \
+              --pod-manifest-path=/etc/kubernetes/manifests \
+              --register-schedulable=false \
+              --node-labels=role=controller \
+              --allow-privileged=true --containerized=true
