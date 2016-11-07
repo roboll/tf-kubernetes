@@ -44,7 +44,7 @@ coreos:
           --volume /var/lib/kubelet/secrets/:/var/lib/kubelet/secrets/ \
           --env-file=/etc/kube-bootstra/env \
             -auth-strategy=aws-ec2 \
-            -pki-backend=${kube_pki_backend} \
+            -pki-backend=${kube_pki_mount} \
             -cert-dir=/var/lib/kubelet/secrets/ \
             -auth-dir=/var/lib/vault/ \
             -write-auth-info=true
