@@ -34,12 +34,12 @@ coreos:
         ExecStartPre=/usr/bin/mkdir -p /var/run/kubelet
         ExecStartPre=/usr/bin/mkdir -p /etc/kubernetes/manifests
 
-        ExecStartPre=/usr/bin/docker run --rm \
+        ExecStartPre=/usr/bin/docker run --rm --name=kube-bootstrap \
           --volume /etc/kube-bootstrap/env:/etc/kube-bootstrap/env \
           --volume /etc/kubernetes/manifests/:/etc/kubernetes/manifests/ \
           quay.io/roboll/kube-bootstrap:alpha /opt/bin/copy-cert-sidecar.sh
 
-        ExecStartPre=/usr/bin/docker run \
+        ExecStartPre=/usr/bin/docker run --rm --name=kubelet-runonce \
           --net=host \
           --pid=host \
           --privileged=true \
@@ -53,10 +53,12 @@ coreos:
           ${hyperkube}:${kube_version} \
             /kubelet \
               --pod-manifest-path=/etc/kubernetes/manifests \
+              --lock-file=/var/run/kubelet/lock \
+              --exit-on-lock-contention=true \
               --allow-privileged=true --containerized=true --v=5 \
-              --runonce
+              --runonce=true
 
-        ExecStart=/usr/bin/docker run \
+        ExecStart=/usr/bin/docker run --rm --name=kubelet \
           --net=host \
           --pid=host \
           --privileged=true \
