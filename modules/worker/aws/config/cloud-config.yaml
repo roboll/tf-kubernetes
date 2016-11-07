@@ -39,6 +39,22 @@ coreos:
           --volume /etc/kubernetes/manifests/:/etc/kubernetes/manifests/ \
           quay.io/roboll/kube-bootstrap:alpha /opt/bin/copy-cert-sidecar.sh
 
+        ExecStartPre=/usr/bin/docker run \
+          --net=host \
+          --pid=host \
+          --privileged=true \
+          --volume=/:/rootfs/:ro \
+          --volume=/sys/:/sys/:ro \
+          --volume=/dev/:/dev/ \
+          --volume=/var/run/:/var/run/:rw \
+          --volume /etc/kubernetes/:/etc/kubernetes/ \
+          --volume=/var/lib/docker/:/var/lib/docker/:rw \
+          --volume=/var/lib/kubelet/:/var/lib/kubelet/:shared \
+          ${hyperkube}:${kube_version} \
+            /kubelet \
+              --pod-manifest-path=/etc/kubernetes/manifests \
+              --runonce
+
         ExecStart=/usr/bin/docker run \
           --net=host \
           --pid=host \
