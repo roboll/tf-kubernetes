@@ -82,7 +82,7 @@ write_files:
     permissions: 0700
     content: |
       #! /bin/bash
-      /usr/bin/docker run --rm --name=kube-bootstrap-sidecar \
+      docker run --rm --name=kube-bootstrap-sidecar \
         --volume /etc/kubernetes/manifests/:/etc/kubernetes/manifests/ \
         --volume /etc/kube-bootstrap/env:/etc/kube-bootstrap/env \
         quay.io/roboll/kube-bootstrap:alpha /opt/bin/copy-cert-sidecar.sh
@@ -91,7 +91,7 @@ write_files:
     permissions: 0700
     content: |
       #! /bin/bash
-      /usr/bin/docker run --rm --name=kubelet-cert-bootstrap \
+      docker run --rm --name=kubelet-cert-bootstrap \
         --volume /var/lib/vault/:/var/lib/vault/ \
         --volume /var/lib/kubelet/secrets/:/var/lib/kubelet/secrets/ \
         --env-file=/etc/kube-bootstrap/env \
@@ -107,7 +107,8 @@ write_files:
     permissions: 0700
     content: |
       #! /bin/bash
-      /usr/bin/docker run --rm --name=host-kubelet \
+      mkdir -p /var/run/kubelet
+      docker run --rm --name=host-kubelet \
         --net=host --pid=host --privileged=true \
         --volume=/:/rootfs/:ro \
         --volume=/sys/:/sys/:ro \
