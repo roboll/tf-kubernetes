@@ -119,29 +119,29 @@ write_files:
     permissions: 0700
     content: |
       #! /bin/bash
-      /usr/bin/docker run --rm --name=kube-bootstrap \
+      docker run --rm --name=kube-bootstrap \
         --volume /etc/kubernetes/manifests/:/etc/kubernetes/manifests/ \
         --volume /etc/kube-bootstrap/env:/etc/kube-bootstrap/env \
         quay.io/roboll/kube-bootstrap:alpha /opt/bin/copy-bootstrap.sh
 
-    - path: /opt/bin/host-kubelet
-      permissions: 0700
-      content: |
-        #! /bin/bash
-        /usr/bin/docker run --rm --name=host-kubelet \
-          --net=host --pid=host --privileged=true \
-          --volume=/:/rootfs/:ro \
-          --volume=/sys/:/sys/:ro \
-          --volume=/dev/:/dev/ \
-          --volume=/var/run/:/var/run/:rw \
-          --volume=/etc/kubernetes/:/etc/kubernetes/ \
-          --volume=/var/lib/docker/:/var/lib/docker/:rw \
-          --volume=/var/lib/kubelet/:/var/lib/kubelet/:shared \
-          ${hyperkube}:${kube_version} \
-            /kubelet \
-              --require-kubeconfig=true --kubeconfig=/var/lib/kubelet/kubeconfig \
-              --lock-file=/var/run/kubelet/lock --exit-on-lock-contention=true \
-              --pod-manifest-path=/etc/kubernetes/manifests \
-              --register-schedulable=false \
-              --node-labels=role=controller \
-              --allow-privileged=true --containerized=true
+  - path: /opt/bin/host-kubelet
+    permissions: 0700
+    content: |
+      #! /bin/bash
+      docker run --rm --name=host-kubelet \
+        --net=host --pid=host --privileged=true \
+        --volume=/:/rootfs/:ro \
+        --volume=/sys/:/sys/:ro \
+        --volume=/dev/:/dev/ \
+        --volume=/var/run/:/var/run/:rw \
+        --volume=/etc/kubernetes/:/etc/kubernetes/ \
+        --volume=/var/lib/docker/:/var/lib/docker/:rw \
+        --volume=/var/lib/kubelet/:/var/lib/kubelet/:shared \
+        ${hyperkube}:${kube_version} \
+          /kubelet \
+            --require-kubeconfig=true --kubeconfig=/var/lib/kubelet/kubeconfig \
+            --lock-file=/var/run/kubelet/lock --exit-on-lock-contention=true \
+            --pod-manifest-path=/etc/kubernetes/manifests \
+            --register-schedulable=false \
+            --node-labels=role=controller \
+            --allow-privileged=true --containerized=true
