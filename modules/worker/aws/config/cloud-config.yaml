@@ -35,14 +35,15 @@ coreos:
         ExecStartPre=/usr/bin/mkdir -p /etc/kubernetes/manifests
 
         ExecStartPre=/usr/bin/docker run --rm --name=kube-bootstrap \
-          --volume /etc/kube-bootstrap/env:/etc/kube-bootstrap/env \
           --volume /etc/kubernetes/manifests/:/etc/kubernetes/manifests/ \
+          --env-file=/etc/kube-bootstrap/env \
           quay.io/roboll/kube-bootstrap:alpha /opt/bin/copy-cert-sidecar.sh
 
         ExecStartPre=/usr/bin/docker run --rm --name=vault-cert-sidecar \
           --volume /var/lib/vault/:/var/lib/vault/ \
           --volume /var/lib/kubelet/secrets/:/var/lib/kubelet/secrets/ \
-          --env-file=/etc/kube-bootstra/env \
+          --env-file=/etc/kube-bootstrap/env \
+          quay.io/roboll/vault-cert-sidecar:v0.0.1-6-g0c646b8 \
             -auth-strategy=aws-ec2 \
             -pki-backend=${kube_pki_mount} \
             -cert-dir=/var/lib/kubelet/secrets/ \
@@ -87,9 +88,9 @@ write_files:
   - path: /etc/kube-bootstrap/env
     permissions: 0600
     content: |
-      export VAULT_ADDR=${vault_address}
-      export VAULT_AUTH_ROLE=${vault_instance_role}
-      export KUBE_PKI_MOUNT=${kube_pki_mount}
+      VAULT_ADDR=${vault_address}
+      VAULT_AUTH_ROLE=${vault_instance_role}
+      KUBE_PKI_MOUNT=${kube_pki_mount}
 
   - path: /var/lib/kubelet/kubeconfig
     content: |
