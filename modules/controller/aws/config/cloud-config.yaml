@@ -62,6 +62,7 @@ coreos:
 
         ExecStartPre=/usr/bin/mkdir -p /etc/kubernetes/manifests
         ExecStartPre=/opt/bin/kube-bootstrap-manifest
+        ExecStartPre=/opt/bin/kubelet-certs-manifest
         ExecStart=/opt/bin/host-kubelet
 
 write_files:
@@ -123,6 +124,15 @@ write_files:
         --volume /etc/kubernetes/manifests/:/etc/kubernetes/manifests/ \
         --volume /etc/kube-bootstrap/env:/etc/kube-bootstrap/env \
         quay.io/roboll/kube-bootstrap:alpha /opt/bin/copy-bootstrap.sh
+
+  - path: /opt/bin/kubelet-certs-manifest
+    permissions: 0700
+    content: |
+      #! /bin/bash
+      docker run --rm --name=kube-bootstrap-sidecar \
+        --volume /etc/kubernetes/manifests/:/etc/kubernetes/manifests/ \
+        --volume /etc/kube-bootstrap/env:/etc/kube-bootstrap/env \
+        quay.io/roboll/kube-bootstrap:alpha /opt/bin/copy-cert-sidecar.sh
 
   - path: /opt/bin/host-kubelet
     permissions: 0700
