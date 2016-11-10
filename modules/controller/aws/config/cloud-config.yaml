@@ -129,11 +129,11 @@ write_files:
     permissions: 0700
     content: |
       #! /bin/bash
-      mkdir -p /etc/kubelet/certs/
+      mkdir -p /etc/kubelet/
       docker run --rm --name=kubelet-cert-bootstrap \
-        --net=host --privileged \
-        --volume /var/lib/vault/:/var/lib/vault/ \
+        --net=host --privileged=true \
         --volume /etc/kubelet/:/etc/kubelet/ \
+        --volume /var/lib/vault/:/var/lib/vault/ \
         --env-file=/etc/kube-bootstrap/env \
         quay.io/roboll/vault-cert-sidecar:v0.0.1-6-g0c646b8 \
           -auth-strategy=aws-ec2 \
@@ -162,6 +162,5 @@ write_files:
             --require-kubeconfig=true --kubeconfig=/var/lib/kubelet/kubeconfig \
             --lock-file=/var/run/kubelet/lock --exit-on-lock-contention=true \
             --pod-manifest-path=/etc/kubernetes/manifests \
-            --register-schedulable=false \
-            --node-labels=role=controller \
+            --node-labels=role=controller --register-schedulable=false \
             --allow-privileged=true --containerized=true
