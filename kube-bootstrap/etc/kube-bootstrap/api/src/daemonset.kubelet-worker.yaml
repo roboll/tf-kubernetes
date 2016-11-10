@@ -20,10 +20,42 @@ spec:
       hostPID: true
       hostNetwork: true
       containers:
+        - name: vault-certs
+          image: quay.io/roboll/vault-cert-sidecar:v0.0.1-6-g0c646b8
+          args:
+            - -auth-strategy=token-file
+            - -pki-backend=${KUBE_PKI_MOUNT}
+            - -auth-dir=/var/lib/vault/
+            - -cert-dir=/etc/kubelet/
+            - -hostname=kubelet
+          env:
+            - name: VAULT_ADDR
+              value: ${VAULT_ADDR}
+          volumeMounts:
+            - name: etc-kubelet
+              mountPath: /etc/kubelet/
+            - name: var-lib-vault
+              mountPath: /var/lib/vault/
+        - name: cni-bin
+          image: ${HYPERKUBE}
+          command:
+            - /bin/sh
+            - -c
+            - cp -r /opt/cni/bin/* /host/opt/cni/bin/;
+              while true; do sleep 3600; done;
+          volumeMounts:
+            - name: cni-bin
+              mountPath: /host/opt/cni/bin
         - name: kubelet
           image: ${HYPERKUBE}
           command:
-            - /kubelet
+            - /nsenter
+            - --mount
+            - --target=1
+            - --wd=.
+            - --
+            - ./hyperkube
+            - kubelet
             - --cloud-provider=aws
             - --node-labels=role=worker
             - --lock-file=/var/run/kubelet/lock
@@ -34,52 +66,18 @@ spec:
             - --cluster-domain=cluster.local
             - --network-plugin=cni
             - --network-plugin-dir=/etc/cni/net.d
-            - --tls-cert-file=/var/lib/kubelet/certs/cert.pem
-            - --tls-private-key-file=/var/lib/kubelet/certs/key.pem
+            - --tls-cert-file=/etc/kubelet/cert.pem
+            - --tls-private-key-file=/etc/kubelet/key.pem
             - --hairpin-mode=hairpin-veth
-            - --containerized=true
           securityContext:
             privileged: true
-          volumeMounts:
-            - name: rootfs
-              mountPath: /rootfs
-            - name: dev
-              mountPath: /dev
-            - name: run
-              mountPath: /run
-            - name: var-run
-              mountPath: /var/run
-            - name: sys
-              mountPath: /sys
-              readOnly: true
-            - name: var-lib-docker
-              mountPath: /var/lib/docker
-            - name: var-lib-kubelet
-              mountPath: /var/lib/kubelet
-            - name: etc-cni
-              mountPath: /etc/cni/net.d
       volumes:
-        - name: rootfs
+        - name: etc-kubelet
           hostPath:
-            path: /
-        - name: dev
+            path: /etc/kubelet/
+        - name: var-lib-vault
           hostPath:
-            path: /dev
-        - name: run
+            path: /var/lib/vault/
+        - name: cni-bin
           hostPath:
-            path: /run
-        - name: var-run
-          hostPath:
-            path: /var/run
-        - name: sys
-          hostPath:
-            path: /sys
-        - name: var-lib-docker
-          hostPath:
-            path: /var/lib/docker
-        - name: var-lib-kubelet
-          hostPath:
-            path: /var/lib/kubelet
-        - name: etc-cni
-          hostPath:
-            path: /etc/cni/net.d
+            path: /opt/cni/bin/

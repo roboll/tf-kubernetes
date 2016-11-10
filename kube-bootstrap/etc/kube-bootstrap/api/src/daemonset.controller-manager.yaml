@@ -37,14 +37,14 @@ spec:
             initialDelaySeconds: 15
             timeoutSeconds: 1
           volumeMounts:
-            - name: kube-ca
-              mountPath: /etc/secrets/kube-ca
+            - name: ca
+              mountPath: /etc/secrets/kube-ca/
               readOnly: true
             - name: svc-acct-privkey
               mountPath: /etc/secrets/svc-acct
               readOnly: true
       volumes:
-        - name: kube-ca
+        - name: ca
           secret:
             secretName: kube-ca
         - name: svc-acct-privkey

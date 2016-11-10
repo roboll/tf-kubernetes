@@ -14,15 +14,17 @@ spec:
       args:
         - -auth-strategy=token-file
         - -pki-backend=${ETCD_PKI_MOUNT}
+        - -pki-role=etcd
         - -cert-dir=/var/lib/secrets
         - -auth-dir=/var/lib/vault
-        - -localhost=true
+        - -san=localhost
       env:
         - name: VAULT_ADDR
           value: ${VAULT_ADDR}
       volumeMounts:
         - name: vault-secrets
           mountPath: /var/lib/vault/
+          readOnly: true
         - name: secrets
           mountPath: /var/lib/secrets/
     - name: etcd

@@ -1,4 +1,6 @@
 #! /bin/bash
 set -eo pipefail
 
-cat /etc/kube-bootstrap/vault-cert-sidecar.yaml | envsubst > /etc/kubernetes/manifests/vault-cert-sidecar.yaml
+set -a
+if [ -f /etc/kube-bootstrap/env ]; then . /etc/kube-bootstrap/env; fi;
+cat /etc/kube-bootstrap/kubelet-cert-sidecar.yaml | envsubst > /etc/kubernetes/manifests/kubelet-cert-sidecar.yaml

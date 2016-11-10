@@ -1,36 +1,21 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: controller-bootstrap
+  name: bootstrap
   namespace: kube-system
   labels:
     app: kubernetes
-    component: controller-bootstrap
+    component: bootstrap
 spec:
   hostNetwork: true
   containers:
     - name: bootstrap
       image: quay.io/roboll/kube-bootstrap:alpha
-      imagePullPolicy: Always
       command:
         - /opt/bin/bootstrap.sh
-      env:
-        - name: HYPERKUBE
-          value: ${HYPERKUBE}
-        - name: KUBE_FQDN
-          value: ${KUBE_FQDN}
-        - name: KUBE_CA
-          value: /etc/kubernetes/ca.pem
-        - name: ETCD_NODES
-          value: ${ETCD_NODES}
-        - name: ETCD_PEERS
-          value: ${ETCD_PEERS}
       volumeMounts:
         - name: env
           mountPath: /etc/kube-bootstrap/env
-          readOnly: true
-        - name: kube-ca
-          mountPath: /etc/kubernetes/ca.pem
           readOnly: true
         - name: manifests
           mountPath: /etc/kubernetes/manifests
@@ -38,9 +23,6 @@ spec:
     - name: env
       hostPath:
         path: /etc/kube-bootstrap/env
-    - name: kube-ca
-      hostPath:
-        path: ${KUBE_CA}
     - name: manifests
       hostPath:
         path: /etc/kubernetes/manifests
