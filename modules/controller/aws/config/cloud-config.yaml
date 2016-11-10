@@ -124,6 +124,22 @@ write_files:
         --volume /etc/kube-bootstrap/env:/etc/kube-bootstrap/env \
         quay.io/roboll/kube-bootstrap:alpha /opt/bin/copy-bootstrap.sh
 
+  - path: /opt/bin/bootstrap-kubelet-certs
+    permissions: 0700
+    content: |
+      #! /bin/bash
+      docker run --rm --name=kubelet-cert-bootstrap \
+        --volume /var/lib/vault/:/var/lib/vault/ \
+        --volume /var/lib/kubelet/secrets/:/var/lib/kubelet/secrets/ \
+        --env-file=/etc/kube-bootstrap/env \
+        quay.io/roboll/vault-cert-sidecar:v0.0.1-6-g0c646b8 \
+          -auth-strategy=aws-ec2 \
+          -auth-dir=/var/lib/vault/ \
+          -write-auth-info=true \
+          -pki-backend=${kube_pki_mount} \
+          -cert-dir=/etc/kubelet/ \
+          -runonce=true
+
   - path: /opt/bin/host-kubelet
     permissions: 0700
     content: |
