@@ -61,6 +61,7 @@ coreos:
         RestartSec=10
 
         ExecStartPre=/usr/bin/mkdir -p /etc/kubernetes/manifests
+        ExecStartPre=/opt/bin/bootstrap-kubelet-certs
         ExecStartPre=/opt/bin/kube-bootstrap-manifest
         ExecStart=/opt/bin/host-kubelet
 
