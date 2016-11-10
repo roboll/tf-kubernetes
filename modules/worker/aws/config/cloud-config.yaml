@@ -92,6 +92,7 @@ write_files:
     content: |
       #! /bin/bash
       docker run --rm --name=kubelet-cert-bootstrap \
+        --net=host --privileged \
         --volume /var/lib/vault/:/var/lib/vault/ \
         --volume /var/lib/kubelet/secrets/:/var/lib/kubelet/secrets/ \
         --env-file=/etc/kube-bootstrap/env \

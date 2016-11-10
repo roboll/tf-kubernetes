@@ -61,8 +61,8 @@ coreos:
         RestartSec=10
 
         ExecStartPre=/usr/bin/mkdir -p /etc/kubernetes/manifests
+        ExecStartPre=/opt/bin/install-kube-bootstrap-manifest
         ExecStartPre=/opt/bin/bootstrap-kubelet-certs
-        ExecStartPre=/opt/bin/kube-bootstrap-manifest
         ExecStart=/opt/bin/host-kubelet
 
 write_files:
@@ -116,7 +116,7 @@ write_files:
             cluster: kubernetes
             user: user
 
-  - path: /opt/bin/kube-bootstrap-manifest
+  - path: /opt/bin/install-kube-bootstrap-manifest
     permissions: 0700
     content: |
       #! /bin/bash
@@ -129,9 +129,11 @@ write_files:
     permissions: 0700
     content: |
       #! /bin/bash
+      mkdir -p /etc/kubelet/certs/
       docker run --rm --name=kubelet-cert-bootstrap \
+        --net=host --privileged \
         --volume /var/lib/vault/:/var/lib/vault/ \
-        --volume /var/lib/kubelet/secrets/:/var/lib/kubelet/secrets/ \
+        --volume /etc/kubelet/:/etc/kubelet/ \
         --env-file=/etc/kube-bootstrap/env \
         quay.io/roboll/vault-cert-sidecar:v0.0.1-6-g0c646b8 \
           -auth-strategy=aws-ec2 \
@@ -145,7 +147,7 @@ write_files:
     permissions: 0700
     content: |
       #! /bin/bash
-      mkdir -p /var/run/kubelet
+      mkdir -p /var/run/kubelet/
       docker run --rm --name=host-kubelet \
         --net=host --pid=host --privileged=true \
         --volume=/:/rootfs/:ro \
