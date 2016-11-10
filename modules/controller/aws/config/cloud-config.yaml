@@ -93,7 +93,7 @@ write_files:
     permissions: 0600
     content: |
       REGION=${region}
-      CLUSTER_NAME=${var.env}
+      CLUSTER_NAME=${env}
 
       HYPERKUBE=${hyperkube}:${kube_version}
       KUBE_FQDN=${kube_fqdn}
