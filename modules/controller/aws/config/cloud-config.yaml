@@ -65,6 +65,16 @@ coreos:
         ExecStartPre=/opt/bin/bootstrap-kubelet-certs
         ExecStart=/opt/bin/host-kubelet
 
+    - name: kube-cordon.service
+      content: |
+        [Unit]
+        DefaultDependencies=no
+        Before=shutdown.target reboot.target halt.target
+
+        [Service]
+        ExecStart=/bin/bash -c "echo execute kubectl cordon"
+        Type=oneshot
+
 write_files:
   - path: /etc/ssl/vault/ca.pem
     permissions: 0600

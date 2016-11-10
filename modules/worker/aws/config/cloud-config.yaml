@@ -1,7 +1,7 @@
 #cloud-config
 coreos:
   update:
-    reboot-strategy: off
+    reboot-strategy: reboot
 
   units:
     - name: vault-ssh.service
@@ -34,6 +34,16 @@ coreos:
         ExecStartPre=/usr/bin/mkdir -p /etc/kubernetes/manifests
         ExecStartPre=/opt/bin/bootstrap-kubelet-certs
         ExecStart=/opt/bin/host-kubelet
+
+    - name: kube-cordon.service
+      content: |
+        [Unit]
+        DefaultDependencies=no
+        Before=shutdown.target reboot.target halt.target
+
+        [Service]
+        ExecStart=/bin/bash -c "echo execute kubectl cordon"
+        Type=oneshot
 
 write_files:
   - path: /etc/ssl/vault/ca.pem
