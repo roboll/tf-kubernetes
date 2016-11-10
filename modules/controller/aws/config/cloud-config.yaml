@@ -151,7 +151,7 @@ write_files:
           -write-auth-info=true \
           -pki-backend=${kube_pki_mount} \
           -cert-dir=/etc/kubelet/ \
-          -san=localhost \
+          -hostname=kubelet -san=$(hostname -f) \
           -runonce=true
 
   - path: /opt/bin/host-kubelet
