@@ -325,3 +325,33 @@ resource vaultx_secret role {
         max_ttl = "48h"
     }
 }
+
+resource vaultx_secret autoscaler_role {
+    path = "aws/role/kube-${var.env}-autoscaler"
+
+    data {
+        policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "autoscaling:SetDesiredCapacity",
+        "autoscaling:TerminateInstanceInAutoScalingGroup",
+        "autoscaling:DescribeAutoScalingGroups",
+        "autoscaling:DescribeScalingActivities",
+        "autoscaling:DescribeLaunchConfigurations"
+      ],
+      "Resource": [ "*" ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [ "ec2:DescribeInstances" ],
+      "Resource": [ "*" ]
+    }
+  ]
+}
+EOF
+    }
+}

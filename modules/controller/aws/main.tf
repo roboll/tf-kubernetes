@@ -179,6 +179,7 @@ resource coreos_cloudconfig cloud_config {
 
         vault_ssh_image = "${var.vault_ssh_image}"
 
+        env = "${var.env}"
         region = "${var.region}"
         vault_address = "${var.vault_address}"
         vault_instance_role = "${vaultx_policy.controller_instance.name}"

@@ -92,6 +92,9 @@ write_files:
   - path: /etc/kube-bootstrap/env
     permissions: 0600
     content: |
+      REGION=${region}
+      CLUSTER_NAME=${var.env}
+
       HYPERKUBE=${hyperkube}:${kube_version}
       KUBE_FQDN=${kube_fqdn}
 
