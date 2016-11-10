@@ -327,7 +327,7 @@ resource vaultx_secret role {
 }
 
 resource vaultx_secret autoscaler_role {
-    path = "aws/role/kube-${var.env}-autoscaler"
+    path = "aws/roles/kube-${var.env}-autoscaler"
 
     data {
         policy = <<EOF
