@@ -36,16 +36,19 @@ spec:
               mountPath: /etc/kubelet/
             - name: var-lib-vault
               mountPath: /var/lib/vault/
-        - name: cni-bin
+        - name: host-bin
           image: ${HYPERKUBE}
           command:
             - /bin/sh
             - -c
             - cp -r /opt/cni/bin/* /host/opt/cni/bin/;
+              cp /usr/bin/socat /opt/bin/;
               while true; do sleep 3600; done;
           volumeMounts:
             - name: cni-bin
-              mountPath: /host/opt/cni/bin
+              mountPath: /host/opt/cni/bin/
+            - name: opt-bin
+              mountPath: /opt/bin/
         - name: kubelet
           image: ${HYPERKUBE}
           command:
@@ -81,3 +84,6 @@ spec:
         - name: cni-bin
           hostPath:
             path: /opt/cni/bin/
+        - name: opt-bin
+          hostPath:
+            path: /opt/bin/
