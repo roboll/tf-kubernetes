@@ -1,0 +1,18 @@
+kind: Service
+apiVersion: v1
+metadata:
+  annotations:
+    prometheus.io/scrape: "true"
+  name: kube-state-metrics
+  namespace: kube-system
+  labels:
+    app: kubernetes
+    component: kube-state-metrics
+spec:
+  ports:
+    - name: kube-state-metrics
+      port: 8080
+      protocol: TCP
+  selector:
+    app: kubernetes
+    component: kube-state-metrics
