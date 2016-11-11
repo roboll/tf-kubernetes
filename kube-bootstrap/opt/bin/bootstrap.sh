@@ -7,10 +7,10 @@ kube_apis=(
     "thirdpartyresource:http://localhost:8080/apis/extensions/v1beta1/thirdpartyresources"
     "serviceaccount:http://localhost:8080/api/v1/namespaces/kube-system/serviceaccounts"
     "configmap:http://localhost:8080/api/v1/namespaces/kube-system/configmaps"
-    "secret:http://localhost:8080/api/v1/namespaces/kube-system/secrets"
     "deployment:http://localhost:8080/apis/extensions/v1beta1/namespaces/kube-system/deployments"
     "daemonset:http://localhost:8080/apis/extensions/v1beta1/namespaces/kube-system/daemonsets"
     "service:http://localhost:8080/api/v1/namespaces/kube-system/services"
+    "secret:http://localhost:8080/api/v1/namespaces/kube-system/secrets"
     "secretclaim:http://localhost:8080/apis/vaultproject.io/v1/namespaces/kube-system/secretclaims"
 )
 kube_pod_api="http://localhost:8080/api/v1/namespaces/kube-system/pods"
@@ -51,10 +51,12 @@ bootstrap() {
 
         for file in $objects_path/$api_type.*.json; do
             echo "creating $api_type from $file"
-            cat $file | envsubst | curl $curl_kube_opts -XPOST \
-                -H "$curl_kube_auth" -H "$curl_json" -d@- $api_path || true
-            sleep .5
+            cat $file | \
+                envsubst | \
+                curl $curl_kube_opts -XPOST -H "$curl_kube_auth" -H "$curl_json" -d@- $api_path >/dev/null \
+                || true
         done
+        sleep .5
     done
 
     echo ""
@@ -63,22 +65,27 @@ bootstrap() {
         ds_name=$(echo $ds | sed -e s,$manifest_path/,,g -e s,.yaml,,g -e s,bootstrap-ds-,,g)
 
         echo "checking daemonset $ds_name"
-        until curl $curl_kube_opts -H "$curl_kube_auth" $kube_pod_api?labelSelector=app=kubernetes,component=$ds_name | \
-            jq -r '.items[].spec.nodeName' | \
-            grep $(hostname -f); do
-            echo "waiting for $ds_name to schedule"; sleep 5;
+        until curl $curl_kube_opts -H "$curl_kube_auth" $kube_pod_api?labelSelector=app=$ds_name | \
+            jq -er ".items[] | \
+                    select(.status.phase == \"Running\") | \
+                    select(.spec.nodeName == \"$(hostname -f)\")"; do
+            echo "waiting for $ds_name to schedule on $(hostname -f)"; sleep 5;
         done
     done
 
-    echo ""
     echo "all daemonsets scheduled, deleting bootstrap components"
     for bs in /etc/kubernetes/manifests/bootstrap-*.yaml; do
         echo "removing $bs"
         rm -f $bs
     done
 
-    echo "waiting 30s for bootstrap components to shut down"
-    sleep 30
+    until curl $curl_kube_opts -H "$curl_kube_auth" $kube_pod_api?labelSelector=phase=bootstrap | \
+        jq -er ".items[] | \
+                select(.status.phase == \"Running\") | \
+                select(.spec.nodeName == \"$(hostname -f)\") | \
+                length as \$length | \$length > 0"; do
+        echo "waiting for bootstrap components to shut down"
+    done
 
     echo "bootstrap complete"
 }
@@ -101,11 +108,6 @@ download_ca_certs() {
     export ETCD_CA=$(base64 $etcd_ca_file | tr -d '\n')
 }
 
-init() {
-    load_env_file
-    download_ca_certs
-}
-
 run() {
     while true; do
         if curl $curl_kube_opts $kube_healthz_api >/dev/null && \
@@ -121,5 +123,6 @@ run() {
     done
 }
 
-init
+load_env_file
+download_ca_certs
 run
