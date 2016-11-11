@@ -136,7 +136,7 @@ write_files:
       docker run --rm --name=kube-bootstrap \
         --volume /etc/kubernetes/manifests/:/etc/kubernetes/manifests/ \
         --volume /etc/kube-bootstrap/env:/etc/kube-bootstrap/env \
-        quay.io/roboll/kube-bootstrap:alpha /opt/bin/copy-bootstrap.sh
+        quay.io/roboll/kube-bootstrap:alpha /opt/bin/copy-manifest.sh
 
   - path: /opt/bin/bootstrap-kubelet-certs
     permissions: 0700
