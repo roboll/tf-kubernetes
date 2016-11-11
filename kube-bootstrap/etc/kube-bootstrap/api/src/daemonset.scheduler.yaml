@@ -4,14 +4,12 @@ metadata:
   name: scheduler
   namespace: kube-system
   labels:
-    app: kubernetes
-    component: scheduler
+    app: scheduler
 spec:
   template:
     metadata:
       labels:
-        app: kubernetes
-        component: scheduler
+        app: scheduler
     spec:
       nodeSelector:
         role: controller

@@ -4,8 +4,8 @@ metadata:
   name: bootstrap-apiserver
   namespace: kube-system
   labels:
-    app: bootstrap-kubernetes
-    component: apiserver
+    app: bootstrap-apiserver
+    phase: bootstrap
 spec:
   hostNetwork: true
   containers:

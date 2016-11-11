@@ -1,0 +1,49 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: autoscaler
+  namespace: kube-system
+  labels:
+    app: kubernetes
+    component: autoscaler
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: kubernetes
+        component: autoscaler
+        openai/do-not-drain: "true"
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ''
+        scheduler.alpha.kubernetes.io/tolerations: '[{"key":"CriticalAddonsOnly", "operator":"Exists"}]'
+    spec:
+      dnsPolicy: Default
+      containers:
+        - name: autoscaler
+          image: quay.io/openai/kubernetes-ec2-autoscaler:v0.1.0
+          env:
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: autoscaler-aws
+                  key: access_key
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: autoscaler-aws
+                  key: secret_key
+            - name: PYKUBE_KUBERNETES_SERVICE_HOST
+              value: kubernetes
+          command:
+            - python
+            - main.py
+            - --regions
+            - ${REGION}
+            - --cluster-name
+            - ${CLUSTER_NAME}
+            - -vvv
+            - --type-idle-threshold
+            - "0"
+            - --sleep
+            - "30"

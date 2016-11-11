@@ -1,15 +1,14 @@
 kind: Service
 apiVersion: v1
 metadata:
-  name: kube-dns
+  name: dns
   namespace: kube-system
   labels:
     kubernetes.io/cluster-service: "true"
     kubernetes.io/name: "KubeDNS"
 spec:
   selector:
-    app: kubernetes
-    component: dns
+    app: dns
   clusterIP: 10.0.0.10
   ports:
     - name: dns

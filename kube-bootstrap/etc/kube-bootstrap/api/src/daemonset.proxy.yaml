@@ -4,31 +4,23 @@ metadata:
   name: proxy
   namespace: kube-system
   labels:
-    app: kubernetes
-    component: proxy
+    app: proxy
 spec:
   template:
     metadata:
       labels:
-        app: kubernetes
-        component: proxy
+        app: proxy
     spec:
       hostNetwork: true
       containers:
         - name: proxy
           image: ${HYPERKUBE}
-          serviceAccount: proxy
           securityContext:
             privileged: true
           command:
-            - /bin/sh
-            - -c
-            - sed /etc/kubeconfig/kubeconfig.yaml -e s,{{TOKEN}},$(cat /var/run/secrets/kubernetes.io/serviceaccount/token),g > /kubeconfig.yaml;
-              exec /hyperkube proxy --kubeconfig=/kubeconfig.yaml --proxy-mode=iptables
-          volumeMounts:
-            - name: kubeconfig
-              mountPath: /etc/kubeconfig
-              readOnly: true
+            - /proxy
+            - --kubeconfig=/var/lib/kubelet/kubeconfig
+            - --proxy-mode=iptables
           livenessProbe:
             httpGet:
               host: 127.0.0.1
@@ -36,7 +28,17 @@ spec:
               port: 10249
             initialDelaySeconds: 15
             timeoutSeconds: 1
+          volumeMounts:
+            - name: var-lib-kubelet-kubeconfig
+              mountPath: /var/lib/kubelet/kubeconfig
+              readOnly: true
+            - name: etc-kubelet
+              mountPath: /etc/kubelet/
+              readOnly: true
       volumes:
-        - name: kubeconfig
-          configMap:
-            name: proxy-kubeconfig
+        - name: var-lib-kubelet-kubeconfig
+          hostPath:
+            path: /var/lib/kubelet/kubeconfig
+        - name: etc-kubelet
+          hostPath:
+            path: /etc/kubelet/

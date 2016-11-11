@@ -4,14 +4,12 @@ metadata:
   name: flannel
   namespace: kube-system
   labels:
-    app: kubernetes
-    component: flannel
+    app: flannel
 spec:
   template:
     metadata:
       labels:
-        app: kubernetes
-        component: flannel
+        app: flannel
     spec:
       hostNetwork: true
       containers:

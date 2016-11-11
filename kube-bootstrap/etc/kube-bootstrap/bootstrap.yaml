@@ -4,8 +4,7 @@ metadata:
   name: bootstrap
   namespace: kube-system
   labels:
-    app: kubernetes
-    component: bootstrap
+    app: kube-bootstrap
 spec:
   hostNetwork: true
   containers:

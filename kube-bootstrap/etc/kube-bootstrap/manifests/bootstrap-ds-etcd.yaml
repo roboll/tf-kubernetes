@@ -4,8 +4,8 @@ metadata:
   name: bootstrap-etcd
   namespace: kube-system
   labels:
-    app: bootstrap-kubernetes
-    component: etcd
+    app: bootstrap-etcd
+    phase: bootstrap
 spec:
   hostNetwork: true
   containers:

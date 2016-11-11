@@ -4,8 +4,8 @@ metadata:
   name: bootstrap-controller-manager
   namespace: kube-system
   labels:
-    app: bootstrap-kubernetes
-    component: controller-manager
+    app: bootstrap-controller-manager
+    phase: bootstrap
 spec:
   hostNetwork: true
   containers:

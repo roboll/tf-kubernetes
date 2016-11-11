@@ -4,14 +4,12 @@ metadata:
   name: controller-manager
   namespace: kube-system
   labels:
-    app: kubernetes
-    component: controller-manager
+    app: controller-manager
 spec:
   template:
     metadata:
       labels:
-        app: kubernetes
-        component: controller-manager
+        app: controller-manager
     spec:
       nodeSelector:
         role: controller

@@ -4,8 +4,8 @@ metadata:
   name: bootstrap-vault-controller
   namespace: kube-system
   labels:
-    app: bootstrap-kubernetes
-    component: vault-controller
+    app: bootstrap-vault-controller
+    phase: bootstrap
 spec:
   hostNetwork: true
   containers:

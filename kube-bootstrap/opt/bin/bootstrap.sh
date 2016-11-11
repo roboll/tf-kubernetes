@@ -13,7 +13,7 @@ kube_apis=(
     "service:http://localhost:8080/api/v1/namespaces/kube-system/services"
     "secretclaim:http://localhost:8080/apis/vaultproject.io/v1/namespaces/kube-system/secretclaims"
 )
-kube_ds_api="http://localhost:8080/apis/extensions/v1beta1/namespaces/kube-system/daemonsets"
+kube_pod_api="http://localhost:8080/api/v1/namespaces/kube-system/pods"
 kube_node_api="http://localhost:8080/api/v1/nodes"
 kube_healthz_api="http://localhost:8080/healthz"
 
@@ -63,8 +63,9 @@ bootstrap() {
         ds_name=$(echo $ds | sed -e s,$manifest_path/,,g -e s,.yaml,,g -e s,bootstrap-ds-,,g)
 
         echo "checking daemonset $ds_name"
-        until [ $(curl $curl_kube_opts -H "$curl_kube_auth" $kube_ds_api/$ds_name | \
-            jq .status.currentNumberScheduled) -gt 0 ]; do
+        until curl $curl_kube_opts -H "$curl_kube_auth" $kube_pod_api?labelSelector=app=kubernetes,component=$ds_name | \
+            jq -r '.items[].spec.nodeName' | \
+            grep $(hostname -f); do
             echo "waiting for $ds_name to schedule"; sleep 5;
         done
     done
