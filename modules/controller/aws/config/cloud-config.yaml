@@ -181,4 +181,7 @@ write_files:
             --lock-file=/var/run/kubelet/lock --exit-on-lock-contention=true \
             --pod-manifest-path=/etc/kubernetes/manifests \
             --node-labels=role=controller --register-schedulable=false \
-            --allow-privileged=true --containerized=true
+            --allow-privileged=true --containerized=true \
+            --cloud-provider= --cluster-dns=10.0.0.10 --cluster-domain=cluster.local \
+            --network-plugin=cni --network-plugin-dir=/etc/cni/net.d \
+            --tls-cert-file=/etc/kubelet/cert.pem --tls-private-key-file=/etc/kubelet/key.pem
