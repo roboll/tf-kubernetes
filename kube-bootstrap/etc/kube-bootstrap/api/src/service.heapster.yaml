@@ -1,13 +1,13 @@
 kind: Service
 apiVersion: v1
 metadata:
-  name: kubernetes-dashboard
+  name: heapster
   namespace: kube-system
   labels:
-    app: dashboard
+    app: heapster
 spec:
   selector:
-    app: dashboard
+    app: heapster
   ports:
     - port: 80
-      targetPort: 9090
+      targetPort: 8082

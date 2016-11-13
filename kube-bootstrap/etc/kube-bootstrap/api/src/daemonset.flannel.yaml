@@ -12,6 +12,7 @@ spec:
         app: flannel
     spec:
       hostNetwork: true
+      serviceAccount: flannel
       containers:
         - name: flannel
           image: quay.io/coreos/flannel-git:v0.6.1-28-g5dde68d-amd64
@@ -21,7 +22,6 @@ spec:
             - --kube-subnet-mgr
           securityContext:
             privileged: true
-          serviceAccount: flannel
           env:
             - name: POD_NAME
               valueFrom:

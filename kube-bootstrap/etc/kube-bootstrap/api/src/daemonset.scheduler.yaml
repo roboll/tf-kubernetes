@@ -14,10 +14,10 @@ spec:
       nodeSelector:
         role: controller
       hostNetwork: true
+      serviceAccount: scheduler
       containers:
         - name: scheduler
           image: ${HYPERKUBE}
-          serviceAccount: scheduler
           command:
             - /scheduler
             - --leader-elect=true

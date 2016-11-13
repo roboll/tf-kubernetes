@@ -20,12 +20,16 @@ spec:
       containers:
         - name: vault-certs
           image: quay.io/roboll/vault-cert-sidecar:v0.0.1-6-g0c646b8
-          args:
-            - -auth-strategy=token-file
-            - -pki-backend=${KUBE_PKI_MOUNT}
-            - -auth-dir=/var/lib/vault/
-            - -cert-dir=/etc/kubelet/
-            - -hostname=kubelet
+          command:
+            - /bin/sh
+            - -c
+            - /vault-cert-sidecar
+              -auth-strategy=token-file
+              -pki-backend=${KUBE_PKI_MOUNT}
+              -auth-dir=/var/lib/vault/
+              -cert-dir=/etc/kubelet/
+              -hostname=kubelet
+              -san=$(hostname -f)
           env:
             - name: VAULT_ADDR
               value: ${VAULT_ADDR}
@@ -34,19 +38,28 @@ spec:
               mountPath: /etc/kubelet/
             - name: var-lib-vault
               mountPath: /var/lib/vault/
-        - name: host-bin
+        - name: socat-bin
+          image: alpine:3.4
+          command:
+            - /bin/sh
+            - -c
+            - apk add --update curl;
+              curl -L https://github.com/andrew-d/static-binaries/raw/master/binaries/linux/x86_64/socat -o /opt/bin/socat;
+              chmod +x /opt/bin/socat;
+              while true; do sleep 3600; done;
+          volumeMounts:
+            - name: opt-bin
+              mountPath: /opt/bin/
+        - name: cni-bin
           image: ${HYPERKUBE}
           command:
             - /bin/sh
             - -c
             - cp -r /opt/cni/bin/* /host/opt/cni/bin/;
-              cp /usr/bin/socat /opt/bin/;
               while true; do sleep 3600; done;
           volumeMounts:
             - name: cni-bin
               mountPath: /host/opt/cni/bin/
-            - name: opt-bin
-              mountPath: /opt/bin/
         - name: kubelet
           image: ${HYPERKUBE}
           command:
@@ -74,6 +87,9 @@ spec:
             - --hairpin-mode=hairpin-veth
           securityContext:
             privileged: true
+          env:
+            - name: PATH
+              value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/bin
       volumes:
         - name: etc-kubelet
           hostPath:
