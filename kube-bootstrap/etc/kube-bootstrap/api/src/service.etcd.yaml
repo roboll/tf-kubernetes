@@ -1,0 +1,17 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: etcd
+  namespace: kube-system
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "2381"
+  labels:
+    app: etcd
+spec:
+  selector:
+    app: etcd
+  ports:
+    - name: metrics
+      port: 2381
+      protocol: TCP

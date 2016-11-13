@@ -56,7 +56,7 @@ bootstrap() {
                 curl $curl_kube_opts -XPOST -H "$curl_kube_auth" -H "$curl_json" -d@- $api_path >/dev/null \
                 || true
         done
-        sleep .5
+        sleep 1
     done
 
     echo ""

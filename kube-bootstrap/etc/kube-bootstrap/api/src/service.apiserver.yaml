@@ -1,0 +1,17 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: apiserver
+  namespace: kube-system
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/scheme: "https"
+  labels:
+    app: apiserver
+spec:
+  selector:
+    app: apiserver
+  ports:
+    - name: metrics
+      port: 443
+      protocol: TCP

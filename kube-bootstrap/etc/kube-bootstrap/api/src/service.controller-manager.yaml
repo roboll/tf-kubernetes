@@ -1,0 +1,17 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: controller-manager
+  namespace: kube-system
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "10252"
+  labels:
+    app: controller-manager
+spec:
+  selector:
+    app: controller-manager
+  ports:
+    - name: metrics
+      port: 10252
+      protocol: TCP

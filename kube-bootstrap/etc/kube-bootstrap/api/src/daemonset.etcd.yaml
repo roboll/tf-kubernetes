@@ -21,7 +21,7 @@ spec:
             - -auth-strategy=token-file
             - -pki-backend=${ETCD_PKI_MOUNT}
             - -pki-role=etcd
-            - -cert-dir=/var/lib/secrets
+            - -cert-dir=/etc/secrets
             - -auth-dir=/var/lib/vault
             - -san=localhost
           env:
@@ -32,7 +32,22 @@ spec:
               mountPath: /var/lib/vault/
               readOnly: true
             - name: secrets
-              mountPath: /var/lib/secrets/
+              mountPath: /etc/secrets/
+        - name: metrics-proxy
+          image: quay.io/roboll/etcd-metrics-proxy:v0.5
+          args:
+            - --upstream-server-name=controller
+            - --etcd-ca=/etc/secrets/ca.pem
+            - --etcd-cert=/etc/secrets/cert.pem
+            - --etcd-key=/etc/secrets/key.pem
+          volumeMounts:
+            - name: secrets
+              mountPath: /etc/secrets/
+              readOnly: true
+          resources:
+            requests:
+              cpu: 5m
+              memory: 50Mi
         - name: etcd
           image: quay.io/coreos/etcd:v3.0.12
           command:
@@ -54,26 +69,26 @@ spec:
             - name: ETCD_LISTEN_PEER_URLS
               value: https://0.0.0.0:2380
             - name: ETCD_CERT_FILE
-              value: /var/lib/secrets/cert.pem
+              value: /etc/secrets/cert.pem
             - name: ETCD_KEY_FILE
-              value: /var/lib/secrets/key.pem
+              value: /etc/secrets/key.pem
             - name: ETCD_TRUSTED_CA_FILE
-              value: /var/lib/secrets/ca.pem
+              value: /etc/secrets/ca.pem
             - name: ETCD_CLIENT_CERT_AUTH
               value: "true"
             - name: ETCD_PEER_CERT_FILE
-              value: /var/lib/secrets/cert.pem
+              value: /etc/secrets/cert.pem
             - name: ETCD_PEER_KEY_FILE
-              value: /var/lib/secrets/key.pem
+              value: /etc/secrets/key.pem
             - name: ETCD_PEER_TRUSTED_CA_FILE
-              value: /var/lib/secrets/ca.pem
+              value: /etc/secrets/ca.pem
             - name: ETCD_PEER_CLIENT_CERT_AUTH
               value: "true"
           volumeMounts:
             - name: data
               mountPath: /var/lib/etcd/
             - name: secrets
-              mountPath: /var/lib/secrets/
+              mountPath: /etc/secrets/
               readOnly: true
       volumes:
         - name: secrets

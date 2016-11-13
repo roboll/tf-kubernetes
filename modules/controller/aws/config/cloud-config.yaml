@@ -133,6 +133,7 @@ write_files:
     permissions: 0700
     content: |
       #! /bin/bash
+      docker rm kube-bootstrap || true
       docker run --rm --name=kube-bootstrap \
         --volume /etc/kubernetes/manifests/:/etc/kubernetes/manifests/ \
         --volume /etc/kube-bootstrap/env:/etc/kube-bootstrap/env \
@@ -143,6 +144,7 @@ write_files:
     content: |
       #! /bin/bash
       mkdir -p /etc/kubelet/
+      docker rm kubelet-cert-bootstrap || true
       docker run --rm --name=kubelet-cert-bootstrap \
         --net=host --privileged=true \
         --volume /etc/kubelet/:/etc/kubelet/ \
@@ -162,6 +164,7 @@ write_files:
     content: |
       #! /bin/bash
       mkdir -p /var/run/kubelet/
+      docker rm host-kubelet || true
       docker run --rm --name=host-kubelet \
         --net=host --pid=host --privileged=true \
         --volume=/:/rootfs/:ro \

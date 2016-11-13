@@ -1,0 +1,17 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: scheduler
+  namespace: kube-system
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "10251"
+  labels:
+    app: scheduler
+spec:
+  selector:
+    app: scheduler
+  ports:
+    - name: metrics
+      port: 10251
+      protocol: TCP
