@@ -2,7 +2,7 @@
 hostname: ${instance_name}.${domain}
 coreos:
   update:
-    reboot-strategy: off
+    reboot-strategy: reboot
 
   units:
     - name: vault-ssh.service
