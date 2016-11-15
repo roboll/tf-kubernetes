@@ -36,7 +36,7 @@ spec:
         - name: metrics-proxy
           image: quay.io/roboll/etcd-metrics-proxy:v0.5
           args:
-            - --upstream-server-name=controller
+            - --upstream-server-name=localhost
             - --etcd-ca=/etc/secrets/ca.pem
             - --etcd-cert=/etc/secrets/cert.pem
             - --etcd-key=/etc/secrets/key.pem
