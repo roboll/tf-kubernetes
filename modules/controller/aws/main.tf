@@ -28,7 +28,7 @@ variable etcd_volume_size { default = 20 }
 variable hyperkube { default = "quay.io/coreos/hyperkube" }
 variable kube_version { default = "v1.4.1_coreos.0" }
 
-variable vault_ssh_image { default = "quay.io/roboll/vault-ssh-coreos:v0.2.0" }
+variable vault_ssh_image { default = "quay.io/roboll/vault-ssh-coreos:v0.3.0" }
 
 variable cidr_offset { default = "16" }
 

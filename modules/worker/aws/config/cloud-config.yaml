@@ -10,7 +10,10 @@ coreos:
         [Service]
         Type=oneshot
 
-        ExecStart=/usr/bin/docker pull ${vault_ssh_image}
+        ExecStartPre=/usr/bin/docker pull ${vault_ssh_image}
+        ExecStart=/usr/bin/docker run \
+          -v /etc/pam.d/:/rootfs/etcd/pam.d/ \
+          ${vault_ssh_image} /install.sh
 
     - name: docker.service
       command: start

@@ -29,7 +29,7 @@ variable kube_pki_backend {}
 variable hyperkube { default = "quay.io/coreos/hyperkube" }
 variable kube_version { default = "v1.3.6_coreos.0" }
 
-variable vault_ssh_image { default = "quay.io/roboll/vault-ssh-coreos:v0.2.0" }
+variable vault_ssh_image { default = "quay.io/roboll/vault-ssh-coreos:v0.3.0" }
 
 provider aws {
     region = "${var.region}"
