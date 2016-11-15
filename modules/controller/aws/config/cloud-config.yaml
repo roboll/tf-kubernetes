@@ -75,8 +75,12 @@ coreos:
         Before=shutdown.target reboot.target halt.target
 
         [Service]
-        ExecStart=/bin/bash -c "echo execute kubectl cordon"
         Type=oneshot
+
+        ExecStart=/usr/bin/docker run --rm --net=host --name=kubectl-cordon \
+          -v /var/lib/kubelet/:/var/lib/kubelet/ \
+          -v /etc/kubelet/:/etc/kubelet/ \
+          ${hyperkube}:${kube_version} /kubectl cordon %H
 
 write_files:
   - path: /etc/ssl/vault/ca.pem
