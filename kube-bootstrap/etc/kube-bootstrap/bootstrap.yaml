@@ -17,11 +17,16 @@ spec:
           mountPath: /etc/kube-bootstrap/env
           readOnly: true
         - name: manifests
-          mountPath: /etc/kubernetes/manifests
+          mountPath: /etc/kubernetes/manifests/
+        - name: vault-secrets
+          mountPath: /var/lib/vault/
   volumes:
     - name: env
       hostPath:
         path: /etc/kube-bootstrap/env
     - name: manifests
       hostPath:
-        path: /etc/kubernetes/manifests
+        path: /etc/kubernetes/manifests/
+    - name: vault-secrets
+      hostPath:
+        path: /var/lib/vault/
