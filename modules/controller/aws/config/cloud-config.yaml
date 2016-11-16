@@ -5,20 +5,6 @@ coreos:
     reboot-strategy: reboot
 
   units:
-    - name: vault-ssh.service
-      command: start
-      content: |
-        [Service]
-        Type=oneshot
-
-        ExecStartPre=/usr/bin/docker pull ${vault_ssh_image}
-        ExecStartPre=/usr/bin/mkdir -p /etc/pam.d
-        ExecStartPre=/usrbin/mkdir -p /opt/bin
-        ExecStart=/usr/bin/docker run --rm \
-          -v /etc/pam.d/:/rootfs/etc/pam.d/ \
-          -v /opt/bin/:/rootfs/opt/bin/ \
-          ${vault_ssh_image} /install.sh
-
     - name: dev-xvdb-format.service
       command: start
       content: |
@@ -84,6 +70,20 @@ coreos:
           -v /var/lib/kubelet/:/var/lib/kubelet/ \
           -v /etc/kubelet/:/etc/kubelet/ \
           ${hyperkube}:${kube_version} /kubectl cordon %H
+
+    - name: vault-ssh.service
+      command: start
+      content: |
+        [Service]
+        Type=oneshot
+
+        ExecStartPre=/usr/bin/docker pull ${vault_ssh_image}
+        ExecStartPre=/usr/bin/mkdir -p /etc/pam.d
+        ExecStartPre=/usrbin/mkdir -p /opt/bin
+        ExecStart=/usr/bin/docker run --rm \
+          -v /etc/pam.d/:/rootfs/etc/pam.d/ \
+          -v /opt/bin/:/rootfs/opt/bin/ \
+          ${vault_ssh_image} /install.sh
 
 write_files:
   - path: /var/lib/vault/ca.pem
@@ -161,11 +161,8 @@ write_files:
         --volume /var/lib/vault/:/var/lib/vault/ \
         --env-file=/etc/kube-bootstrap/env \
         quay.io/roboll/vault-cert-sidecar:v0.0.1-6-g0c646b8 \
-          -auth-strategy=aws-ec2 \
-          -auth-dir=/var/lib/vault/ \
-          -write-auth-info=true \
-          -pki-backend=${kube_pki_mount} \
-          -cert-dir=/etc/kubelet/ \
+          -auth-strategy=aws-ec2  -auth-dir=/var/lib/vault/ -write-auth-info=true \
+          -pki-backend=${kube_pki_mount} -cert-dir=/etc/kubelet/ \
           -hostname=kubelet -san=$(hostname -f) \
           -runonce=true
 

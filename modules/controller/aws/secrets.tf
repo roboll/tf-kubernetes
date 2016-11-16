@@ -141,78 +141,6 @@ resource vaultx_secret kube_controller_role {
     depends_on = [ "vaultx_secret.kube_pki_init" ]
 }
 
-resource vaultx_secret kube_bootstrap_role {
-    path = "${var.env}-kube/roles/bootstrap"
-    ignore_read = true
-
-    data {
-        allowed_domains = "bootstrap"
-        allow_bare_domains = true
-        allow_subdomains = false
-        allow_localhost = false
-        server_flag = false
-        key_type = "ec"
-        key_bits = "256"
-        max_ttl = "48h"
-    }
-
-    depends_on = [ "vaultx_secret.kube_pki_init" ]
-}
-
-resource vaultx_secret kube_flannel_role {
-    path = "${var.env}-kube/roles/flannel"
-    ignore_read = true
-
-    data {
-        allowed_domains = "flannel"
-        allow_bare_domains = true
-        allow_subdomains = false
-        allow_localhost = false
-        server_flag = false
-        key_type = "ec"
-        key_bits = "256"
-        max_ttl = "48h"
-    }
-
-    depends_on = [ "vaultx_secret.kube_pki_init" ]
-}
-
-resource vaultx_secret kube_scheduler_role {
-    path = "${var.env}-kube/roles/scheduler"
-    ignore_read = true
-
-    data {
-        allowed_domains = "scheduler"
-        allow_bare_domains = true
-        allow_subdomains = false
-        allow_localhost = false
-        server_flag = false
-        key_type = "ec"
-        key_bits = "256"
-        max_ttl = "48h"
-    }
-
-    depends_on = [ "vaultx_secret.kube_pki_init" ]
-}
-
-resource vaultx_secret kube_proxy_role {
-    path = "${var.env}-kube/roles/proxy"
-    ignore_read = true
-
-    data {
-        allowed_domains = "proxy"
-        allow_bare_domains = true
-        allow_subdomains = false
-        allow_localhost = false
-        server_flag = false
-        key_type = "ec"
-        key_bits = "256"
-        max_ttl = "48h"
-    }
-
-    depends_on = [ "vaultx_secret.kube_pki_init" ]
-}
-
 resource vaultx_secret kube_kubelet_role {
     path = "${var.env}-kube/roles/kubelet"
     ignore_read = true
@@ -277,19 +205,7 @@ path "${var.env}-kube/issue/apiserver" {
 path "${var.env}-kube/issue/controller-manager" {
     capabilities = [ "create", "read", "update", "list" ]
 }
-path "${var.env}-kube/issue/flannel" {
-    capabilities = [ "create", "read", "update", "list" ]
-}
-path "${var.env}-kube/issue/scheduler" {
-    capabilities = [ "create", "read", "update", "list" ]
-}
-path "${var.env}-kube/issue/proxy" {
-    capabilities = [ "create", "read", "update", "list" ]
-}
 path "${var.env}-kube/issue/kubelet" {
-    capabilities = [ "create", "read", "update", "list" ]
-}
-path "${var.env}-kube/issue/bootstrap" {
     capabilities = [ "create", "read", "update", "list" ]
 }
 
