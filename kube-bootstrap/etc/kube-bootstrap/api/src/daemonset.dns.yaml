@@ -1,4 +1,4 @@
-kind: Deployment
+kind: DaemonSet
 apiVersion: extensions/v1beta1
 metadata:
   name: dns
@@ -6,14 +6,10 @@ metadata:
   labels:
     app: dns
 spec:
-  replicas: 2
   template:
     metadata:
       labels:
         app: dns
-      annotations:
-        scheduler.alpha.kubernetes.io/critical-pod: ''
-        scheduler.alpha.kubernetes.io/tolerations: '[{"key":"CriticalAddonsOnly", "operator":"Exists"}]'
     spec:
       dnsPolicy: Default
       containers:
@@ -74,6 +70,27 @@ spec:
             - containerPort: 53
               name: dns-tcp
               protocol: TCP
+        - name: dnsmasq-metrics
+          image: gcr.io/google_containers/dnsmasq-metrics-amd64:1.0
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: 10054
+              scheme: HTTP
+            initialDelaySeconds: 60
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 5
+          args:
+            - --v=2
+            - --logtostderr
+          ports:
+            - containerPort: 10054
+              name: metrics
+              protocol: TCP
+          resources:
+            requests:
+              memory: 10Mi
         - name: healthz
           image: gcr.io/google_containers/exechealthz-amd64:1.2
           resources:

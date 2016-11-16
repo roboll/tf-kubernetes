@@ -115,8 +115,8 @@ write_files:
       ETCD_PKI_MOUNT=${etcd_pki_mount}
       KUBE_PKI_MOUNT=${kube_pki_mount}
 
-      SVC_ACCT_PUBKEY=${service_account_pubkey}
-      SVC_ACCT_PRIVKEY=${service_account_privkey}
+      SVC_ACCT_PUBKEY_PATH=${service_account_pubkey}
+      SVC_ACCT_PRIVKEY_PATH=${service_account_privkey}
 
   - path: /var/lib/kubelet/kubeconfig
     permissions: 0700

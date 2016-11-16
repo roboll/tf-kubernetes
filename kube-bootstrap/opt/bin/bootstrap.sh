@@ -4,14 +4,11 @@ set -eo pipefail
 kube_apis=(
     "clusterrole:https://kubernetes/apis/rbac.authorization.k8s.io/v1alpha1/clusterroles"
     "clusterrolebinding:https://kubernetes/apis/rbac.authorization.k8s.io/v1alpha1/clusterrolebindings"
-    "thirdpartyresource:http://localhost:8080/apis/extensions/v1beta1/thirdpartyresources"
-    "serviceaccount:http://localhost:8080/api/v1/namespaces/kube-system/serviceaccounts"
     "configmap:http://localhost:8080/api/v1/namespaces/kube-system/configmaps"
-    "deployment:http://localhost:8080/apis/extensions/v1beta1/namespaces/kube-system/deployments"
     "daemonset:http://localhost:8080/apis/extensions/v1beta1/namespaces/kube-system/daemonsets"
-    "service:http://localhost:8080/api/v1/namespaces/kube-system/services"
     "secret:http://localhost:8080/api/v1/namespaces/kube-system/secrets"
-    "secretclaim:http://localhost:8080/apis/vaultproject.io/v1/namespaces/kube-system/secretclaims"
+    "service:http://localhost:8080/api/v1/namespaces/kube-system/services"
+    "serviceaccount:http://localhost:8080/api/v1/namespaces/kube-system/serviceaccounts"
 )
 kube_pod_api="http://localhost:8080/api/v1/namespaces/kube-system/pods"
 kube_node_api="http://localhost:8080/api/v1/nodes"
@@ -56,7 +53,6 @@ bootstrap() {
                 curl $curl_kube_opts -XPOST -H "$curl_kube_auth" -H "$curl_json" -d@- $api_path >/dev/null \
                 || true
         done
-        sleep 1
     done
 
     echo ""
