@@ -31,8 +31,8 @@ spec:
             - name: vault-secrets
               mountPath: /var/lib/vault/
               readOnly: true
-            - name: secrets
-              mountPath: /etc/secrets/
+            - name: cert-secrets
+              mountPath: /etc/secrets/certs/
         - name: vault-cert-sidecar-kube
           image: quay.io/roboll/vault-cert-sidecar:v0.0.1-6-g0c646b8
           args:
@@ -51,27 +51,8 @@ spec:
             - name: vault-secrets
               mountPath: /var/lib/vault/
               readOnly: true
-            - name: secrets
-              mountPath: /etc/secrets/
-        - name: vault-sidekick
-          image: quay.io/roboll/vault-sidekick:v0.0.9.12
-          args:
-            - -logtostderr=true
-            - -output=/etc/secrets/svc-acct
-            - -ca-cert=/var/lib/vault/ca.pem
-            - -cn=secret:${SVC_ACCT_PUBKEY_PATH}:file=pubkey.pem,fmt=txt
-          env:
-            - name: VAULT_ADDR
-              value: ${VAULT_ADDR}
-            - name: VAULT_SIDEKICK_AUTH_PLUGIN
-              value: token
-            - name: VAULT_SIDEKICK_TOKEN_FILE
-              value: /var/lib/vault/token
-          volumeMounts:
-            - name: vault-secrets
-              mountPath: /var/lib/vault/
-            - name: secrets
-              mountPath: /etc/secrets/
+            - name: cert-secrets
+              mountPath: /etc/secrets/certs/
         - name: apiserver
           image: ${HYPERKUBE}
           command:
@@ -105,8 +86,11 @@ spec:
             initialDelaySeconds: 30
             timeoutSeconds: 1
           volumeMounts:
-            - name: secrets
-              mountPath: /etc/secrets/
+            - name: svc-acct-pubkey
+              mountPath: /etc/secrets/svc-acct/
+              readOnly: true
+            - name: cert-secrets
+              mountPath: /etc/secrets/certs/
               readOnly: true
             - name: kube-ca
               mountPath: /etc/secrets/kube-ca/
@@ -115,7 +99,10 @@ spec:
               mountPath: /etc/secrets/etcd-ca/
               readOnly: true
       volumes:
-        - name: secrets
+        - name: svc-acct-pubkey
+          secret:
+            secretName: svc-acct-pubkey
+        - name: cert-secrets
           emptyDir: {}
         - name: vault-secrets
           hostPath:

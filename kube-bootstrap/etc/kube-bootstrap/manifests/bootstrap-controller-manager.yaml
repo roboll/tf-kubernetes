@@ -9,26 +9,6 @@ metadata:
 spec:
   hostNetwork: true
   containers:
-    - name: vault-sidekick
-      image: quay.io/roboll/vault-sidekick:v0.0.9.12
-      args:
-        - -logtostderr=true
-        - -output=/etc/secrets/svc-acct/
-        - -ca-cert=/var/lib/vault/ca.pem
-        - -cn=secret:${SVC_ACCT_PRIVKEY_PATH}:file=privkey.pem,fmt=txt
-      env:
-        - name: VAULT_ADDR
-          value: ${VAULT_ADDR}
-        - name: VAULT_SIDEKICK_AUTH_PLUGIN
-          value: token
-        - name: VAULT_SIDEKICK_TOKEN_FILE
-          value: /var/lib/vault/token
-      volumeMounts:
-        - name: vault-secrets
-          mountPath: /var/lib/vault/
-          readOnly: true
-        - name: secrets
-          mountPath: /etc/secrets/svc-acct/
     - name: controller-manager
       image: ${HYPERKUBE}
       command:
@@ -44,15 +24,14 @@ spec:
         - name: kube-ca
           mountPath: /etc/secrets/kube-ca/
           readOnly: true
-        - name: secrets
+        - name: svc-acct-privkey
           mountPath: /etc/secrets/svc-acct/
           readOnly: true
   volumes:
-    - name: secrets
+    - name: svc-acct-privkey
+      secret:
+        secretName: svc-acct-privkey
       emptyDir: {}
-    - name: vault-secrets
-      hostPath:
-        path: /var/lib/vault
     - name: kube-ca
       secret:
         secretName: kube-ca

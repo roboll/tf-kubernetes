@@ -40,6 +40,9 @@ bootstrap() {
         done
     fi
 
+    download_ca_certs
+    download_svc_acct
+
     echo ""
     echo "apiserver ready, applying manifests"
     for entry in ${kube_apis[@]}; do
@@ -105,6 +108,21 @@ download_ca_certs() {
     export ETCD_CA=$(base64 $etcd_ca_file | tr -d '\n')
 }
 
+download_svc_acct() {
+    until [ -f /var/lib/vault/token ]; do
+        echo "waiting for vault token file..."
+    done
+    VAULT_TOKEN=$(cat /var/lib/vault/token)
+
+    privkey_file=$(mktemp)
+    curl $curl_vault_opts -H "X-Vault-Token: $VAULT_TOKEN" ${VAULT_ADDR}/v1/${SVC_ACCT_PRIVKEY_PATH} -o $privkey_file
+    export SVC_ACCT_PRIVKEY=$(jq '.data.privkey' $privkey_file | base64 | tr -d '\n')
+
+    pubkey_file=$(mktemp)
+    curl $curl_vault_opts -H "X-Vault-Token: $VAULT_TOKEN" ${VAULT_ADDR}/v1/${SVC_ACCT_PUBKEY_PATH} -o $pubkey_file
+    export SVC_ACCT_PUBKEY=$(jq '.data.pubkey' $pubkey_file | base64 | tr -d '\n')
+}
+
 run() {
     while true; do
         if curl $curl_kube_opts $kube_healthz_api >/dev/null && \
@@ -121,5 +139,4 @@ run() {
 }
 
 load_env_file
-download_ca_certs
 run
