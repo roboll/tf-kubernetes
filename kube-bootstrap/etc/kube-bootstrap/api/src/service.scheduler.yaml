@@ -3,11 +3,11 @@ apiVersion: v1
 metadata:
   name: scheduler
   namespace: kube-system
+  labels:
+    app: scheduler
   annotations:
     prometheus.io/scrape: "true"
     prometheus.io/port: "10251"
-  labels:
-    app: scheduler
 spec:
   selector:
     app: scheduler

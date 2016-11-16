@@ -3,11 +3,11 @@ apiVersion: v1
 metadata:
   name: controller-manager
   namespace: kube-system
+  labels:
+    app: controller-manager
   annotations:
     prometheus.io/scrape: "true"
     prometheus.io/port: "10252"
-  labels:
-    app: controller-manager
 spec:
   selector:
     app: controller-manager

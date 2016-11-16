@@ -3,11 +3,11 @@ apiVersion: v1
 metadata:
   name: apiserver
   namespace: kube-system
+  labels:
+    app: apiserver
   annotations:
     prometheus.io/scrape: "true"
     prometheus.io/scheme: "https"
-  labels:
-    app: apiserver
 spec:
   selector:
     app: apiserver

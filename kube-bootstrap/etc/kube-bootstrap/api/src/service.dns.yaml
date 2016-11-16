@@ -5,6 +5,9 @@ metadata:
   namespace: kube-system
   labels:
     app: dns
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "10054"
 spec:
   clusterIP: 10.0.0.10
   selector:

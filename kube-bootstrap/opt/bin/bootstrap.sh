@@ -57,8 +57,8 @@ bootstrap() {
 
     echo ""
     echo "waiting for daemonsets to schedule"
-    for ds in $manifest_path/bootstrap-ds-*.yaml; do
-        ds_name=$(echo $ds | sed -e s,$manifest_path/,,g -e s,.yaml,,g -e s,bootstrap-ds-,,g)
+    for ds in $manifest_path/ds.*.yaml; do
+        ds_name=$(echo $ds | sed -e s,$manifest_path/,,g -e s,.yaml,,g -e s,bootstrap-,,g)
 
         echo "checking daemonset $ds_name"
         until curl $curl_kube_opts -H "$curl_kube_auth" $kube_pod_api?labelSelector=app=$ds_name | \
@@ -70,9 +70,10 @@ bootstrap() {
     done
 
     echo "all daemonsets scheduled, deleting bootstrap components"
-    for bs in /etc/kubernetes/manifests/bootstrap-*.yaml; do
-        echo "removing $bs"
-        rm -f $bs
+    for bootstrap in $manifest_path/*.yaml; do
+        manifest=$(echo $bootstrap | s,kube-bootstrap,kubernetes,g)
+        echo "removing $manifest"
+        rm -f $manifest
     done
 
     until curl $curl_kube_opts -H "$curl_kube_auth" $kube_pod_api?labelSelector=phase=bootstrap | \

@@ -3,11 +3,11 @@ apiVersion: v1
 metadata:
   name: etcd
   namespace: kube-system
+  labels:
+    app: etcd
   annotations:
     prometheus.io/scrape: "true"
     prometheus.io/port: "2381"
-  labels:
-    app: etcd
 spec:
   selector:
     app: etcd
