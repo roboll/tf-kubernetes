@@ -175,7 +175,7 @@ resource coreos_cloudconfig cloud_config {
         hyperkube_image = "${var.hyperkube_image}"
         bootstrap_image = "${var.bootstrap_image}"
         vault_ssh_image = "${var.vault_ssh_image}"
-        cert_sidecar_image = "${var.cert_sidecar_image"
+        cert_sidecar_image = "${var.cert_sidecar_image}"
 
         env = "${var.env}"
         region = "${var.region}"
