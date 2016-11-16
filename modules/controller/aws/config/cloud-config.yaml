@@ -74,6 +74,10 @@ coreos:
     - name: vault-ssh.service
       command: start
       content: |
+        [Unit]
+        Requires=docker.service
+        After=docker.service
+
         [Service]
         Type=oneshot
 

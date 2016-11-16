@@ -74,7 +74,7 @@ bootstrap() {
 
     echo "all daemonsets scheduled, deleting bootstrap components"
     for bootstrap in $manifest_path/*.yaml; do
-        manifest=$(echo $bootstrap | s,kube-bootstrap,kubernetes,g)
+        manifest=$(echo $bootstrap | sed s,kube-bootstrap,kubernetes,g)
         echo "removing $manifest"
         rm -f $manifest
     done
