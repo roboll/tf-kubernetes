@@ -20,6 +20,7 @@ spec:
           args:
             - -logtostderr=true
             - -output=/etc/secrets/svc-acct/
+            - -ca-cert=/var/lib/vault/ca.pem
             - -cn=secret:${SVC_ACCT_PRIVKEY_PATH}:file=privkey.pem,fmt=txt
           env:
             - name: VAULT_ADDR
@@ -31,8 +32,9 @@ spec:
           volumeMounts:
             - name: vault-secrets
               mountPath: /var/lib/vault/
+              readOnly: true
             - name: secrets
-              mountPath: /etc/secrets/
+              mountPath: /etc/secrets/svc-acct/
         - name: controller-manager
           image: ${HYPERKUBE}
           command:
@@ -54,7 +56,8 @@ spec:
             timeoutSeconds: 1
           volumeMounts:
             - name: secrets
-              mountPath: /etc/secrets/
+              mountPath: /etc/secrets/svc-acct/
+              readOnly: true
             - name: kube-ca
               mountPath: /etc/secrets/kube-ca/
               readOnly: true

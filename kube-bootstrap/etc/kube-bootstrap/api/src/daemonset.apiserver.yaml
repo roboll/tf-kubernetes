@@ -57,7 +57,8 @@ spec:
           image: quay.io/roboll/vault-sidekick:v0.0.9.12
           args:
             - -logtostderr=true
-            - -output=/etc/secrets/svc-acct/
+            - -output=/etc/secrets/svc-acct
+            - -ca-cert=/var/lib/vault/ca.pem
             - -cn=secret:${SVC_ACCT_PUBKEY_PATH}:file=pubkey.pem,fmt=txt
           env:
             - name: VAULT_ADDR

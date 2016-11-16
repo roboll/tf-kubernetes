@@ -57,7 +57,7 @@ bootstrap() {
 
     echo ""
     echo "waiting for daemonsets to schedule"
-    for ds in $manifest_path/ds.*.yaml; do
+    for ds in $manifest_path/*.yaml; do
         ds_name=$(echo $ds | sed -e s,$manifest_path/,,g -e s,.yaml,,g -e s,bootstrap-,,g)
 
         echo "checking daemonset $ds_name"

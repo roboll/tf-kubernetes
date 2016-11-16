@@ -26,11 +26,11 @@ variable worker_class {}
 variable controller_fqdn {}
 variable kube_pki_backend {}
 
-variable hyperkube { default = "quay.io/coreos/hyperkube" }
-variable kube_version { default = "v1.3.6_coreos.0" }
+variable hyperkube { default = "gcr.io/google_containers/hyperkube" }
+variable kube_version { default = "v1.4.6" }
 
 variable vault_ssh_image { default = "quay.io/roboll/vault-ssh-coreos" }
-variable vault_ssh_tag { default = "v0.3.1" }
+variable vault_ssh_tag { default = "v0.3.2" }
 
 provider aws {
     region = "${var.region}"
