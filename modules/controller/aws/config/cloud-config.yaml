@@ -69,7 +69,7 @@ coreos:
         ExecStart=/usr/bin/docker run --rm --net=host --name=kubectl-cordon \
           -v /var/lib/kubelet/:/var/lib/kubelet/ \
           -v /etc/kubelet/:/etc/kubelet/ \
-          ${hyperkube}:${kube_version} /kubectl cordon %H
+          ${hyperkube_image} /kubectl cordon %H
 
     - name: vault-ssh.service
       command: start
@@ -105,7 +105,7 @@ write_files:
       REGION=${region}
       CLUSTER_NAME=${env}
 
-      HYPERKUBE=${hyperkube}:${kube_version}
+      HYPERKUBE=${hyperkube_image}
       KUBE_FQDN=${kube_fqdn}
 
       ETCD_PEERS=${etcd_peers}
@@ -147,7 +147,7 @@ write_files:
       docker run --rm --name=kube-bootstrap \
         --volume /etc/kubernetes/manifests/:/etc/kubernetes/manifests/ \
         --volume /etc/kube-bootstrap/env:/etc/kube-bootstrap/env \
-        quay.io/roboll/kube-bootstrap:alpha /opt/bin/copy-manifest.sh
+        ${bootstrap_image} /opt/bin/copy-manifest.sh
 
   - path: /opt/bin/bootstrap-kubelet-certs
     permissions: 0700
@@ -160,7 +160,7 @@ write_files:
         --volume /etc/kubelet/:/etc/kubelet/ \
         --volume /var/lib/vault/:/var/lib/vault/ \
         --env-file=/etc/kube-bootstrap/env \
-        quay.io/roboll/vault-cert-sidecar:v0.0.1-6-g0c646b8 \
+        ${cert_sidecar_image} \
           -auth-strategy=aws-ec2  -auth-dir=/var/lib/vault/ -write-auth-info=true \
           -pki-backend=${kube_pki_mount} -cert-dir=/etc/kubelet/ \
           -hostname=kubelet -san=$(hostname -f) \
@@ -182,7 +182,7 @@ write_files:
         --volume=/etc/kubernetes/:/etc/kubernetes/ \
         --volume=/var/lib/docker/:/var/lib/docker/:rw \
         --volume=/var/lib/kubelet/:/var/lib/kubelet/:shared \
-        ${hyperkube}:${kube_version} \
+        ${hyperkube_image} \
           /kubelet \
             --require-kubeconfig=true --kubeconfig=/var/lib/kubelet/kubeconfig \
             --lock-file=/var/run/kubelet/lock --exit-on-lock-contention=true \

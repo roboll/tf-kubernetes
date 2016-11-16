@@ -26,11 +26,9 @@ variable worker_class {}
 variable controller_fqdn {}
 variable kube_pki_backend {}
 
-variable hyperkube { default = "gcr.io/google_containers/hyperkube" }
-variable kube_version { default = "v1.4.6" }
-
-variable vault_ssh_image { default = "quay.io/roboll/vault-ssh-coreos" }
-variable vault_ssh_tag { default = "v0.3.2" }
+variable hyperkube_image { default = "gcr.io/google_containers/hyperkube:v1.4.6" }
+variable vault_ssh_image { default = "quay.io/roboll/vault-ssh-coreos:v0.3.2" }
+variable cert_sidecar_image { default = "quay.io/roboll/vault-cert-sidecar:v0.0.1-6-g0c646b8" }
 
 provider aws {
     region = "${var.region}"
@@ -140,10 +138,9 @@ resource coreos_cloudconfig cloud_config {
         worker_class = "${var.worker_class}"
 
         kube_fqdn = "${var.controller_fqdn}"
-        kube_version = "${var.kube_version}"
-        hyperkube = "${var.hyperkube}"
-
-        vault_ssh_image = "${var.vault_ssh_image}:${var.vault_ssh_tag}"
+        hyperkube_image = "${var.hyperkube}"
+        vault_ssh_image = "${var.vault_ssh_image}"
+        cert_sidecar_image = "${var.cert_sidecar_image}"
 
         region = "${var.region}"
         vault_address = "${var.vault_address}"

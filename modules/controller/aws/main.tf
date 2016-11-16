@@ -25,11 +25,10 @@ variable root_volume_size { default = 20 }
 variable etcd_volume_type { default = "gp2" }
 variable etcd_volume_size { default = 20 }
 
-variable hyperkube { default = "gcr.io/google_containers/hyperkube" }
-variable kube_version { default = "v1.4.6" }
-
-variable vault_ssh_image { default = "quay.io/roboll/vault-ssh-coreos" }
-variable vault_ssh_tag { default = "v0.3.2" }
+variable hyperkube_image { default = "gcr.io/google_containers/hyperkube:v1.4.6" }
+variable bootstrap_image { default = "quay.io/roboll/kube-bootstrap:alpha" }
+variable vault_ssh_image { default = "quay.io/roboll/vault-ssh-coreos:v0.3.2" }
+variable cert_sidecar_image { default = "quay.io/roboll/vault-cert-sidecar:v0.0.1-6-g0c646b8" }
 
 provider aws {
     region = "${var.region}"
@@ -173,10 +172,10 @@ resource coreos_cloudconfig cloud_config {
         etcd_nodes = "${join(",",formatlist("https://%s:2379", null_resource.instances.*.triggers.hostname))}"
 
         kube_fqdn = "kube.${var.domain}"
-        kube_version = "${var.kube_version}"
-        hyperkube = "${var.hyperkube}"
-
-        vault_ssh_image = "${var.vault_ssh_image}:${var.vault_ssh_tag}"
+        hyperkube_image = "${var.hyperkube_image}"
+        bootstrap_image = "${var.bootstrap_image}"
+        vault_ssh_image = "${var.vault_ssh_image}"
+        cert_sidecar_image = "${var.cert_sidecar_image"
 
         env = "${var.env}"
         region = "${var.region}"
@@ -314,8 +313,6 @@ resource aws_route53_record hostnames {
 
 output fqdn { value = "${aws_route53_record.kube.fqdn}" }
 output address { value = "https://${aws_route53_record.kube.fqdn}" }
-
-output hyperkube { value = "${var.hyperkube}" }
 
 output kube_pki_backend { value = "${null_resource.pki_mount.triggers.kube_path}" }
 output etcd_pki_backend { value = "${null_resource.pki_mount.triggers.etcd_path}" }
