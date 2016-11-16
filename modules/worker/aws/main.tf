@@ -138,7 +138,7 @@ resource coreos_cloudconfig cloud_config {
         worker_class = "${var.worker_class}"
 
         kube_fqdn = "${var.controller_fqdn}"
-        hyperkube_image = "${var.hyperkube}"
+        hyperkube_image = "${var.hyperkube_image}"
         vault_ssh_image = "${var.vault_ssh_image}"
         cert_sidecar_image = "${var.cert_sidecar_image}"
 
