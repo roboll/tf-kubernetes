@@ -83,7 +83,7 @@ coreos:
           ${hyperkube}:${kube_version} /kubectl cordon %H
 
 write_files:
-  - path: /etc/ssl/vault/ca.pem
+  - path: /var/lib/vault/ca.pem
     permissions: 0600
     encoding: base64
     content: |
@@ -94,7 +94,7 @@ write_files:
     content: |
       allowed_roles = "*"
       vault_addr = "${vault_address}"
-      ca_cert = "/etc/ssl/vault/ca.pem"
+      ca_cert = "/var/lib/vault/ca.pem"
 
   - path: /etc/kube-bootstrap/env
     permissions: 0600
@@ -109,7 +109,7 @@ write_files:
       ETCD_NODES=${etcd_nodes}
 
       VAULT_ADDR=${vault_address}
-      VAULT_CA_CERT=/etc/ssl/vault/ca.pem
+      VAULT_CA_CERT=/var/lib/vault/ca.pem
       VAULT_AUTH_ROLE=${vault_instance_role}
 
       ETCD_PKI_MOUNT=${etcd_pki_mount}
