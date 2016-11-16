@@ -45,7 +45,6 @@ spec:
         - name: svc-acct-privkey
           secret:
             secretName: svc-acct-privkey
-          emptyDir: {}
         - name: kube-ca
           secret:
             secretName: kube-ca

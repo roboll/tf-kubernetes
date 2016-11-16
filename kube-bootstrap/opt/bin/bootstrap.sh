@@ -116,11 +116,11 @@ download_svc_acct() {
 
     privkey_file=$(mktemp)
     curl $curl_vault_opts -H "X-Vault-Token: $VAULT_TOKEN" ${VAULT_ADDR}/v1/${SVC_ACCT_PRIVKEY_PATH} -o $privkey_file
-    export SVC_ACCT_PRIVKEY=$(jq '.data."privkey.pem"' $privkey_file | base64 | tr -d '\n')
+    export SVC_ACCT_PRIVKEY=$(jq -r '.data."privkey.pem"' $privkey_file | base64 | tr -d '\n')
 
     pubkey_file=$(mktemp)
     curl $curl_vault_opts -H "X-Vault-Token: $VAULT_TOKEN" ${VAULT_ADDR}/v1/${SVC_ACCT_PUBKEY_PATH} -o $pubkey_file
-    export SVC_ACCT_PUBKEY=$(jq '.data."pubkey.pem"' $pubkey_file | base64 | tr -d '\n')
+    export SVC_ACCT_PUBKEY=$(jq -r '.data."pubkey.pem"' $pubkey_file | base64 | tr -d '\n')
 }
 
 run() {
