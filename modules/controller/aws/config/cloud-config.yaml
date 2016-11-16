@@ -12,8 +12,11 @@ coreos:
         Type=oneshot
 
         ExecStartPre=/usr/bin/docker pull ${vault_ssh_image}
-        ExecStart=/usr/bin/docker run \
-          -v /etc/pam.d/:/rootfs/etcd/pam.d/ \
+        ExecStartPre=/usr/bin/mkdir -p /etc/pam.d
+        ExecStartPre=/usrbin/mkdir -p /opt/bin
+        ExecStart=/usr/bin/docker run --rm \
+          -v /etc/pam.d/:/rootfs/etc/pam.d/ \
+          -v /opt/bin/:/rootfs/opt/bin/ \
           ${vault_ssh_image} /install.sh
 
     - name: dev-xvdb-format.service
