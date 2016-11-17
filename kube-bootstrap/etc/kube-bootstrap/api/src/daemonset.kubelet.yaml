@@ -1,7 +1,7 @@
 kind: DaemonSet
 apiVersion: extensions/v1beta1
 metadata:
-  name: kubelet-controller
+  name: kubelet
   namespace: kube-system
   labels:
     app: kubelet
@@ -10,10 +10,7 @@ spec:
     metadata:
       labels:
         app: kubelet
-        role: controller
     spec:
-      nodeSelector:
-        role: controller
       hostPID: true
       hostNetwork: true
       containers:
@@ -37,6 +34,13 @@ spec:
               mountPath: /etc/kubelet/
             - name: var-lib-vault
               mountPath: /var/lib/vault/
+          resources:
+            limits:
+              cpu: 5m
+              memory: 16Mi
+            requests:
+              cpu: 5m
+              memory: 16Mi
 #        - name: socat-bin
 #          image: alpine:3.4
 #          command:
@@ -83,6 +87,13 @@ spec:
 #            - --tls-cert-file=/etc/kubelet/cert.pem
 #            - --tls-private-key-file=/etc/kubelet/key.pem
 #            - --hairpin-mode=hairpin-veth
+#          resources:
+#            limits:
+#              cpu: 150m
+#              memory: 96Mi
+#            requests:
+#              cpu: 150m
+#              memory: 96Mi
 #          securityContext:
 #            privileged: true
 #          env:

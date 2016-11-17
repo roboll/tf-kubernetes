@@ -37,6 +37,13 @@ spec:
             - name: flannel-config
               mountPath: /etc/kube-flannel
               readOnly: true
+          resources:
+            requests:
+              cpu: 5m
+              memory: 16Mi
+            limits:
+              cpu: 5m
+              memory: 16Mi
         - name: install-cni
           image: quay.io/coreos/flannel-git:v0.6.1-28-g5dde68d-amd64
           command:
@@ -50,6 +57,13 @@ spec:
               mountPath: /etc/cni/net.d
             - name: flannel-config
               mountPath: /etc/kube-flannel/
+          resources:
+            requests:
+              cpu: 5m
+              memory: 16Mi
+            limits:
+              cpu: 5m
+              memory: 16Mi
       volumes:
         - name: run
           hostPath:

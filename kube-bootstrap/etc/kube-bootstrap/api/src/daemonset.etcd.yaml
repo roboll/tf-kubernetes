@@ -33,6 +33,13 @@ spec:
               readOnly: true
             - name: secrets
               mountPath: /etc/secrets/
+          resources:
+            requests:
+              cpu: 5m
+              memory: 16Mi
+            limits:
+              cpu: 5m
+              memory: 16Mi
         - name: metrics-proxy
           image: quay.io/roboll/etcd-metrics-proxy:v0.5
           args:
@@ -47,7 +54,10 @@ spec:
           resources:
             requests:
               cpu: 5m
-              memory: 50Mi
+              memory: 64Mi
+            limits:
+              cpu: 5m
+              memory: 64Mi
         - name: etcd
           image: quay.io/coreos/etcd:v3.0.12
           command:
@@ -90,6 +100,13 @@ spec:
             - name: secrets
               mountPath: /etc/secrets/
               readOnly: true
+          resources:
+            requests:
+              cpu: 1000m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi
       volumes:
         - name: secrets
           emptyDir: {}

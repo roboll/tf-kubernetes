@@ -41,6 +41,13 @@ spec:
             - name: kube-ca
               mountPath: /etc/secrets/kube-ca/
               readOnly: true
+          resources:
+            requests:
+              cpu: 200m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
       volumes:
         - name: svc-acct-privkey
           secret:

@@ -17,6 +17,7 @@ spec:
           image: gcr.io/google_containers/kubedns-amd64:1.8
           resources:
             limits:
+              cpu: 100m
               memory: 170Mi
             requests:
               cpu: 100m

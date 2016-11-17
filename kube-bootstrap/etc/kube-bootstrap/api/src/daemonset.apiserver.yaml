@@ -33,6 +33,13 @@ spec:
               readOnly: true
             - name: cert-secrets
               mountPath: /etc/secrets/certs/
+          resources:
+            requests:
+              cpu: 5m
+              memory: 16Mi
+            limits:
+              cpu: 5m
+              memory: 16Mi
         - name: vault-cert-sidecar-kube
           image: quay.io/roboll/vault-cert-sidecar:v0.0.1-6-g0c646b8
           args:
@@ -53,6 +60,13 @@ spec:
               readOnly: true
             - name: cert-secrets
               mountPath: /etc/secrets/certs/
+          resources:
+            requests:
+              cpu: 5m
+              memory: 16Mi
+            limits:
+              cpu: 5m
+              memory: 16Mi
         - name: apiserver
           image: ${HYPERKUBE}
           command:
@@ -85,6 +99,13 @@ spec:
               port: 8080
             initialDelaySeconds: 30
             timeoutSeconds: 1
+          resources:
+            requests:
+              cpu: 1000m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi
           volumeMounts:
             - name: svc-acct-pubkey
               mountPath: /etc/secrets/svc-acct/
