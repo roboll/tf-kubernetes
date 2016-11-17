@@ -67,7 +67,7 @@ spec:
             - --external-hostname=${KUBE_FQDN}
             - --etcd-quorum-read=true
             - --etcd-servers=${ETCD_NODES}
-            - --etcd-cafile=/etc/secrets/certs/etcd-ca/ca.pem
+            - --etcd-cafile=/etc/secrets/etcd-ca/ca.pem
             - --etcd-certfile=/etc/secrets/certs/etcd-tls/cert.pem
             - --etcd-keyfile=/etc/secrets/certs/etcd-tls/key.pem
             - --service-account-key-file=/etc/secrets/svc-acct/pubkey.pem
@@ -89,24 +89,24 @@ spec:
             - name: svc-acct-pubkey
               mountPath: /etc/secrets/svc-acct/
               readOnly: true
-            - name: cert-secrets
-              mountPath: /etc/secrets/certs/
-              readOnly: true
             - name: kube-ca
               mountPath: /etc/secrets/kube-ca/
               readOnly: true
             - name: etcd-ca
               mountPath: /etc/secrets/etcd-ca/
               readOnly: true
+            - name: cert-secrets
+              mountPath: /etc/secrets/certs/
+              readOnly: true
       volumes:
-        - name: svc-acct-pubkey
-          secret:
-            secretName: svc-acct-pubkey
         - name: cert-secrets
           emptyDir: {}
         - name: vault-secrets
           hostPath:
             path: /var/lib/vault/
+        - name: svc-acct-pubkey
+          secret:
+            secretName: svc-acct-pubkey
         - name: kube-ca
           secret:
             secretName: kube-ca

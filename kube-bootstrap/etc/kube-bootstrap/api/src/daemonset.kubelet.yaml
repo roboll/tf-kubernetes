@@ -5,7 +5,6 @@ metadata:
   namespace: kube-system
   labels:
     app: kubelet
-    role: controller
 spec:
   template:
     metadata:
@@ -71,8 +70,7 @@ spec:
 #            - ./hyperkube
 #            - kubelet
 #            - --cloud-provider=
-#            - --node-labels=role=controller
-#            - --register-schedulable=false
+#            - --node-labels=$(cat /etc/kubelet/labels)
 #            - --lock-file=/var/run/kubelet/lock
 #            - --require-kubeconfig
 #            - --kubeconfig=/var/lib/kubelet/kubeconfig

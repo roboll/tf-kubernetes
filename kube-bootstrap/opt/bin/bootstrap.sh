@@ -84,7 +84,7 @@ bootstrap() {
                 select(.status.phase == \"Running\") | \
                 select(.spec.nodeName == \"$(hostname -f)\") | \
                 length as \$length | \$length > 0"; do
-        echo "waiting for bootstrap components to shut down"
+        echo "waiting for bootstrap components to shut down"; sleep 5;
     done
 
     echo "bootstrap complete"
