@@ -126,7 +126,7 @@ write_files:
       SVC_ACCT_PRIVKEY_PATH=${service_account_privkey}
 
   - path: /var/lib/kubelet/kubeconfig
-    permissions: 0700
+    permissions: 0600
     content: |
       kind: Config
       apiVersion: v1
@@ -142,6 +142,11 @@ write_files:
           context:
             cluster: kubernetes
             user: user
+
+  - path: /etc/kubelet/labels
+    permissions: 0600
+    content: |
+      role=controller
 
   - path: /opt/bin/install-kube-bootstrap-manifest
     permissions: 0700
@@ -191,7 +196,7 @@ write_files:
             --require-kubeconfig=true --kubeconfig=/var/lib/kubelet/kubeconfig \
             --lock-file=/var/run/kubelet/lock --exit-on-lock-contention=true \
             --pod-manifest-path=/etc/kubernetes/manifests \
-            --node-labels=role=controller --register-schedulable=false \
+            --node-labels=$(cat /etc/kubelet/labels) \
             --allow-privileged=true --containerized=true \
             --cloud-provider= --cluster-dns=10.0.0.10 --cluster-domain=cluster.local \
             --network-plugin=cni --network-plugin-dir=/etc/cni/net.d \

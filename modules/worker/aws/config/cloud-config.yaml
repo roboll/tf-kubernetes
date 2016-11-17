@@ -82,6 +82,7 @@ write_files:
       KUBE_PKI_MOUNT=${kube_pki_mount}
 
   - path: /var/lib/kubelet/kubeconfig
+    permissions: 0600
     content: |
       apiVersion: v1
       kind: Config
@@ -101,6 +102,11 @@ write_files:
           user:
             client-certificate: /etc/kubelet/cert.pem
             client-key: /etc/kubelet/key.pem
+
+  - path: /etc/kubelet/labels
+    permissions: 0600
+    content: |
+      role=worker,class=${worker_class}
 
   - path: /opt/bin/bootstrap-kubelet-certs
     permissions: 0700
@@ -140,7 +146,7 @@ write_files:
             --require-kubeconfig=true --kubeconfig=/var/lib/kubelet/kubeconfig \
             --lock-file=/var/run/kubelet/lock --exit-on-lock-contention=true \
             --pod-manifest-path=/etc/kubernetes/manifests \
-            --node-labels=role=worker \
+            --node-labels=$(cat /etc/kubelet/labels) \
             --allow-privileged=true --containerized=true \
             --cloud-provider=aws --cluster-dns=10.0.0.10 --cluster-domain=cluster.local \
             --network-plugin=cni --network-plugin-dir=/etc/cni/net.d \
