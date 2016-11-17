@@ -66,7 +66,7 @@ coreos:
         [Service]
         Type=oneshot
 
-        ExecStart=/usr/bin/docker run --rm --net=host --name=kubectl-cordon \
+        ExecStart=/usr/bin/docker run --rm --net=host --privileged --name=kubectl-cordon \
           -v /var/lib/kubelet/:/var/lib/kubelet/ \
           -v /etc/kubelet/:/etc/kubelet/ \
           ${hyperkube_image} /kubectl cordon %H
@@ -84,7 +84,7 @@ coreos:
         ExecStartPre=/usr/bin/docker pull ${vault_ssh_image}
         ExecStartPre=/usr/bin/mkdir -p /etc/pam.d
         ExecStartPre=/usr/bin/mkdir -p /opt/bin
-        ExecStart=/usr/bin/docker run -it --rm \
+        ExecStart=/usr/bin/docker run --rm \
           -v /etc/pam.d/:/rootfs/etc/pam.d/ \
           -v /opt/bin/:/rootfs/opt/bin/ \
           ${vault_ssh_image} /install.sh
