@@ -83,7 +83,7 @@ coreos:
 
         ExecStartPre=/usr/bin/docker pull ${vault_ssh_image}
         ExecStartPre=/usr/bin/mkdir -p /etc/pam.d
-        ExecStartPre=/usrbin/mkdir -p /opt/bin
+        ExecStartPre=/usr/bin/mkdir -p /opt/bin
         ExecStart=/usr/bin/docker run -it --rm \
           -v /etc/pam.d/:/rootfs/etc/pam.d/ \
           -v /opt/bin/:/rootfs/opt/bin/ \
