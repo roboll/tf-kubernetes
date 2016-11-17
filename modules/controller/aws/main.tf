@@ -25,6 +25,8 @@ variable root_volume_size { default = 20 }
 variable etcd_volume_type { default = "gp2" }
 variable etcd_volume_size { default = 20 }
 
+variable kubelet_flags { default = "--register-schedulable=false" }
+
 variable hyperkube_image { default = "gcr.io/google_containers/hyperkube:v1.4.6" }
 variable bootstrap_image { default = "quay.io/roboll/kube-bootstrap:alpha" }
 variable vault_ssh_image { default = "quay.io/roboll/vault-ssh-coreos:v0.3.2" }
@@ -186,6 +188,8 @@ resource coreos_cloudconfig cloud_config {
 
         kube_pki_mount = "${null_resource.pki_mount.triggers.kube_path}"
         etcd_pki_mount = "${null_resource.pki_mount.triggers.etcd_path}"
+
+        kubelet_flags = "${var.kubelet_flags}"
 
         service_account_privkey = "${vaultx_secret.service_account_privkey.path}"
         service_account_pubkey = "${vaultx_secret.service_account_pubkey.path}"

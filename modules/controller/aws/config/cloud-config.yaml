@@ -148,6 +148,11 @@ write_files:
     content: |
       role=controller
 
+  - path: /etc/kubelet/flags
+    permissions: 0600
+    content: |
+      ${kubelet_flags}
+
   - path: /opt/bin/install-kube-bootstrap-manifest
     permissions: 0700
     content: |
@@ -192,7 +197,7 @@ write_files:
         --volume=/var/lib/docker/:/var/lib/docker/:rw \
         --volume=/var/lib/kubelet/:/var/lib/kubelet/:shared \
         ${hyperkube_image} \
-          /kubelet \
+          /kubelet $(cat /etc/kubelet/flags) \
             --require-kubeconfig=true --kubeconfig=/var/lib/kubelet/kubeconfig \
             --lock-file=/var/run/kubelet/lock --exit-on-lock-contention=true \
             --pod-manifest-path=/etc/kubernetes/manifests \

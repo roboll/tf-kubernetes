@@ -26,6 +26,8 @@ variable worker_class {}
 variable controller_fqdn {}
 variable kube_pki_backend {}
 
+variable kubelet_flags { default = "" }
+
 variable hyperkube_image { default = "gcr.io/google_containers/hyperkube:v1.4.6" }
 variable vault_ssh_image { default = "quay.io/roboll/vault-ssh-coreos:v0.3.2" }
 variable cert_sidecar_image { default = "quay.io/roboll/vault-cert-sidecar:v0.0.1-6-g0c646b8" }
@@ -150,6 +152,8 @@ resource coreos_cloudconfig cloud_config {
         vault_curl_opts = "${var.vault_curl_opts}"
 
         kube_pki_mount = "${var.kube_pki_backend}"
+
+        kubelet_flags = "${var.kubelet_flags}"
     }
 
     lifecycle { create_before_destroy = true }
