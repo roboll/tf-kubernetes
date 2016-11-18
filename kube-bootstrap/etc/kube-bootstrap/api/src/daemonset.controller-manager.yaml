@@ -14,12 +14,13 @@ spec:
       nodeSelector:
         role: controller
       hostNetwork: true
+      serviceAccount: controller-manager
       containers:
         - name: controller-manager
           image: ${HYPERKUBE}
           command:
             - /controller-manager
-            - --master=localhost:8080
+            - --master=${KUBE_FQDN}
             - --leader-elect=true
             - --cloud-provider=aws
             - --allocate-node-cidrs=true

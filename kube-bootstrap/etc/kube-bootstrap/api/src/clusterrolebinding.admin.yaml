@@ -5,9 +5,6 @@ metadata:
 subjects:
   - kind: User
     name: admin
-  - kind: ServiceAccount
-    name: default
-    namespace: kube-system
 roleRef:
   kind: ClusterRole
   apiVersion: rbac.authorization.k8s.io/v1alpha1
