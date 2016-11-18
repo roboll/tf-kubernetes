@@ -38,7 +38,7 @@ spec:
               cpu: 5m
               memory: 16Mi
             limits:
-              cpu: 5m
+              cpu: 10m
               memory: 16Mi
         - name: vault-cert-sidecar-kube
           image: quay.io/roboll/vault-cert-sidecar:v0.0.1-6-g0c646b8
@@ -65,7 +65,7 @@ spec:
               cpu: 5m
               memory: 16Mi
             limits:
-              cpu: 5m
+              cpu: 10m
               memory: 16Mi
         - name: apiserver
           image: ${HYPERKUBE}

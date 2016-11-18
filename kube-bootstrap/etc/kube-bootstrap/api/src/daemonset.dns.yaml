@@ -17,11 +17,11 @@ spec:
           image: gcr.io/google_containers/kubedns-amd64:1.8
           resources:
             limits:
-              cpu: 100m
-              memory: 170Mi
+              cpu: 200m
+              memory: 64Mi
             requests:
-              cpu: 100m
-              memory: 70Mi
+              cpu: 50m
+              memory: 32Mi
           livenessProbe:
             httpGet:
               path: /healthz-kubedns
@@ -71,6 +71,13 @@ spec:
             - containerPort: 53
               name: dns-tcp
               protocol: TCP
+          resources:
+            limits:
+              cpu: 2000m
+              memory: 32Mi
+            requests:
+              cpu: 50m
+              memory: 32Mi
         - name: dnsmasq-metrics
           image: gcr.io/google_containers/dnsmasq-metrics-amd64:1.0
           livenessProbe:
@@ -91,7 +98,11 @@ spec:
               protocol: TCP
           resources:
             requests:
-              memory: 10Mi
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 16Mi
         - name: healthz
           image: gcr.io/google_containers/exechealthz-amd64:1.2
           resources:
@@ -103,6 +114,9 @@ spec:
               # limits are set higher than expected pending investigation on #29688.
               # The extra memory was stolen from the kubedns container to keep the
               # net memory requested by the pod constant.
+              memory: 50Mi
+            limits:
+              cpu: 50m
               memory: 50Mi
           args:
             - --cmd=nslookup kubernetes.default.svc.cluster.local 127.0.0.1 >/dev/null

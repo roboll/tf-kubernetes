@@ -39,7 +39,7 @@ spec:
               cpu: 5m
               memory: 16Mi
             requests:
-              cpu: 5m
+              cpu: 10m
               memory: 16Mi
 #        - name: socat-bin
 #          image: alpine:3.4
