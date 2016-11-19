@@ -6,6 +6,7 @@ kube_apis=(
     "clusterrolebinding:https://kubernetes/apis/rbac.authorization.k8s.io/v1alpha1/clusterrolebindings"
     "configmap:http://localhost:8080/api/v1/namespaces/kube-system/configmaps"
     "daemonset:http://localhost:8080/apis/extensions/v1beta1/namespaces/kube-system/daemonsets"
+    "deployment:http://localhost:8080/apis/extensions/v1beta1/namespaces/kube-system/deployments"
     "secret:http://localhost:8080/api/v1/namespaces/kube-system/secrets"
     "service:http://localhost:8080/api/v1/namespaces/kube-system/services"
     "serviceaccount:http://localhost:8080/api/v1/namespaces/kube-system/serviceaccounts"
