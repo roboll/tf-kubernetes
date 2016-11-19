@@ -12,6 +12,7 @@ spec:
         app: dns
     spec:
       dnsPolicy: Default
+      serviceAccount: dns
       containers:
         - name: kubedns
           image: gcr.io/google_containers/kubedns-amd64:1.8

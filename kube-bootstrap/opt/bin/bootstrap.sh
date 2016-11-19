@@ -83,12 +83,11 @@ bootstrap() {
         rm -f $manifest
     done
 
-    set -x
-    until curl $curl_kube_opts -H "$curl_kube_auth" $kube_pod_api?labelSelector=phase=bootstrap | \
+    while curl $curl_kube_opts -H "$curl_kube_auth" $kube_pod_api?labelSelector=phase=bootstrap | \
         jq -er ".items[] | \
                 select(.status.phase == \"Running\") | \
                 select(.spec.nodeName == \"$(hostname -f)\") | \
-                length as \$length | \$length == 0"; do
+                length as \$length | \$length > 0"; do
         log "waiting for bootstrap components to shut down"
         sleep 5
     done
