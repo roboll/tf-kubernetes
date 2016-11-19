@@ -109,8 +109,9 @@ write_files:
       REGION=${region}
       CLUSTER_NAME=${env}
 
-      HYPERKUBE=${hyperkube_image}
       KUBE_FQDN=${kube_fqdn}
+      CONTROLLER_COUNT=${controller_count}
+      HYPERKUBE=${hyperkube_image}
 
       ETCD_PEERS=${etcd_peers}
       ETCD_NODES=${etcd_nodes}

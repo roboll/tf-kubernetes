@@ -174,6 +174,7 @@ resource coreos_cloudconfig cloud_config {
         etcd_nodes = "${join(",",formatlist("https://%s:2379", null_resource.instances.*.triggers.hostname))}"
 
         kube_fqdn = "kube.${var.domain}"
+        controller_count = "${var.replicas}"
         hyperkube_image = "${var.hyperkube_image}"
         bootstrap_image = "${var.bootstrap_image}"
         vault_ssh_image = "${var.vault_ssh_image}"
