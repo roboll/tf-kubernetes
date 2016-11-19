@@ -24,33 +24,37 @@ curl_json="Content-Type: application/json"
 manifest_path=/etc/kube-bootstrap/manifests
 objects_path=/etc/kube-bootstrap/api/objects
 
+log() {
+    echo "$(date '+%D %T') $@"
+}
+
 bootstrap() {
     if curl $curl_kube_opts $kube_healthz_api >/dev/null && \
         curl $curl_kube_opts $kube_node_api >/dev/null; then
-        echo "apiserver up, not copying bootstrap manifests"
+        log "apiserver up, not copying bootstrap manifests"
     else
-        echo "copying bootstrap manifests to /etc/kubernetes/manifests..."
+        log "copying bootstrap manifests to /etc/kubernetes/manifests..."
 
         for item in $manifest_path/*; do
             cat $item | envsubst > /etc/kubernetes/manifests/${item#$manifest_path}
         done
 
         until curl $curl_kube_opts -H "$curl_kube_auth" $kube_healthz_api; do
-            echo "waiting for bootstrap apiserver (5s)..."; sleep 5;
+            log "waiting for bootstrap apiserver...";
+            sleep 5
         done
     fi
 
     download_ca_certs
     download_svc_acct
 
-    echo ""
-    echo "apiserver ready, applying manifests"
+    log "apiserver ready, applying manifests"
     for entry in ${kube_apis[@]}; do
         api_type="${entry%%:*}"
         api_path="${entry#*:}"
 
         for file in $objects_path/$api_type.*.json; do
-            echo "creating $api_type from $file"
+            log "creating $api_type from $file"
             cat $file | \
                 envsubst | \
                 curl $curl_kube_opts -XPOST -H "$curl_kube_auth" -H "$curl_json" -d@- $api_path >/dev/null \
@@ -58,36 +62,38 @@ bootstrap() {
         done
     done
 
-    echo ""
-    echo "waiting for daemonsets to schedule"
-    for ds in $manifest_path/*.yaml; do
+    log "waiting for critical daemonsets to schedule"
+    for ds in {etcd,apiserver,proxy,controller-manager}; do
         ds_name=$(echo $ds | sed -e s,$manifest_path/,,g -e s,.yaml,,g -e s,bootstrap-,,g)
 
-        echo "checking daemonset $ds_name"
+        log "checking daemonset $ds_name"
         until curl $curl_kube_opts -H "$curl_kube_auth" $kube_pod_api?labelSelector=app=$ds_name | \
             jq -er ".items[] | \
                     select(.status.phase == \"Running\") | \
                     select(.spec.nodeName == \"$(hostname -f)\")"; do
-            echo "waiting for $ds_name to schedule on $(hostname -f)"; sleep 5;
+            log "waiting for $ds_name to schedule on $(hostname -f)"
+            sleep 5
         done
     done
 
-    echo "all daemonsets scheduled, deleting bootstrap components"
+    log "critical daemonsets scheduled, deleting bootstrap components"
     for bootstrap in $manifest_path/*.yaml; do
         manifest=$(echo $bootstrap | sed s,kube-bootstrap,kubernetes,g)
-        echo "removing $manifest"
+        log "removing $manifest"
         rm -f $manifest
     done
 
+    set -x
     until curl $curl_kube_opts -H "$curl_kube_auth" $kube_pod_api?labelSelector=phase=bootstrap | \
         jq -er ".items[] | \
                 select(.status.phase == \"Running\") | \
                 select(.spec.nodeName == \"$(hostname -f)\") | \
-                length as \$length | \$length > 0"; do
-        echo "waiting for bootstrap components to shut down"; sleep 5;
+                length as \$length | \$length == 0"; do
+        log "waiting for bootstrap components to shut down"
+        sleep 5
     done
 
-    echo "bootstrap complete"
+    log "bootstrap complete"
 }
 
 load_env_file() {
@@ -110,7 +116,8 @@ download_ca_certs() {
 
 download_svc_acct() {
     until [ -f /var/lib/vault/token ]; do
-        echo "waiting for vault token file..."; sleep 5;
+        log "waiting for vault token file..."
+        sleep 5
     done
     VAULT_TOKEN=$(cat /var/lib/vault/token)
 
@@ -127,9 +134,9 @@ run() {
     while true; do
         if curl $curl_kube_opts $kube_healthz_api >/dev/null && \
             curl $curl_kube_opts $kube_node_api >/dev/null; then
-        echo "apiserver ok..."
+        log "apiserver ok..."
         else
-            echo "apiserver down, running bootstrap sequence"
+            log "apiserver down, running bootstrap sequence"
             bootstrap
             sleep 30
         fi

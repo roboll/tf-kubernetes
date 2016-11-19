@@ -20,7 +20,6 @@ spec:
           image: ${HYPERKUBE}
           command:
             - /controller-manager
-            - --master=${KUBE_FQDN}
             - --leader-elect=true
             - --cloud-provider=aws
             - --allocate-node-cidrs=true
