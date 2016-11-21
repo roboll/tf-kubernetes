@@ -146,6 +146,7 @@ write_files:
         --volume=/sys/:/sys/:ro \
         --volume=/dev/:/dev/ \
         --volume=/var/run/:/var/run/:rw \
+        --volume=/var/log/:/var/log/:rw \
         --volume /etc/kubelet/:/etc/kubelet/ \
         --volume /etc/kubernetes/:/etc/kubernetes/ \
         --volume=/var/lib/docker/:/var/lib/docker/:rw \
