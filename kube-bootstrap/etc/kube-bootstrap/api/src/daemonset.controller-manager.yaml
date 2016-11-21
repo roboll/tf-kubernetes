@@ -48,6 +48,27 @@ spec:
             limits:
               cpu: 200m
               memory: 128Mi
+        - name: watcher
+          image: quay.io/roboll/watcher:v0.1.0
+          args:
+            - -watch=/etc/secrets/svc-acct/..data,/etc/secrets/kube-ca/..data
+            - -exec-command=kubectl -n $(POD_NAMESPACE) exec $(POD_NAME) -c controller-manager -- pkill -HUP controller-manager
+          volumeMounts:
+            - name: svc-acct-privkey
+              mountPath: /etc/secrets/svc-acct/
+              readOnly: true
+            - name: kube-ca
+              mountPath: /etc/secrets/kube-ca/
+              readOnly: true
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
       volumes:
         - name: svc-acct-privkey
           secret:

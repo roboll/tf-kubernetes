@@ -60,6 +60,10 @@ coreos:
           ${vault_ssh_image} /install.sh
 
 write_files:
+  - path: /etc/sysctl.d/mmap.conf
+    content: |
+      vm.max_map_count=262144
+
   - path: /var/lib/vault/ca.pem
     permissions: 0600
     encoding: base64

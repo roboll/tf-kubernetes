@@ -15,58 +15,6 @@ spec:
         role: controller
       hostNetwork: true
       containers:
-        - name: vault-cert-sidecar-etcd
-          image: quay.io/roboll/vault-cert-sidecar:v0.0.1-6-g0c646b8
-          args:
-            - -auth-strategy=token-file
-            - -pki-backend=${ETCD_PKI_MOUNT}
-            - -pki-role=apiserver
-            - -hostname=controller
-            - -cert-dir=/etc/secrets/certs/etcd-tls
-            - -auth-dir=/var/lib/vault
-          env:
-            - name: VAULT_ADDR
-              value: ${VAULT_ADDR}
-          volumeMounts:
-            - name: vault-secrets
-              mountPath: /var/lib/vault/
-              readOnly: true
-            - name: cert-secrets
-              mountPath: /etc/secrets/certs/
-          resources:
-            requests:
-              cpu: 5m
-              memory: 16Mi
-            limits:
-              cpu: 10m
-              memory: 16Mi
-        - name: vault-cert-sidecar-kube
-          image: quay.io/roboll/vault-cert-sidecar:v0.0.1-6-g0c646b8
-          args:
-            - -auth-strategy=token-file
-            - -pki-backend=${KUBE_PKI_MOUNT}
-            - -pki-role=apiserver
-            - -hostname=${KUBE_FQDN}
-            - -san=kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster.local
-            - -ip-san=10.0.0.1
-            - -cert-dir=/etc/secrets/certs/kube-tls
-            - -auth-dir=/var/lib/vault
-          env:
-            - name: VAULT_ADDR
-              value: ${VAULT_ADDR}
-          volumeMounts:
-            - name: vault-secrets
-              mountPath: /var/lib/vault/
-              readOnly: true
-            - name: cert-secrets
-              mountPath: /etc/secrets/certs/
-          resources:
-            requests:
-              cpu: 5m
-              memory: 16Mi
-            limits:
-              cpu: 10m
-              memory: 16Mi
         - name: apiserver
           image: ${HYPERKUBE}
           command:
@@ -120,6 +68,85 @@ spec:
             - name: cert-secrets
               mountPath: /etc/secrets/certs/
               readOnly: true
+        - name: vault-cert-sidecar-kube
+          image: quay.io/roboll/vault-cert-sidecar:v0.0.1-6-g0c646b8
+          args:
+            - -auth-strategy=token-file
+            - -pki-backend=${KUBE_PKI_MOUNT}
+            - -pki-role=apiserver
+            - -hostname=${KUBE_FQDN}
+            - -san=kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster.local
+            - -ip-san=10.0.0.1
+            - -cert-dir=/etc/secrets/certs/kube-tls
+            - -auth-dir=/var/lib/vault
+          env:
+            - name: VAULT_ADDR
+              value: ${VAULT_ADDR}
+          volumeMounts:
+            - name: vault-secrets
+              mountPath: /var/lib/vault/
+              readOnly: true
+            - name: cert-secrets
+              mountPath: /etc/secrets/certs/
+          resources:
+            requests:
+              cpu: 5m
+              memory: 16Mi
+            limits:
+              cpu: 10m
+              memory: 16Mi
+        - name: vault-cert-sidecar-etcd
+          image: quay.io/roboll/vault-cert-sidecar:v0.0.1-6-g0c646b8
+          args:
+            - -auth-strategy=token-file
+            - -pki-backend=${ETCD_PKI_MOUNT}
+            - -pki-role=apiserver
+            - -hostname=controller
+            - -cert-dir=/etc/secrets/certs/etcd-tls
+            - -auth-dir=/var/lib/vault
+          env:
+            - name: VAULT_ADDR
+              value: ${VAULT_ADDR}
+          volumeMounts:
+            - name: vault-secrets
+              mountPath: /var/lib/vault/
+              readOnly: true
+            - name: cert-secrets
+              mountPath: /etc/secrets/certs/
+          resources:
+            requests:
+              cpu: 5m
+              memory: 16Mi
+            limits:
+              cpu: 10m
+              memory: 16Mi
+        - name: watcher
+          image: quay.io/roboll/watcher:v0.1.0
+          args:
+            - -watch=/etc/secrets/svc-acct/..data,/etc/secrets/kube-ca/..data,/etc/secrets/etcd-ca/..data,/etc/secrets/certs/etcd-tls/cert.pem,/etc/secrets/certs/kube-tls/cert.pem
+            - -exec-command=kubectl -n $(POD_NAMESPACE) exec $(POD_NAME) -c apiserver -- pkill -HUP apiserver
+          volumeMounts:
+            - name: svc-acct-pubkey
+              mountPath: /etc/secrets/svc-acct/
+              readOnly: true
+            - name: kube-ca
+              mountPath: /etc/secrets/kube-ca/
+              readOnly: true
+            - name: etcd-ca
+              mountPath: /etc/secrets/etcd-ca/
+              readOnly: true
+            - name: cert-secrets
+              mountPath: /etc/secrets/certs/
+              readOnly: true
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
       volumes:
         - name: cert-secrets
           emptyDir: {}
